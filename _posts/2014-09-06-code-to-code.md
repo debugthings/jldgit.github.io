@@ -1,6 +1,7 @@
 ---
 layout: post
 title: Writing code to write code
+excerpt: Every now and then a balance needs to be struck from the every day coding of an application. While personal life is usually the topic for these types of posts, today that is not the case. Sometimes you have to write code in order to write code.
 ---
 
 Every now and then a balance needs to be struck from the every day coding of an application. While personal life is usually the topic for these types of posts, today that is not the case. Sometimes you have to write code in order to write code.
