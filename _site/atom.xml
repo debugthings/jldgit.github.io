@@ -1,0 +1,68 @@
+<?xml version="1.0" encoding="utf-8"?>
+<feed xmlns="http://www.w3.org/2005/Atom">
+
+ <title>Debug Things</title>
+ <link href="/atom.xml" rel="self"/>
+ <link href="/"/>
+ <updated>2014-09-07T23:03:10-04:00</updated>
+ <id></id>
+ <author>
+   <name>James Davis</name>
+   <email>james.l.davis@outlook.com</email>
+ </author>
+
+ 
+ <entry>
+   <title>Writing code to write code</title>
+   <link href="//2014/09/06/code-to-code/"/>
+   <updated>2014-09-06T00:00:00-04:00</updated>
+   <id>/2014/09/06/code-to-code</id>
+   <content type="html">&lt;p&gt;Every now and then a balance needs to be struck from the every day coding of an application. While personal life is usually the topic for these types of posts, today that is not the case. Sometimes you have to write code in order to write code. This is somewhat of an extended rant from my previous post.&lt;/p&gt;
+
+&lt;p&gt;While developing the core components of my &lt;a href=&quot;http://www.github.com/chainsapm&quot;&gt;ChainsAPM&lt;/a&gt; solution I felt the need to write down thoughts and musings of what I&amp;#39;m trying to do as well as explain some details of the implementation. Plus, I have other things to talk about aside from that project. At the same time I need to keep myself organized; so I needed to make a separate space.&lt;/p&gt;
+
+&lt;p&gt;Behold, the humble blog. This has always been the best sounding board for getting ideas out there. While the normal blogging scene is great, there are a lot of gotchas and really some implementation details I don&amp;#39;t want to mess with. Places like Wordpress and blogger have excellent packages, software and templates. I have used these places before to bring to life some idea or useful tip. But, in all of this simplicity, lay a problem I never thought about. Once I signed up, I usually never signed back in once I wrote a couple of blogs.&lt;/p&gt;
+
+&lt;p&gt;Part of the reason for this is beacause I never really used the software as it was intended. I didn&amp;#39;t connect with like minded bloggers, I didn&amp;#39;t share the pages and I was just overall uninterested in the process. I didn&amp;#39;t have much control over what the pages looked like unless I wanted to get into some Wordpress implementation details that I didn&amp;#39;t need.&lt;/p&gt;
+
+&lt;p&gt;GitHub provides a very minimalistic blogging infrastructure based on Jekyll (which was written at GitHub). It&amp;#39;s a Ruby implemented web server that uses simple templating to make static content. Once you compile the Jekyll site you can publish it anywhere and not require any databases or other silly things just to deliver content.&lt;/p&gt;
+
+&lt;p&gt;But, going this route meant I had to learn &lt;strong&gt;YET ANOTHER&lt;/strong&gt; thing in order to get some words on the internets. It&amp;#39;s starting to feel like Wordpress all over again. But, this time I have a vested interest because it&amp;#39;s somewhat of a unified front. I&amp;#39;m developing my blog site in my normal IDE using familiar tools and publishing to a place that I visit every day.&lt;/p&gt;
+
+&lt;p&gt;So instead of just sluffing off the task I decided to learn this new-to-me skill because it was also more robust and allowed me to do things that would be difficult at best and impossible overall to implement. I am now able to combine efforts and cross post to my two blogs. &lt;/p&gt;
+
+&lt;p&gt;After plowing through a month of coding in C++ I found myself wanting something a bit prettier, something that I could craft a bit more organically and not stress about all of the implementation details. In other words, I had to write this code in order to write other code.&lt;/p&gt;
+</content>
+ </entry>
+ 
+ <entry>
+   <title>Back to basics</title>
+   <link href="//2014/09/05/back-to-basics/"/>
+   <updated>2014-09-05T00:00:00-04:00</updated>
+   <id>/2014/09/05/back-to-basics</id>
+   <content type="html">&lt;p&gt;Sometimes you need to get rid of all of the shit that makes up a &amp;quot;good&amp;quot; blog platform and roll your own. I don&amp;#39;t mean to take away merrit from these platforms, but it just wasn&amp;#39;t what I needed.&lt;/p&gt;
+
+&lt;p&gt;I picked up the GitHub/Jekyll platform for blogging because it simplifies my toolset. I don&amp;#39;t have to go in and out of different web pages, saving, posting, previewing, deleting. I just fire up Vi, Nano, notepad, or even Visual Studio and just start writing. If there is a change to a style or page in particular I can change it rather easily using Jekyll and the liquid templating framework written by shopify.&lt;/p&gt;
+
+&lt;p&gt;Some things that are &amp;quot;useful&amp;quot; but not needed:&lt;/p&gt;
+
+&lt;h2&gt;Comments&lt;/h2&gt;
+
+&lt;p&gt;Really this feature is overrated. I like feedback as much as the next person. But a lot of times this section gets littered with advertisements and distracting asides; AKA &lt;strong&gt;SPAM&lt;/strong&gt;.&lt;/p&gt;
+
+&lt;h2&gt;Link backs&lt;/h2&gt;
+
+&lt;p&gt;Just like the comments this feature can add a lot of SPAM to a page.&lt;/p&gt;
+
+&lt;h2&gt;Prefab Templates&lt;/h2&gt;
+
+&lt;p&gt;I might sound a bit pretentious at this point and it&amp;#39;s just going to get worse. Prefab templates a great for boiler plating a website. But, being a developer I sometimes feel I&amp;#39;m cheating and that I can do better. Templates are a crutch that has lead me to a failed blog just about every time. Also, I can&amp;#39;t get behind paid templates either. I think when I see a template I like that&amp;#39;s paid it saddens me because I know I could make something that looks like that but I&amp;#39;m too lazy.&lt;/p&gt;
+
+&lt;h2&gt;Blog groups&lt;/h2&gt;
+
+&lt;p&gt;I&amp;#39;m iffy on listing this because it can help group like minded blogs, but really just serves to drive traffic away from your contet.&lt;/p&gt;
+</content>
+ </entry>
+ 
+
+</feed>
