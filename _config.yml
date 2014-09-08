@@ -8,8 +8,8 @@ permalink:        pretty
 # Setup
 title:            Debug Things
 tagline:          A little bit of debugging, a little bit of ranting.
-url:              http://jldgit.github.io
-paginate:         1
+url:              
+paginate:         5
 baseurl:          /
 author:
   name:           James Davis
