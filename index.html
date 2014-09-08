@@ -1,35 +1,37 @@
-<!doctype html>
-<html>
-  <head>
-    <meta charset="utf-8">
-    <meta http-equiv="X-UA-Compatible" content="chrome=1">
-    <title>jldgit by jldgit</title>
+﻿---
+layout: default
+title: Home
+---
+<div class=""
+<div class="posts">
+  {% for post in paginator.posts %}
+  <div class="post">
+    <h1 class="post-title">
+      <a href="{{ site.url }}{{ post.url }}">
+        {{ post.title }}
+      </a>
+    </h1>
 
-    <link rel="stylesheet" href="stylesheets/styles.css">
-    <link rel="stylesheet" href="stylesheets/pygment_trac.css">
-    <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
-    <!--[if lt IE 9]>
-    <script src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script>
-    <![endif]-->
-  </head>
-  <body>
-    <div class="wrapper">
-      <header>
-        <h1>James Davis</h1>
-        <span><a href="https://github.com/jldgit/">jldgit</a>, </span><span><a href="http://www.twitter.com/debugthings">@debugthings</a></span>
-      </header>
-      <section>
-       <h3>New blog spot</h3>
-       <p>After spending time on other blog sites like blogger and wordpress I found it more difficult to keep up with linking my interests properly. So, instead of setting up a complicated database driven solution I felt it was okay to just go native and write it all in html.</p>
-        <p></p>
-       <p>That's right. I am foregoing the traditional approach and just blogging to blog. No link backs, no comments, no fancy polls, just code. However, I'm not closed off to questions or other responses so feel free to open an <a href="https://github.com/jldgit/jldgit/issues">issue</a> about a post and the discussion can live on there forever.</p>
-      </section>
-      <footer>
-        <p>This project is maintained by <a href="https://github.com/jldgit">jldgit</a></p>
-        <p><small>Hosted on GitHub Pages &mdash; Theme by <a href="https://github.com/orderedlist">orderedlist</a></small></p>
-      </footer>
-    </div>
-    <script src="javascripts/scale.fix.js"></script>
-    
-  </body>
-</html>
+    <span class="post-date">{{ post.date | date_to_string }}</span>
+
+    {{ post.excerpt }}
+  </div>
+  {% endfor %}
+</div>
+
+<div class="pagination">
+  {% if paginator.next_page %}
+    <a class="pagination-item older" href="{{ site.baseurl }}page{{paginator.next_page}}">Older</a>
+  {% else %}
+    <span class="pagination-item older">Older</span>
+  {% endif %}
+  {% if paginator.previous_page %}
+    {% if paginator.page == 2 %}
+      <a class="pagination-item newer" href="{{ site.baseurl }}">Newer</a>
+    {% else %}
+      <a class="pagination-item newer" href="{{ site.baseurl }}page{{paginator.previous_page}}">Newer</a>
+    {% endif %}
+  {% else %}
+    <span class="pagination-item newer">Newer</span>
+  {% endif %}
+</div>

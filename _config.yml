@@ -1,0 +1,22 @@
+# Dependencies
+markdown:         redcarpet
+pygments:         true
+
+# Permalinks
+permalink:        pretty
+
+# Setup
+title:            Debug Things
+tagline:          A little bit of debugging, a little bit of ranting.
+url:              http://jldgit.github.io
+paginate:         1
+baseurl:          http://jldgit.github.io/
+author:
+  name:           James Davis
+  url:            https://twitter.com/debugthings
+  email:          james.l.davis@outlook.com
+
+# Custom vars
+version:          1.0.0
+github:
+  repo:           https://www.github.com/jldgit
