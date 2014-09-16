@@ -7,7 +7,7 @@ permalink:        pretty
 
 # Setup
 title:            Debug Things
-tagline:          A little bit of debugging, a little bit of ranting.
+tagline:          Debugging, performance testing, DevOps, and ranting.
 url:              
 paginate:         5
 baseurl:          /
