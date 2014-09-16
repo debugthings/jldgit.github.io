@@ -1,7 +1,7 @@
 ---
 layout: post
 title: Always Performance Test!
-excerpt: While thumbing through Twitter I ran across an [article][cmpblog] written by [@grabnerandi][grabtwit] about a company not being able to load test a change for dependency injection. I can't tell you how many times in my job that performance testing has been brushed over for speed to market.
+excerpt: While thumbing through Twitter I ran across an article written by @grabnerandi about a company not being able to load test a change for dependency injection. I can't tell you how many times in my job that performance testing has been brushed over for speed to market.
 ---
 
 While thumbing through Twitter I ran across an [article][cmpblog] written by [@grabnerandi][grabtwit] about a company not being able to load test a change for dependency injection. I can't tell you how many times in my job that performance testing has been brushed over for speed to market.
@@ -10,7 +10,7 @@ Look, I get it. **Money**. There, I said it. Most of the time the driving factor
 
 I know, I know. **Time**. Right after money, but usually goes hand-in-hand, is time. This excuse gets even the best of us. Does anyone have time? No. Do we do it anyway? Sometimes. I'd like to say that while being the performance testing and DevOps advocate that I just ooze availability. But, I don't. Just like everyone else I have constraints.
 
-What does it mean? Money + Time = **Effort*. It always comes down to effort. This is the way to merge both time and money into one shortsighted mess. The effort required to test is usually deemed greater than the effort to just put it in. This is the death bringer of many of once stable applications.
+What does it mean? Money + Time = **Effort**. It always comes down to effort. This is the way to merge both time and money into one shortsighted mess. The effort required to test is usually deemed greater than the effort to just put it in. This is the death bringer of many of once stable applications.
 
 ##Story Time
 A while ago our team was asked to performance test a new web application. We got our grubby little hands on it we shredded the code and the database layout. Only to be met with "No one runs it like that." Apparently we were "no one." As a good performance testing team we provided solutions to the problems and the application team would make sure they went in. 
