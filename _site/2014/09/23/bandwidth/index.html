@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en-us">
 
-  <head>
+<head>
   <link href="http://gmpg.org/xfn/11" rel="profile">
   <meta http-equiv="content-type" content="text/html; charset=utf-8">
 
@@ -10,13 +10,14 @@
 
   <title>
     
-      Bandwidth. It's not free... &middot; Debug Things
+    Bandwidth. It's not free... &middot; Debug Things
     
   </title>
 
   <!-- CSS -->
+  <link rel="stylesheet" href="/public/css/monokai.css">
   <link rel="stylesheet" href="/public/css/poole.css">
-  <link rel="stylesheet" href="/public/css/syntax.css">
+  
 
   <!-- Icons -->
   <link rel="apple-touch-icon-precomposed" sizes="144x144" href="/public/apple-touch-icon-precomposed.png">
@@ -27,20 +28,24 @@
 </head>
 
 
-  <body>
-
-    <div class="container content">
-      <div class="masthead">
-        <h3 class="masthead-title">
-          <a href="/" title="Home">Debug Things</a>
-          <small>Debugging, performance testing, DevOps, and ranting.</small>
-          <small><a href="http://www.twitter.com/debugthings">@debugthings</a><a href="http://www.twitter.com/debugthings">@chainsapm</a></small>
-        </h3>
+<body>
+  <div class="container content">
+    <div class="masthead">
+      <h3 class="masthead-title">
+        <a href="/" title="Home">Debug Things</a>
+      </h3>
+      <small>Debugging, performance testing, DevOps, and ranting.</small><br />
+      <div style="display: flex">
+      <a href="http://www.linkedin.com/in/debugthings/"><img src="https://dlc1-s.licdn.com/sites/default/files/InBug-60px-R.png" class="linked" /></a>
+      <a href="http://www.twitter.com/debugthings"><div class="twitbox"><img src="https://g.twimg.com/Twitter_logo_white.png" /></div>@debugthings</a>
       </div>
+    </div>
 
-      <div class="post">
+    <div class="post">
   <h1 class="post-title">Bandwidth. It's not free...</h1>
   <span class="post-date">23 Sep 2014</span>
+  <a href="https://twitter.com/share" class="twitter-share-button" data-via="debugthings" data-size="large">Tweet</a>
+  <script>!function(d,s,id){var js,fjs=d.getElementsByTagName(s)[0],p=/^http:/.test(d.location)?'http':'https';if(!d.getElementById(id)){js=d.createElement(s);js.id=id;js.src=p+'://platform.twitter.com/widgets.js';fjs.parentNode.insertBefore(js,fjs);}}(document, 'script', 'twitter-wjs');</script>
   <p>Usually when I performance test internal applications I don&#39;t consider bandwidth unless I know we&#39;re doing something irrational like transferring multi gigabyte files all the time. And even then I only consider it if we&#39;re crossing a WAN or some other &quot;slow&quot; link between sites. But, every now and then there is a project that runs over the Internet and it is very data intensive. And, a lot of that data is out of the control of the developers (images, 3rd party libraries, fonts). </p>
 
 <p>It&#39;s a given that it will cost you money, but how much? A dedicated link can run anywhere from $100 a month on a broadband backbone, all the way up to $50,000 for Gbit Level3 Fiber. How much money you want to spend on your connection depends on the amount of content you need to control.</p>
@@ -149,7 +154,6 @@ RESPONSE BYTES (by Content-Type)
 application/x-javascript: 2,978
          text/javascript: 401
                image/gif: 86
-
 </code></pre></div>
 <p>In the real world you won&#39;t have that many return visitors. Depending on the type of requests you have (dynamic v. static) and what your business model is like (information or sales) you could be more in the camp of 30% to 50% return. You know your data best. I could offer some foolhardy estimates based on experience, but it would do you a disservice. Explore your data and know your numbers.</p>
 
@@ -165,7 +169,6 @@ Total:
 
 Fuzzed number (80%):
 7056 pages per minute
-
 </code></pre></div>
 <p>Now, this number sounds more like a enterprise level application. But, it seems kind of high.</p>
 
@@ -294,47 +297,49 @@ Fuzzed number (80%):
 
 </div>
 
+
+
 <div class="related">
   <h2>Related Posts</h2>
   <ul class="related-posts">
     
-      <li>
-        <h3>
-          <a href="/2014/09/24/critical-section-deadlock/">
-            Debugging - Fixing a deadlock
-            <small>24 Sep 2014</small>
-          </a>
-        </h3>
-      </li>
+    <li>
+      <h3>
+        <a href="/2014/10/21/hostprotectionexception-ssrs/">
+          Debugging - HostProtectionException in SSRS
+          <small>21 Oct 2014</small>
+        </a>
+      </h3>
+    </li>
     
-      <li>
-        <h3>
-          <a href="/2014/09/16/always-performance-test/">
-            Always Performance Test!
-            <small>16 Sep 2014</small>
-          </a>
-        </h3>
-      </li>
+    <li>
+      <h3>
+        <a href="/2014/09/24/critical-section-deadlock/">
+          Debugging - Fixing a deadlock
+          <small>24 Sep 2014</small>
+        </a>
+      </h3>
+    </li>
     
-      <li>
-        <h3>
-          <a href="/2014/09/06/code-to-code/">
-            Writing code to write code
-            <small>06 Sep 2014</small>
-          </a>
-        </h3>
-      </li>
+    <li>
+      <h3>
+        <a href="/2014/09/16/always-performance-test/">
+          Always Performance Test!
+          <small>16 Sep 2014</small>
+        </a>
+      </h3>
+    </li>
     
   </ul>
 </div>
 
 
-      <div class="footer">
-        <p>
-          &copy; 2014. All rights reserved.
-        </p>
-      </div>
+    <div class="footer">
+      <p>
+        &copy; 2014. All rights reserved.
+      </p>
     </div>
+  </div>
 
-  </body>
+</body>
 </html>

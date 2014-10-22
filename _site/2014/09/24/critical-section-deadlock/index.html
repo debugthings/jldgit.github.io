@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en-us">
 
-  <head>
+<head>
   <link href="http://gmpg.org/xfn/11" rel="profile">
   <meta http-equiv="content-type" content="text/html; charset=utf-8">
 
@@ -10,13 +10,14 @@
 
   <title>
     
-      Debugging - Fixing a deadlock &middot; Debug Things
+    Debugging - Fixing a deadlock &middot; Debug Things
     
   </title>
 
   <!-- CSS -->
+  <link rel="stylesheet" href="/public/css/monokai.css">
   <link rel="stylesheet" href="/public/css/poole.css">
-  <link rel="stylesheet" href="/public/css/syntax.css">
+  
 
   <!-- Icons -->
   <link rel="apple-touch-icon-precomposed" sizes="144x144" href="/public/apple-touch-icon-precomposed.png">
@@ -27,31 +28,38 @@
 </head>
 
 
-  <body>
-
-    <div class="container content">
-      <div class="masthead">
-        <h3 class="masthead-title">
-          <a href="/" title="Home">Debug Things</a>
-          <small>Debugging, performance testing, DevOps, and ranting.</small>
-          <small><a href="http://www.twitter.com/debugthings">@debugthings</a><a href="http://www.twitter.com/debugthings">@chainsapm</a></small>
-        </h3>
+<body>
+  <div class="container content">
+    <div class="masthead">
+      <h3 class="masthead-title">
+        <a href="/" title="Home">Debug Things</a>
+      </h3>
+      <small>Debugging, performance testing, DevOps, and ranting.</small><br />
+      <div style="display: flex">
+      <a href="http://www.linkedin.com/in/debugthings/"><img src="https://dlc1-s.licdn.com/sites/default/files/InBug-60px-R.png" class="linked" /></a>
+      <a href="http://www.twitter.com/debugthings"><div class="twitbox"><img src="https://g.twimg.com/Twitter_logo_white.png" /></div>@debugthings</a>
       </div>
+    </div>
 
-      <div class="post">
+    <div class="post">
   <h1 class="post-title">Debugging - Fixing a deadlock</h1>
   <span class="post-date">24 Sep 2014</span>
+  <a href="https://twitter.com/share" class="twitter-share-button" data-via="debugthings" data-size="large">Tweet</a>
+  <script>!function(d,s,id){var js,fjs=d.getElementsByTagName(s)[0],p=/^http:/.test(d.location)?'http':'https';if(!d.getElementById(id)){js=d.createElement(s);js.id=id;js.src=p+'://platform.twitter.com/widgets.js';fjs.parentNode.insertBefore(js,fjs);}}(document, 'script', 'twitter-wjs');</script>
   <p>More often than not I do postmortem debugging. That is to say, I get a dump file long after the machine has experienced an issue. But, on occasion I get pulled in to take a look at problems that need to be run through the debugger. This article will show you some commands you can use to locate and fix code using WinDbg.</p>
 
 <p>While I don&#39;t recommend what I am doing for an application you are delivering to production, sometimes you have to be creative when debugging. However, your hands may be tied and this set of solutions could help.</p>
 
 <p>For this article I am making an assumption you have a working knowledge of WinDbg. As well I suspect you should have working knowledge of C or C++. And also, of Win32. Do I even need to mention the stack?</p>
 
-<p>If you don&#39;t know them I&#39;d check out the following links.
-- <a href="http://msdn.microsoft.com/en-us/library/windows/hardware/hh406283(v=vs.85).aspx">Debugging Using WinDbg</a>
-- <a href="http://msdn.microsoft.com/en-us/library/ms235629.aspx">Walkthrough: Creating a Win32 Console Program (C++)</a>
-- <a href="http://msdn.microsoft.com/en-us/library/windows/desktop/ms682516(v=vs.85).aspx">Creating Threads</a>
-- <a href="http://msdn.microsoft.com/en-us/library/windows/desktop/ms682530(v=vs.85).aspx">Critical Section Objects</a></p>
+<p>If you don&#39;t know them I&#39;d check out the following links.</p>
+
+<ul>
+<li><a href="http://msdn.microsoft.com/en-us/library/windows/hardware/hh406283(v=vs.85).aspx">Debugging Using WinDbg</a></li>
+<li><a href="http://msdn.microsoft.com/en-us/library/ms235629.aspx">Walkthrough: Creating a Win32 Console Program (C++)</a></li>
+<li><a href="http://msdn.microsoft.com/en-us/library/windows/desktop/ms682516(v=vs.85).aspx">Creating Threads</a></li>
+<li><a href="http://msdn.microsoft.com/en-us/library/windows/desktop/ms682530(v=vs.85).aspx">Critical Section Objects</a></li>
+</ul>
 
 <p>Now that you know everything there is to know about Win32 programming and WinDbg, lets get started. :)</p>
 
@@ -60,55 +68,55 @@
 <p>The application that is being used is a contrived example that demonstrates a deadlock in the purest sense. One application, two threads, two locks out of order.</p>
 
 <p>The repository for the code <a href="https://github.com/jldgit/DebugThingsCode">is here</a>, and is displayed below.</p>
-<div class="highlight"><pre><code class="language-cpp" data-lang="cpp">int _tmain(int argc, _TCHAR* argv[])
-{
-  hStdOut = GetStdHandle(STD_OUTPUT_HANDLE);
-  InitializeCriticalSection(&amp;cs1);
-  InitializeCriticalSection(&amp;cs2);
-  DWORD tid1;
-  DWORD tid2;
-  HANDLE t1 = CreateThread(NULL, 0, Thread1, NULL, 0, &amp;tid1);
-  HANDLE t2 = CreateThread(NULL, 0, Thread2, NULL, 0, &amp;tid2);
-  HANDLE multiHandle[2] = { t1, t2 };
-  WaitForMultipleObjects(2, multiHandle, TRUE, INFINITE);
-  return 0;
-}
 
-DWORD WINAPI  Thread1(LPVOID lpParam)
-{
-  int i = 0;
-  do
-  {
-    EnterCriticalSection(&amp;cs2);
-    Sleep(5); // Artificial do work
-    EnterCriticalSection(&amp;cs1);
-    SetConsoleTextAttribute(hStdOut, FOREGROUND_RED);
-    std::cout &lt;&lt; ++i &lt;&lt; &quot;Thread 1&quot; &lt;&lt; std::endl;
-    Sleep(250);
-    LeaveCriticalSection(&amp;cs2);
-    LeaveCriticalSection(&amp;cs1);
-  } while (true);
-}
+<div class="highlight"><pre><code class="language-cpp" data-lang="cpp"><span class="kt">int</span> <span class="nf">_tmain</span><span class="p">(</span><span class="kt">int</span> <span class="n">argc</span><span class="p">,</span> <span class="n">_TCHAR</span><span class="o">*</span> <span class="n">argv</span><span class="p">[])</span>
+<span class="p">{</span>
+  <span class="n">hStdOut</span> <span class="o">=</span> <span class="n">GetStdHandle</span><span class="p">(</span><span class="n">STD_OUTPUT_HANDLE</span><span class="p">);</span>
+  <span class="n">InitializeCriticalSection</span><span class="p">(</span><span class="o">&amp;</span><span class="n">cs1</span><span class="p">);</span>
+  <span class="n">InitializeCriticalSection</span><span class="p">(</span><span class="o">&amp;</span><span class="n">cs2</span><span class="p">);</span>
+  <span class="n">DWORD</span> <span class="n">tid1</span><span class="p">;</span>
+  <span class="n">DWORD</span> <span class="n">tid2</span><span class="p">;</span>
+  <span class="n">HANDLE</span> <span class="n">t1</span> <span class="o">=</span> <span class="n">CreateThread</span><span class="p">(</span><span class="nb">NULL</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="n">Thread1</span><span class="p">,</span> <span class="nb">NULL</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">tid1</span><span class="p">);</span>
+  <span class="n">HANDLE</span> <span class="n">t2</span> <span class="o">=</span> <span class="n">CreateThread</span><span class="p">(</span><span class="nb">NULL</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="n">Thread2</span><span class="p">,</span> <span class="nb">NULL</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">tid2</span><span class="p">);</span>
+  <span class="n">HANDLE</span> <span class="n">multiHandle</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span> <span class="o">=</span> <span class="p">{</span> <span class="n">t1</span><span class="p">,</span> <span class="n">t2</span> <span class="p">};</span>
+  <span class="n">WaitForMultipleObjects</span><span class="p">(</span><span class="mi">2</span><span class="p">,</span> <span class="n">multiHandle</span><span class="p">,</span> <span class="n">TRUE</span><span class="p">,</span> <span class="n">INFINITE</span><span class="p">);</span>
+  <span class="k">return</span> <span class="mi">0</span><span class="p">;</span>
+<span class="p">}</span>
 
-DWORD WINAPI  Thread2(LPVOID lpParam)
-{
-  int i = 0;
-  do
-  {
-    EnterCriticalSection(&amp;cs1);
-    Sleep(5); // Artificial do work
-    EnterCriticalSection(&amp;cs2);
+<span class="n">DWORD</span> <span class="n">WINAPI</span>  <span class="nf">Thread1</span><span class="p">(</span><span class="n">LPVOID</span> <span class="n">lpParam</span><span class="p">)</span>
+<span class="p">{</span>
+  <span class="kt">int</span> <span class="n">i</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>
+  <span class="k">do</span>
+  <span class="p">{</span>
+    <span class="n">EnterCriticalSection</span><span class="p">(</span><span class="o">&amp;</span><span class="n">cs2</span><span class="p">);</span>
+    <span class="n">Sleep</span><span class="p">(</span><span class="mi">5</span><span class="p">);</span> <span class="c1">// Artificial do work</span>
+    <span class="n">EnterCriticalSection</span><span class="p">(</span><span class="o">&amp;</span><span class="n">cs1</span><span class="p">);</span>
+    <span class="n">SetConsoleTextAttribute</span><span class="p">(</span><span class="n">hStdOut</span><span class="p">,</span> <span class="n">FOREGROUND_RED</span><span class="p">);</span>
+    <span class="n">std</span><span class="o">::</span><span class="n">cout</span> <span class="o">&lt;&lt;</span> <span class="o">++</span><span class="n">i</span> <span class="o">&lt;&lt;</span> <span class="s">&quot;Thread 1&quot;</span> <span class="o">&lt;&lt;</span> <span class="n">std</span><span class="o">::</span><span class="n">endl</span><span class="p">;</span>
+    <span class="n">Sleep</span><span class="p">(</span><span class="mi">250</span><span class="p">);</span>
+    <span class="n">LeaveCriticalSection</span><span class="p">(</span><span class="o">&amp;</span><span class="n">cs2</span><span class="p">);</span>
+    <span class="n">LeaveCriticalSection</span><span class="p">(</span><span class="o">&amp;</span><span class="n">cs1</span><span class="p">);</span>
+  <span class="p">}</span> <span class="k">while</span> <span class="p">(</span><span class="nb">true</span><span class="p">);</span>
+<span class="p">}</span>
 
-    SetConsoleTextAttribute(hStdOut, FOREGROUND_BLUE);
-    std::cout &lt;&lt; ++i &lt;&lt; &quot; Thread 2&quot; &lt;&lt; std::endl;
-    Sleep(250);
-    LeaveCriticalSection(&amp;cs1);
-    LeaveCriticalSection(&amp;cs2);
+<span class="n">DWORD</span> <span class="n">WINAPI</span>  <span class="nf">Thread2</span><span class="p">(</span><span class="n">LPVOID</span> <span class="n">lpParam</span><span class="p">)</span>
+<span class="p">{</span>
+  <span class="kt">int</span> <span class="n">i</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>
+  <span class="k">do</span>
+  <span class="p">{</span>
+    <span class="n">EnterCriticalSection</span><span class="p">(</span><span class="o">&amp;</span><span class="n">cs1</span><span class="p">);</span>
+    <span class="n">Sleep</span><span class="p">(</span><span class="mi">5</span><span class="p">);</span> <span class="c1">// Artificial do work</span>
+    <span class="n">EnterCriticalSection</span><span class="p">(</span><span class="o">&amp;</span><span class="n">cs2</span><span class="p">);</span>
+    
+    <span class="n">SetConsoleTextAttribute</span><span class="p">(</span><span class="n">hStdOut</span><span class="p">,</span> <span class="n">FOREGROUND_BLUE</span><span class="p">);</span>
+    <span class="n">std</span><span class="o">::</span><span class="n">cout</span> <span class="o">&lt;&lt;</span> <span class="o">++</span><span class="n">i</span> <span class="o">&lt;&lt;</span> <span class="s">&quot; Thread 2&quot;</span> <span class="o">&lt;&lt;</span> <span class="n">std</span><span class="o">::</span><span class="n">endl</span><span class="p">;</span>
+    <span class="n">Sleep</span><span class="p">(</span><span class="mi">250</span><span class="p">);</span>
+    <span class="n">LeaveCriticalSection</span><span class="p">(</span><span class="o">&amp;</span><span class="n">cs1</span><span class="p">);</span>
+    <span class="n">LeaveCriticalSection</span><span class="p">(</span><span class="o">&amp;</span><span class="n">cs2</span><span class="p">);</span>
+    
+  <span class="p">}</span> <span class="k">while</span> <span class="p">(</span><span class="nb">true</span><span class="p">);</span>
+<span class="p">}</span></code></pre></div>
 
-  } while (true);
-}
-
-</code></pre></div>
 <h2>The Problem</h2>
 
 <p>In this example the problem is simply the locks are out of order. The fix is simple if you have the source code.  Have the locks fire in order and your problems will go away.</p>
@@ -163,7 +171,7 @@ DWORD WINAPI  Thread2(LPVOID lpParam)
 <p><strong>TIP</strong> type <code>.hh ~</code> to view the help file for the thread syntax command. You can use <code>.hh</code> for every single command that you use with WinDbg, save for some of the custom extensions.</p>
 </blockquote>
 
-<p>Now that we can see we have three threads we should take a look at what each one is doing. First lest switch to <strong>Thread 1</strong>. The syntax of the command is <code>~1s</code>. We can then inspect the call stack using <code>k</code> to output the methods only or <code>kbn</code> to display the frame numbers, method name, and the first three arguments. I added the line breaks to make it easier to read.</p>
+<p>Now that we can see we have three threads (and one debug thread) we should take a look at what each one is doing. First lest switch to <strong>Thread 1</strong>. The syntax of the command is <code>~1s</code>. We can then inspect the call stack using <code>k</code> to output the methods only or <code>kbn</code> to display the frame numbers, method name, and the first three arguments. I added the line breaks to make it easier to read.</p>
 <div class="highlight"><pre><code class="language-text" data-lang="text">0:001&gt; ~1s
 eax=00000000 ebx=00000000 ecx=00000000 edx=00000000 esi=01164450 edi=00000000
 eip=77dcf8d1 esp=006df7d8 ebp=006df83c iopl=0         nv up ei pl zr na pe nc
@@ -213,7 +221,6 @@ ChildEBP RetAddr
 05 00b3fa64 77de9f45 01161150 00000000 00000000 ntdll!__RtlUserThreadStart+0x70
 
 06 00b3fa7c 00000000 01161150 00000000 00000000 ntdll!_RtlUserThreadStart+0x1b
-
 </code></pre></div>
 <blockquote>
 <p><strong>TIP</strong> Use the shortcut command <code>~2kbn</code> which executes the <code>kbn</code> command without switching to thread 2.</p>
@@ -229,7 +236,6 @@ ChildEBP RetAddr
 <div class="highlight"><pre><code class="language-text" data-lang="text">0:001&gt; ~2kbn 1
  # ChildEBP RetAddr  Args to Child              
 00 00b3f970 77de8e44 00000040 00000000 00000000 ntdll!ZwWaitForSingleObject+0x15
-
 </code></pre></div>
 <p>This method is waiting on a handle (<code>40</code>). Let&#39;s take a look at the handle in the parameter by using the <code>!handle</code> command.</p>
 <div class="highlight"><pre><code class="language-text" data-lang="text">0:001&gt; !handle 40
@@ -276,81 +282,62 @@ SpinCount          = 0x00000000
 <h3>Step 5 - Inspect the code</h3>
 
 <p>Now that we&#39;re certain we have a blocked thread we need to take a look at the functions that are part of this executable. In order to do that we will use the un-assemble <code>u</code> command, and use the <code>uf</code> variant to un-assemble a function. I added line breaks to make some lines easier to read.</p>
-<div class="highlight"><pre><code class="language-asm" data-lang="asm">CriticalSectionDeadlock!Thread2:
-01161150 55              push    ebp
-01161151 8bec            mov     ebp,esp
-01161153 83e4f8          and     esp,0FFFFFFF8h
-01161156 51              push    ecx
-01161157 53              push    ebx
-01161158 8b1d14301601    mov     ebx,dword ptr [CriticalSectionDeadlock!_imp__Sleep (01163014)]
+<div class="highlight"><pre><code class="language-asm" data-lang="asm"><span class="c"># CriticalSectionDeadlock!Thread2:</span>
+<span class="nf">mov</span>     <span class="no">ebp</span><span class="p">,</span><span class="no">esp</span>
+<span class="nf">and</span>     <span class="no">esp</span><span class="p">,</span><span class="mi">0</span><span class="no">FFFFFFF8h</span>
+<span class="nf">push</span>    <span class="no">ebp</span>
+<span class="nf">push</span>    <span class="no">ecx</span>
+<span class="nf">push</span>    <span class="no">ebx</span>
+<span class="nf">mov</span>     <span class="no">ebx</span><span class="p">,</span><span class="no">dword</span> <span class="no">ptr</span> <span class="err">[</span><span class="no">CriticalSectionDeadlock</span><span class="err">!</span><span class="no">_imp__Sleep</span> <span class="p">(</span><span class="mi">01163014</span><span class="p">)</span><span class="err">]</span>
+<span class="nf">push</span>    <span class="no">esi</span>
+<span class="nf">push</span>    <span class="no">edi</span>
+<span class="nf">mov</span>     <span class="no">edi</span><span class="p">,</span><span class="no">dword</span> <span class="no">ptr</span> <span class="err">[</span><span class="no">CriticalSectionDeadlock</span><span class="err">!</span><span class="no">_imp__EnterCriticalSection</span> <span class="p">(</span><span class="mi">01163010</span><span class="p">)</span><span class="err">]</span>
+<span class="nf">xor</span>     <span class="no">esi</span><span class="p">,</span><span class="no">esi</span>
 
-0116115e 56              push    esi
-0116115f 57              push    edi
-01161160 8b3d10301601    mov     edi,dword ptr [CriticalSectionDeadlock!_imp__EnterCriticalSection (01163010)]
-
-01161166 33f6            xor     esi,esi
-
-CriticalSectionDeadlock!Thread2+0x18:
-01161168 6850441601      push    offset CriticalSectionDeadlock!cs1 (01164450)
-
-0116116d ffd7            call    edi
-0116116f 6a05            push    5
-01161171 ffd3            call    ebx
-01161173 6838441601      push    offset CriticalSectionDeadlock!cs2 (01164438)
-
-01161178 ffd7            call    edi
-0116117a 6a02            push    2
-0116117c ff3568441601    push    dword ptr [CriticalSectionDeadlock!hStdOut (01164468)]
-
-01161182 ff1518301601    call    dword ptr [CriticalSectionDeadlock!_imp__SetConsoleTextAttribute (01163018)]
-
-01161188 6820141601      push    offset CriticalSectionDeadlock!std::endl&lt;char,std::char_traits&lt;char&gt; &gt; (01161420)
-
-0116118d 51              push    ecx
-0116118e 8b0d80301601    mov     ecx,dword ptr [CriticalSectionDeadlock!_imp_?coutstd (01163080)]
-
-01161194 46              inc     esi
-01161195 56              push    esi
-01161196 ff1564301601    call    dword ptr [CriticalSectionDeadlock!_imp_??6?$basic_ostreamDU?$char_traitsDstdstdQAEAAV01HZ (01163064)]
-
-0116119c baa4311601      mov     edx,offset CriticalSectionDeadlock!`string' (011631a4)
-
-011611a1 8bc8            mov     ecx,eax
-011611a3 e838000000      call    CriticalSectionDeadlock!std::operator&lt;&lt;&lt;std::char_traits&lt;char&gt; &gt; (011611e0)
-
-011611a8 83c404          add     esp,4
-011611ab 8bc8            mov     ecx,eax
-011611ad ff1568301601    call    dword ptr [CriticalSectionDeadlock!_imp_??6?$basic_ostreamDU?$char_traitsDstdstdQAEAAV01P6AAAV01AAV01ZZ (01163068)]
-
-011611b3 68fa000000      push    0FAh
-011611b8 ffd3            call    ebx
-011611ba 6850441601      push    offset CriticalSectionDeadlock!cs1 (01164450)
-
-011611bf ff151c301601    call    dword ptr [CriticalSectionDeadlock!_imp__LeaveCriticalSection (0116301c)]
-
-011611c5 6838441601      push    offset CriticalSectionDeadlock!cs2 (01164438)
-
-011611ca ff151c301601    call    dword ptr [CriticalSectionDeadlock!_imp__LeaveCriticalSection (0116301c)]
-
-011611d0 eb96            jmp     CriticalSectionDeadlock!Thread2+0x18 (01161168)
-
+<span class="c"># CriticalSectionDeadlock!Thread2+0x18:</span>
+<span class="nf">push</span>    <span class="no">offset</span> <span class="no">CriticalSectionDeadlock</span><span class="err">!</span><span class="no">cs1</span> <span class="p">(</span><span class="mi">01164450</span><span class="p">)</span>
+<span class="nf">call</span>    <span class="no">edi</span>
+<span class="nf">push</span>    <span class="mi">5</span>
+<span class="nf">call</span>    <span class="no">ebx</span>
+<span class="nf">push</span>    <span class="no">offset</span> <span class="no">CriticalSectionDeadlock</span><span class="err">!</span><span class="no">cs2</span> <span class="p">(</span><span class="mi">01164438</span><span class="p">)</span>
+<span class="nf">call</span>    <span class="no">edi</span>
+<span class="nf">push</span>    <span class="mi">2</span>
+<span class="nf">push</span>    <span class="no">dword</span> <span class="no">ptr</span> <span class="err">[</span><span class="no">CriticalSectionDeadlock</span><span class="err">!</span><span class="no">hStdOut</span> <span class="p">(</span><span class="mi">01164468</span><span class="p">)</span><span class="err">]</span>
+<span class="nf">call</span>    <span class="no">dword</span> <span class="no">ptr</span> <span class="err">[</span><span class="no">CriticalSectionDeadlock</span><span class="err">!</span><span class="no">_imp__SetConsoleTextAttribute</span> <span class="p">(</span><span class="mi">01163018</span><span class="p">)</span><span class="err">]</span>
+<span class="nf">push</span>    <span class="no">offset</span> <span class="no">CriticalSectionDeadlock</span><span class="err">!</span><span class="no">std</span><span class="p">::</span><span class="no">endl</span><span class="err">&lt;</span><span class="no">char</span><span class="p">,</span><span class="no">std</span><span class="p">::</span><span class="no">char_traits</span><span class="err">&lt;</span><span class="no">char</span><span class="err">&gt;</span> <span class="err">&gt;</span> <span class="p">(</span><span class="mi">01161420</span><span class="p">)</span>
+<span class="nf">push</span>    <span class="no">ecx</span>
+<span class="nf">mov</span>     <span class="no">ecx</span><span class="p">,</span><span class="no">dword</span> <span class="no">ptr</span> <span class="err">[</span><span class="no">CriticalSectionDeadlock</span><span class="err">!</span><span class="no">_imp_</span><span class="err">?</span><span class="no">coutstd</span> <span class="p">(</span><span class="mi">01163080</span><span class="p">)</span><span class="err">]</span>
+<span class="nf">inc</span>     <span class="no">esi</span>
+<span class="nf">push</span>    <span class="no">esi</span>
+<span class="nf">call</span>    <span class="no">dword</span> <span class="no">ptr</span> <span class="err">[</span><span class="no">CriticalSectionDeadlock</span><span class="err">!</span><span class="no">_imp_</span><span class="err">??</span><span class="mi">6</span><span class="err">?</span><span class="no">$basic_ostreamDU</span><span class="err">?</span><span class="no">$char_traitsDstdstdQAEAAV01HZ</span> <span class="p">(</span><span class="mi">01163064</span><span class="p">)</span><span class="err">]</span>
+<span class="nf">mov</span>     <span class="no">edx</span><span class="p">,</span><span class="no">offset</span> <span class="no">CriticalSectionDeadlock</span><span class="err">!`</span><span class="no">string</span><span class="err">&#39;</span> <span class="p">(</span><span class="mi">011631</span><span class="no">a4</span><span class="p">)</span>
+<span class="nf">mov</span>     <span class="no">ecx</span><span class="p">,</span><span class="no">eax</span>
+<span class="nf">call</span>    <span class="no">CriticalSectionDeadlock</span><span class="err">!</span><span class="no">std</span><span class="p">::</span><span class="no">operator</span><span class="err">&lt;&lt;&lt;</span><span class="no">std</span><span class="p">::</span><span class="no">char_traits</span><span class="err">&lt;</span><span class="no">char</span><span class="err">&gt;</span> <span class="err">&gt;</span> <span class="p">(</span><span class="mi">011611</span><span class="no">e0</span><span class="p">)</span>
+<span class="nf">add</span>     <span class="no">esp</span><span class="p">,</span><span class="mi">4</span>
+<span class="nf">mov</span>     <span class="no">ecx</span><span class="p">,</span><span class="no">eax</span>
+<span class="nf">call</span>    <span class="no">dword</span> <span class="no">ptr</span> <span class="err">[</span><span class="no">CriticalSectionDeadlock</span><span class="err">!</span><span class="no">_imp_</span><span class="err">??</span><span class="mi">6</span><span class="err">?</span><span class="no">$basic_ostreamDU</span><span class="err">?</span><span class="no">$char_traitsDstdstdQAEAAV01P6AAAV01AAV01ZZ</span> <span class="p">(</span><span class="mi">01163068</span><span class="p">)</span><span class="err">]</span>
+<span class="nf">push</span>    <span class="mi">0</span><span class="no">FAh</span>
+<span class="nf">call</span>    <span class="no">ebx</span>
+<span class="nf">push</span>    <span class="no">offset</span> <span class="no">CriticalSectionDeadlock</span><span class="err">!</span><span class="no">cs1</span> <span class="p">(</span><span class="mi">01164450</span><span class="p">)</span>
+<span class="nf">call</span>    <span class="no">dword</span> <span class="no">ptr</span> <span class="err">[</span><span class="no">CriticalSectionDeadlock</span><span class="err">!</span><span class="no">_imp__LeaveCriticalSection</span> <span class="p">(</span><span class="mi">0116301</span><span class="no">c</span><span class="p">)</span><span class="err">]</span>
+<span class="nf">push</span>    <span class="no">offset</span> <span class="no">CriticalSectionDeadlock</span><span class="err">!</span><span class="no">cs2</span> <span class="p">(</span><span class="mi">01164438</span><span class="p">)</span>
+<span class="nf">call</span>    <span class="no">dword</span> <span class="no">ptr</span> <span class="err">[</span><span class="no">CriticalSectionDeadlock</span><span class="err">!</span><span class="no">_imp__LeaveCriticalSection</span> <span class="p">(</span><span class="mi">0116301</span><span class="no">c</span><span class="p">)</span><span class="err">]</span>
+<span class="nf">jmp</span>     <span class="no">CriticalSectionDeadlock</span><span class="err">!</span><span class="no">Thread2</span><span class="err">+</span><span class="mi">0x18</span> <span class="p">(</span><span class="mi">01161168</span><span class="p">)</span>
 </code></pre></div>
 <p>I won&#39;t walk this code line by line, but I will point out some interesting parts.</p>
 
 <p><strong>Storing the EnterCriticalSection function pointer in $edi</strong></p>
-<div class="highlight"><pre><code class="language-text" data-lang="text">mov     edi,dword ptr [CriticalSectionDeadlock!_imp__EnterCriticalSection (01163010)]
+<div class="highlight"><pre><code class="language-asm" data-lang="asm"><span class="nf">mov</span>     <span class="no">edi</span><span class="p">,</span><span class="no">dword</span> <span class="no">ptr</span> <span class="err">[</span><span class="no">CriticalSectionDeadlock</span><span class="err">!</span><span class="no">_imp__EnterCriticalSection</span> <span class="p">(</span><span class="mi">01163010</span><span class="p">)</span><span class="err">]</span>
 </code></pre></div>
 <p><strong>Calls to $edi</strong></p>
 
 <p>We first <code>push</code> the critical section to the stack and then call the function located at $edi. The addresses to the left are important.</p>
-<div class="highlight"><pre><code class="language-text" data-lang="text">01161168 6850441601      push    offset CriticalSectionDeadlock!cs1 (01164450)
-
-0116116d ffd7            call    edi
+<div class="highlight"><pre><code class="language-asm" data-lang="asm"><span class="nf">push</span>    <span class="no">offset</span> <span class="no">CriticalSectionDeadlock</span><span class="err">!</span><span class="no">cs1</span> <span class="p">(</span><span class="mi">01164450</span><span class="p">)</span>
+<span class="nf">call</span>    <span class="no">edi</span>
 </code></pre></div>
 <p>and</p>
-<div class="highlight"><pre><code class="language-text" data-lang="text">01161173 6838441601      push    offset CriticalSectionDeadlock!cs2 (01164438)
-
-01161178 ffd7            call    edi
+<div class="highlight"><pre><code class="language-asm" data-lang="asm"><span class="nf">push</span>    <span class="no">offset</span> <span class="no">CriticalSectionDeadlock</span><span class="err">!</span><span class="no">cs2</span> <span class="p">(</span><span class="mi">01164438</span><span class="p">)</span>
+<span class="nf">call</span>    <span class="no">edi</span>
 </code></pre></div>
 <p>These two parts of the code are critical to understanding the code flow and how we will go about editing the application to get it to work.</p>
 
@@ -374,7 +361,6 @@ Size of Words
 Size of Bytes
 0:002&gt; db 0x01161168 L 5
 01161168  68 50 44 16 01
-
 </code></pre></div>
 <p>Notice that I specified length using L. Pay attention to the last command when I displayed the bytes and notice I specified the number 5. Why?</p>
 
@@ -414,47 +400,47 @@ After:
 </blockquote>
 
 <p>Here is the resulting assembly.  Look for the code at the addresses we&#39;ve changed and you will see the order of the locks has changed.</p>
-<div class="highlight"><pre><code class="language-text" data-lang="text">CriticalSectionDeadlock!Thread2:
-01161150 55              push    ebp
-01161151 8bec            mov     ebp,esp
-01161153 83e4f8          and     esp,0FFFFFFF8h
-01161156 51              push    ecx
-01161157 53              push    ebx
-01161158 8b1d14301601    mov     ebx,dword ptr [CriticalSectionDeadlock!_imp__Sleep (01163014)]
-0116115e 56              push    esi
-0116115f 57              push    edi
-01161160 8b3d10301601    mov     edi,dword ptr [CriticalSectionDeadlock!_imp__EnterCriticalSection (01163010)]
-01161166 33f6            xor     esi,esi
+<div class="highlight"><pre><code class="language-asm" data-lang="asm"><span class="nf">CriticalSectionDeadlock</span><span class="err">!</span><span class="no">Thread2</span><span class="p">:</span>
+<span class="nf">push</span>    <span class="no">ebp</span>
+<span class="nf">mov</span>     <span class="no">ebp</span><span class="p">,</span><span class="no">esp</span>
+<span class="nf">and</span>     <span class="no">esp</span><span class="p">,</span><span class="mi">0</span><span class="no">FFFFFFF8h</span>
+<span class="nf">push</span>    <span class="no">ecx</span>
+<span class="nf">push</span>    <span class="no">ebx</span>
+<span class="nf">mov</span>     <span class="no">ebx</span><span class="p">,</span><span class="no">dword</span> <span class="no">ptr</span> <span class="err">[</span><span class="no">CriticalSectionDeadlock</span><span class="err">!</span><span class="no">_imp__Sleep</span> <span class="p">(</span><span class="mi">01163014</span><span class="p">)</span><span class="err">]</span>
+<span class="nf">push</span>    <span class="no">esi</span>
+<span class="nf">push</span>    <span class="no">edi</span>
+<span class="nf">mov</span>     <span class="no">edi</span><span class="p">,</span><span class="no">dword</span> <span class="no">ptr</span> <span class="err">[</span><span class="no">CriticalSectionDeadlock</span><span class="err">!</span><span class="no">_imp__EnterCriticalSection</span> <span class="p">(</span><span class="mi">01163010</span><span class="p">)</span><span class="err">]</span>
+<span class="nf">xor</span>     <span class="no">esi</span><span class="p">,</span><span class="no">esi</span>
 
-CriticalSectionDeadlock!Thread2+0x18:
-01161168 6838441601      push    offset CriticalSectionDeadlock!cs2 (01164438)
-0116116d ffd7            call    edi
-0116116f 6a05            push    5
-01161171 ffd3            call    ebx
-01161173 6850441601      push    offset CriticalSectionDeadlock!cs1 (01164450)
-01161178 ffd7            call    edi
-0116117a 6a02            push    2
-0116117c ff3568441601    push    dword ptr [CriticalSectionDeadlock!hStdOut (01164468)]
-01161182 ff1518301601    call    dword ptr [CriticalSectionDeadlock!_imp__SetConsoleTextAttribute (01163018)]
-01161188 6820141601      push    offset CriticalSectionDeadlock!std::endl&lt;char,std::char_traits&lt;char&gt; &gt; (01161420)
-0116118d 51              push    ecx
-0116118e 8b0d80301601    mov     ecx,dword ptr [CriticalSectionDeadlock!_imp_?coutstd (01163080)]
-01161194 46              inc     esi
-01161195 56              push    esi
-01161196 ff1564301601    call    dword ptr [CriticalSectionDeadlock!_imp_??6?$basic_ostreamDU?$char_traitsDstdstdQAEAAV01HZ (01163064)]
-0116119c baa4311601      mov     edx,offset CriticalSectionDeadlock!`string' (011631a4)
-011611a1 8bc8            mov     ecx,eax
-011611a3 e838000000      call    CriticalSectionDeadlock!std::operator&lt;&lt;&lt;std::char_traits&lt;char&gt; &gt; (011611e0)
-011611a8 83c404          add     esp,4
-011611ab 8bc8            mov     ecx,eax
-011611ad ff1568301601    call    dword ptr [CriticalSectionDeadlock!_imp_??6?$basic_ostreamDU?$char_traitsDstdstdQAEAAV01P6AAAV01AAV01ZZ (01163068)]
-011611b3 68fa000000      push    0FAh
-011611b8 ffd3            call    ebx
-011611ba 6838441601      push    offset CriticalSectionDeadlock!cs2 (01164438)
-011611bf ff151c301601    call    dword ptr [CriticalSectionDeadlock!_imp__LeaveCriticalSection (0116301c)]
-011611c5 6850441601      push    offset CriticalSectionDeadlock!cs1 (01164450)
-011611ca ff151c301601    call    dword ptr [CriticalSectionDeadlock!_imp__LeaveCriticalSection (0116301c)]
-011611d0 eb96            jmp     CriticalSectionDeadlock!Thread2+0x18 (01161168)
+<span class="nf">CriticalSectionDeadlock</span><span class="err">!</span><span class="no">Thread2</span><span class="err">+</span><span class="mi">0x18</span><span class="p">:</span>
+<span class="nf">push</span>    <span class="no">offset</span> <span class="no">CriticalSectionDeadlock</span><span class="err">!</span><span class="no">cs2</span> <span class="p">(</span><span class="mi">01164438</span><span class="p">)</span>
+<span class="nf">call</span>    <span class="no">edi</span>
+<span class="nf">push</span>    <span class="mi">5</span>
+<span class="nf">call</span>    <span class="no">ebx</span>
+<span class="nf">push</span>    <span class="no">offset</span> <span class="no">CriticalSectionDeadlock</span><span class="err">!</span><span class="no">cs1</span> <span class="p">(</span><span class="mi">01164450</span><span class="p">)</span>
+<span class="nf">call</span>    <span class="no">edi</span>
+<span class="nf">push</span>    <span class="mi">2</span>
+<span class="nf">push</span>    <span class="no">dword</span> <span class="no">ptr</span> <span class="err">[</span><span class="no">CriticalSectionDeadlock</span><span class="err">!</span><span class="no">hStdOut</span> <span class="p">(</span><span class="mi">01164468</span><span class="p">)</span><span class="err">]</span>
+<span class="nf">call</span>    <span class="no">dword</span> <span class="no">ptr</span> <span class="err">[</span><span class="no">CriticalSectionDeadlock</span><span class="err">!</span><span class="no">_imp__SetConsoleTextAttribute</span> <span class="p">(</span><span class="mi">01163018</span><span class="p">)</span><span class="err">]</span>
+<span class="nf">push</span>    <span class="no">offset</span> <span class="no">CriticalSectionDeadlock</span><span class="err">!</span><span class="no">std</span><span class="p">::</span><span class="no">endl</span><span class="err">&lt;</span><span class="no">char</span><span class="p">,</span><span class="no">std</span><span class="p">::</span><span class="no">char_traits</span><span class="err">&lt;</span><span class="no">char</span><span class="err">&gt;</span> <span class="err">&gt;</span> <span class="p">(</span><span class="mi">01161420</span><span class="p">)</span>
+<span class="nf">push</span>    <span class="no">ecx</span>
+<span class="nf">mov</span>     <span class="no">ecx</span><span class="p">,</span><span class="no">dword</span> <span class="no">ptr</span> <span class="err">[</span><span class="no">CriticalSectionDeadlock</span><span class="err">!</span><span class="no">_imp_</span><span class="err">?</span><span class="no">coutstd</span> <span class="p">(</span><span class="mi">01163080</span><span class="p">)</span><span class="err">]</span>
+<span class="nf">inc</span>     <span class="no">esi</span>
+<span class="nf">push</span>    <span class="no">esi</span>
+<span class="nf">call</span>    <span class="no">dword</span> <span class="no">ptr</span> <span class="err">[</span><span class="no">CriticalSectionDeadlock</span><span class="err">!</span><span class="no">_imp_</span><span class="err">??</span><span class="mi">6</span><span class="err">?</span><span class="no">$basic_ostreamDU</span><span class="err">?</span><span class="no">$char_traitsDstdstdQAEAAV01HZ</span> <span class="p">(</span><span class="mi">01163064</span><span class="p">)</span><span class="err">]</span>
+<span class="nf">mov</span>     <span class="no">edx</span><span class="p">,</span><span class="no">offset</span> <span class="no">CriticalSectionDeadlock</span><span class="err">!`</span><span class="no">string</span><span class="err">&#39;</span> <span class="p">(</span><span class="mi">011631</span><span class="no">a4</span><span class="p">)</span>
+<span class="nf">mov</span>     <span class="no">ecx</span><span class="p">,</span><span class="no">eax</span>
+<span class="nf">call</span>    <span class="no">CriticalSectionDeadlock</span><span class="err">!</span><span class="no">std</span><span class="p">::</span><span class="no">operator</span><span class="err">&lt;&lt;&lt;</span><span class="no">std</span><span class="p">::</span><span class="no">char_traits</span><span class="err">&lt;</span><span class="no">char</span><span class="err">&gt;</span> <span class="err">&gt;</span> <span class="p">(</span><span class="mi">011611</span><span class="no">e0</span><span class="p">)</span>
+<span class="nf">add</span>     <span class="no">esp</span><span class="p">,</span><span class="mi">4</span>
+<span class="nf">mov</span>     <span class="no">ecx</span><span class="p">,</span><span class="no">eax</span>
+<span class="nf">call</span>    <span class="no">dword</span> <span class="no">ptr</span> <span class="err">[</span><span class="no">CriticalSectionDeadlock</span><span class="err">!</span><span class="no">_imp_</span><span class="err">??</span><span class="mi">6</span><span class="err">?</span><span class="no">$basic_ostreamDU</span><span class="err">?</span><span class="no">$char_traitsDstdstdQAEAAV01P6AAAV01AAV01ZZ</span> <span class="p">(</span><span class="mi">01163068</span><span class="p">)</span><span class="err">]</span>
+<span class="nf">push</span>    <span class="mi">0</span><span class="no">FAh</span>
+<span class="nf">call</span>    <span class="no">ebx</span>
+<span class="nf">push</span>    <span class="no">offset</span> <span class="no">CriticalSectionDeadlock</span><span class="err">!</span><span class="no">cs2</span> <span class="p">(</span><span class="mi">01164438</span><span class="p">)</span>
+<span class="nf">call</span>    <span class="no">dword</span> <span class="no">ptr</span> <span class="err">[</span><span class="no">CriticalSectionDeadlock</span><span class="err">!</span><span class="no">_imp__LeaveCriticalSection</span> <span class="p">(</span><span class="mi">0116301</span><span class="no">c</span><span class="p">)</span><span class="err">]</span>
+<span class="nf">push</span>    <span class="no">offset</span> <span class="no">CriticalSectionDeadlock</span><span class="err">!</span><span class="no">cs1</span> <span class="p">(</span><span class="mi">01164450</span><span class="p">)</span>
+<span class="nf">call</span>    <span class="no">dword</span> <span class="no">ptr</span> <span class="err">[</span><span class="no">CriticalSectionDeadlock</span><span class="err">!</span><span class="no">_imp__LeaveCriticalSection</span> <span class="p">(</span><span class="mi">0116301</span><span class="no">c</span><span class="p">)</span><span class="err">]</span>
+<span class="nf">jmp</span>     <span class="no">CriticalSectionDeadlock</span><span class="err">!</span><span class="no">Thread2</span><span class="err">+</span><span class="mi">0x18</span> <span class="p">(</span><span class="mi">01161168</span><span class="p">)</span>
 </code></pre></div>
 <h3>Step 7 - Run it!</h3>
 
@@ -501,7 +487,6 @@ CriticalSectionDeadlock!Thread2+0x18:
 
 
 87  HIGHLOW            00401150  ?Thread2@@YGKPAX@Z (unsigned long __stdcall Thread2(void *))
-
 </code></pre></div>
 <p>Make note of the address 00401150. Your address <strong>could</strong> be different, but it is not likely because that is the standard base address for PE32 files. You can rebase your images if you want, but that is a different topic.</p>
 
@@ -596,7 +581,6 @@ SECTION HEADER #1
 + File Pointer Offset:  00000400
 --------------------------------
 Location in file:       00000550
-
 </code></pre></div>
 <p>The location of the start of <code>Thread2()</code> in the executable is <strong>0x500</strong>.</p>
 
@@ -653,8 +637,6 @@ Reading 3200 bytes.......
 000f05c5 6838444000      push    404438h
 000f05ca ff151c304000    call    dword ptr ds:[40301Ch]
 000f05d0 eb96            jmp     000f0568
-
-
 </code></pre></div>
 <p>You will notice this disassembly looks close to the disassembly in previous steps. However, none of the symbols are resolved. That&#39;s because this file isn&#39;t actually loaded, it is just resident in memory.</p>
 
@@ -667,7 +649,6 @@ Reading 3200 bytes.......
 <p>To do this we will use the <code>.witemem</code> command.</p>
 <div class="highlight"><pre><code class="language-text" data-lang="text">0:000&gt; .writemem c:\temp\fixedfile.exe 0xf0000 L 0n12800
 Writing 3200 bytes.......
-
 </code></pre></div>
 <p>Thats it! </p>
 
@@ -679,47 +660,49 @@ Writing 3200 bytes.......
 
 </div>
 
+
+
 <div class="related">
   <h2>Related Posts</h2>
   <ul class="related-posts">
     
-      <li>
-        <h3>
-          <a href="/2014/09/23/bandwidth/">
-            Bandwidth. It's not free...
-            <small>23 Sep 2014</small>
-          </a>
-        </h3>
-      </li>
+    <li>
+      <h3>
+        <a href="/2014/10/21/hostprotectionexception-ssrs/">
+          Debugging - HostProtectionException in SSRS
+          <small>21 Oct 2014</small>
+        </a>
+      </h3>
+    </li>
     
-      <li>
-        <h3>
-          <a href="/2014/09/16/always-performance-test/">
-            Always Performance Test!
-            <small>16 Sep 2014</small>
-          </a>
-        </h3>
-      </li>
+    <li>
+      <h3>
+        <a href="/2014/09/23/bandwidth/">
+          Bandwidth. It's not free...
+          <small>23 Sep 2014</small>
+        </a>
+      </h3>
+    </li>
     
-      <li>
-        <h3>
-          <a href="/2014/09/06/code-to-code/">
-            Writing code to write code
-            <small>06 Sep 2014</small>
-          </a>
-        </h3>
-      </li>
+    <li>
+      <h3>
+        <a href="/2014/09/16/always-performance-test/">
+          Always Performance Test!
+          <small>16 Sep 2014</small>
+        </a>
+      </h3>
+    </li>
     
   </ul>
 </div>
 
 
-      <div class="footer">
-        <p>
-          &copy; 2014. All rights reserved.
-        </p>
-      </div>
+    <div class="footer">
+      <p>
+        &copy; 2014. All rights reserved.
+      </p>
     </div>
+  </div>
 
-  </body>
+</body>
 </html>

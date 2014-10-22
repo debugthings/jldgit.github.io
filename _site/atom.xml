@@ -4,13 +4,134 @@
  <title>Debug Things</title>
  <link href="/atom.xml" rel="self"/>
  <link href="/"/>
- <updated>2014-09-24T21:36:27-07:00</updated>
+ <updated>2014-10-22T11:37:48-07:00</updated>
  <id></id>
  <author>
    <name>James Davis</name>
    <email>james.l.davis@outlook.com</email>
  </author>
 
+ 
+ <entry>
+   <title>Debugging - HostProtectionException in SSRS</title>
+   <link href="//2014/10/21/hostprotectionexception-ssrs/"/>
+   <updated>2014-10-21T00:00:00-07:00</updated>
+   <id>/2014/10/21/hostprotectionexception-ssrs</id>
+   <content type="html">&lt;h2&gt;Overview&lt;/h2&gt;
+
+&lt;p&gt;Our BI team is currently going through an uplift from Win2k3 to Win2012. It is quite a massive undertaking of course. But, beyond the amount of work that has to be done there is another dangerous killer out there.  Undocumented changes. In this article I describe the System.Security.HostProtectionException in relation to SSRS and custom code.&lt;/p&gt;
+
+&lt;p&gt;In this case I was working with an in-house developed bit of custom code that has been alive for &lt;strong&gt;YEARS&lt;/strong&gt;. This code is used inside of a SSRS report to render a special type of image that comes from the database.&lt;/p&gt;
+
+&lt;p&gt;Sometime between SSRS install, v1, and vNow of this custom DLL there were numerous changes before during, and after deployment. Most of these changes are just code deployment for SSRS. But, some are a bit more insidious. There are OS level changes, patches, security updates and the like.&lt;/p&gt;
+
+&lt;p&gt;So, it&amp;#39;s probably fair to say that the code we once had is not the code we have now. Knowing that simple--but useful--fact,  we can get right down to business.&lt;/p&gt;
+
+&lt;h2&gt;Steps&lt;/h2&gt;
+
+&lt;p&gt;The first thing I always do when trying to debug a &amp;quot;we&amp;#39;ve been working on it for weeks,&amp;quot; scenario is try to figure out who has been doing what. In this case we had a very skilled senior engineer working on the issue. So, I was able to forego a ton of leg work and get down to the meat of the problem. The engineer had already compared config files, checked parameters, run numerous tests, and even added some compensating configuration changes but to no avail.&lt;/p&gt;
+
+&lt;ol&gt;
+&lt;li&gt;Run report. Fail.&lt;/li&gt;
+&lt;li&gt;Check Application Log. Clean.&lt;/li&gt;
+&lt;li&gt;Check System log. Clean.&lt;/li&gt;
+&lt;li&gt;Check SSRS log. Clean.&lt;/li&gt;
+&lt;li&gt;Run report while watching in WinDbg. Exception.
+
+&lt;ul&gt;
+&lt;li&gt;Run the report a couple of times to correlate exceptions&lt;/li&gt;
+&lt;/ul&gt;&lt;/li&gt;
+&lt;/ol&gt;
+
+&lt;h2&gt;Debugging&lt;/h2&gt;
+
+&lt;p&gt;Once I was able to see there was an exception I needed to see what the exception was. So I loaded up PSSCOR2 and dumped all of the exceptions using &lt;code&gt;!dae&lt;/code&gt;. With this I was able to see that there were 2 exceptions. This correlated to the number of times that I ran this particular report. An output example is below.  Note the first line of the output.&lt;/p&gt;
+&lt;div class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-text&quot; data-lang=&quot;text&quot;&gt;0:000&amp;gt; !dae
+Going to dump the .NET Exceptions found in the heap.
+Loading the heap objects into our cache.
+
+&amp;lt;&amp;lt;&amp;lt;removed topmost common exceptions&amp;gt;&amp;gt;&amp;gt;
+
+Number of exceptions of this type:        2
+Exception MethodTable: 6b8bf514
+Exception object: 02a0f438
+Exception type: System.Security.HostProtectionException
+Message: Attempted to perform an operation that was forbidden by the CLR host.
+InnerException: &amp;lt;none&amp;gt;
+StackTrace (generated):
+&amp;lt;none&amp;gt;
+StackTraceString: &amp;lt;none&amp;gt;
+HResult: 80131640
+-----------------
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+&lt;p&gt;After seeing that I was able to use &lt;code&gt;!StopOnException (!soe)&lt;/code&gt; to pause the execution once we reached this particular exception. To ensure I was ready once the CLR was loaded. I did this by setting an exception(event) breakpoint by using &lt;code&gt;sxe ld mscorwks; g&lt;/code&gt;. After that I loaded PSSCOR2 with &lt;code&gt;.load exts/psccor2&lt;/code&gt;. Look at the following WinDbg log recreation below.&lt;/p&gt;
+
+&lt;p&gt;With the command &lt;code&gt;!soe -create System.Security.HostProtectionException 1&lt;/code&gt; I created a break point on the first chance exception of this host protection exception. The &lt;code&gt;-create&lt;/code&gt; option tells &lt;code&gt;!soe&lt;/code&gt; to stop on first chance. The number &lt;code&gt;1&lt;/code&gt; is a psuedo register that you can use to check for a passfail condition. This is useful if you need to use ADPlus and check exactly WHAT exception was thrown automagically.&lt;/p&gt;
+
+&lt;blockquote&gt;
+&lt;p&gt;&lt;strong&gt;NOTE&lt;/strong&gt; There are help files in WinDbg that breifly explain ADPlus. However, you can also use procdump.exe to create dump files on specific exceptions. ADPlus gives very, very, very granular control over taking a crash dump; there is a learning curve. Procdump.exe gives great power with one command line but does not allow for complex evaluations.&lt;/p&gt;
+&lt;/blockquote&gt;
+&lt;div class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-text&quot; data-lang=&quot;text&quot;&gt;0:000&amp;gt; sxe ld mscorwks; g
+ModLoad: 6bb20000 6c0ce000   C:\Windows\Microsoft.NET\Framework\v2.0.50727\mscorwks.dll
+eax=00000000 ebx=00000000 ecx=00000000 edx=00000000 esi=7efdd000 edi=003eeb3c
+eip=77a5fc62 esp=003eea10 ebp=003eea64 iopl=0         nv up ei pl zr na pe nc
+cs=0023  ss=002b  ds=002b  es=002b  fs=0053  gs=002b             efl=00000246
+ntdll!NtMapViewOfSection+0x12:
+77a5fc62 83c404          add     esp,4
+0:000&amp;gt; .load exts/psscor2
+0:000&amp;gt; !soe -create System.Security.HostProtectionException 1
+Breakpoint set
+0:000&amp;gt; g
+
+&amp;#39;System.Security.HostProtectionException hit&amp;#39;
+First chance exceptions are reported before any exception handling.
+This exception may be expected and handled.
+eax=003eddc0 ebx=e0434f4d ecx=00000001 edx=00000000 esi=003ede48 edi=0067c598
+eip=75d9c42d esp=003eddc0 ebp=003ede10 iopl=0         nv up ei pl nz ac pe nc
+cs=0023  ss=002b  ds=002b  es=002b  fs=0053  gs=002b             efl=00000216
+KERNELBASE!RaiseException+0x58:
+75d9c42d c9              leave
+
+0:000&amp;gt; !CLRStack
+OS Thread Id: 0x3520 (0)
+ESP       EIP     
+003ede98 75d9c42d [HelperMethodFrame: 003ede98] 
+003edf3c 6b6ed297 System.Security.CodeAccessSecurityEngine.ThrowSecurityException(System.Reflection.Assembly, System.Security.PermissionSet, System.Security.PermissionSet, System.RuntimeMethodHandle, System.Security.Permissions.SecurityAction, System.Object, System.Security.IPermission)
+003edf6c 6b6ed345 System.Security.CodeAccessSecurityEngine.ThrowSecurityException(System.Object, System.Security.PermissionSet, System.Security.PermissionSet, System.RuntimeMethodHandle, System.Security.Permissions.SecurityAction, System.Object, System.Security.IPermission)
+003edf94 6b6ed4b1 System.Security.CodeAccessSecurityEngine.CheckSetHelper(System.Security.PermissionSet, System.Security.PermissionSet, System.Security.PermissionSet, System.RuntimeMethodHandle, System.Object, System.Security.Permissions.SecurityAction, Boolean)
+003edfe4 6b6ed3fb System.Security.CodeAccessSecurityEngine.CheckSetHelper(System.Threading.CompressedStack, System.Security.PermissionSet, System.Security.PermissionSet, System.Security.PermissionSet, System.RuntimeMethodHandle, System.Reflection.Assembly, System.Security.Permissions.SecurityAction)
+003ee194 6bb21b4c [GCFrame: 003ee194] 
+003ee904 6bb21b4c [GCFrame: 003ee904] 
+003ee96c 6bb21b4c [GCFrame: 003ee96c] 
+003ee9bc 6bb21b4c [GCFrame: 003ee9bc] 
+003eea4c 6bb21b4c [DebuggerSecurityCodeMarkFrame: 003eea4c] 
+003eea20 6bb21b4c [GCFrame: 003eea20] 
+003eeab8 6bb21b4c [HelperMethodFrame: 003eeab8] System.Reflection.MethodBase.PerformSecurityCheck(System.Object, System.RuntimeMethodHandle, IntPtr, UInt32)
+003eeb1c 6b24f947 System.Reflection.RuntimeConstructorInfo.Invoke(System.Reflection.BindingFlags, System.Reflection.Binder, System.Object[], System.Globalization.CultureInfo)
+003eebac 00dbb800 System.Diagnostics.TraceUtils.GetRuntimeObject(System.String, System.Type, System.String)
+003eebf0 00dbb6d0 System.Diagnostics.TypedElement.BaseGetRuntimeObject()
+003eec04 00dbb457 System.Diagnostics.ListenerElement.GetRuntimeObject()
+003eec38 00dbb22a System.Diagnostics.ListenerElementsCollection.GetRuntimeObject()
+003eec70 00dbb0a7 System.Diagnostics.TraceInternal.get_Listeners()
+003eec9c 005f0369 System.Diagnostics.TraceInternal.WriteLine(System.String)
+003eecd8 005f0306 System.Diagnostics.Trace.WriteLine(System.String)
+...
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+&lt;p&gt;This stack trace shows us that when we call &lt;code&gt;Trace.WriteLine()&lt;/code&gt; it invokes security checks. This is all fine and well, but my code is executing as FullTrust. Right?&lt;/p&gt;
+
+&lt;p&gt;Well, not exactly. Depending on how you use your custom code it may not execute with FullTrust. For example, if I use my code in an expression it will inherit it&amp;#39;s security from &lt;code&gt;Report_Expressions_Default_Permissions&lt;/code&gt; which is a CodeGroup with a permission set of Execution. This whacks any FullTrust you may have set on your custom code.&lt;/p&gt;
+
+&lt;h2&gt;Explanation&lt;/h2&gt;
+
+&lt;p&gt;The SSRS reporting engine hosts it&amp;#39;s own CLR (CLR Integration) and this is where your code will execute. As mentioned in the previous paragraph the &amp;quot;Expressions Engine&amp;quot; will take default permissions of &lt;strong&gt;Execute&lt;/strong&gt;. This causes the code to inherit the lowered security. So, in this case it will perform the security checks required to validate the CAS. Otherwise FullTrust code will cause this check to &lt;a href=&quot;http://msdn.microsoft.com/en-us/library/system.security.permissions.hostprotectionattribute(v=vs.110).aspx&quot;&gt;evaporate&lt;/a&gt; and not be looked at.&lt;/p&gt;
+
+&lt;h2&gt;Resolution&lt;/h2&gt;
+
+&lt;p&gt;So, in this case we had the application team remove the &lt;code&gt;Trace.WriteLine()&lt;/code&gt; calls. This kept us from having to put our SSRS server in some insecure state according to this page on &lt;a href=&quot;http://msdn.microsoft.com/en-us/library/ms154466&quot;&gt;SSRS Security Policies&lt;/a&gt;.&lt;/p&gt;
+
+&lt;p&gt;While this explains the behvior, it does not explain why the code used to work and now it does not. While I would assume there is some change in &lt;/p&gt;
+</content>
+ </entry>
  
  <entry>
    <title>Debugging - Fixing a deadlock</title>
@@ -23,11 +144,14 @@
 
 &lt;p&gt;For this article I am making an assumption you have a working knowledge of WinDbg. As well I suspect you should have working knowledge of C or C++. And also, of Win32. Do I even need to mention the stack?&lt;/p&gt;
 
-&lt;p&gt;If you don&amp;#39;t know them I&amp;#39;d check out the following links.
-- &lt;a href=&quot;http://msdn.microsoft.com/en-us/library/windows/hardware/hh406283(v=vs.85).aspx&quot;&gt;Debugging Using WinDbg&lt;/a&gt;
-- &lt;a href=&quot;http://msdn.microsoft.com/en-us/library/ms235629.aspx&quot;&gt;Walkthrough: Creating a Win32 Console Program (C++)&lt;/a&gt;
-- &lt;a href=&quot;http://msdn.microsoft.com/en-us/library/windows/desktop/ms682516(v=vs.85).aspx&quot;&gt;Creating Threads&lt;/a&gt;
-- &lt;a href=&quot;http://msdn.microsoft.com/en-us/library/windows/desktop/ms682530(v=vs.85).aspx&quot;&gt;Critical Section Objects&lt;/a&gt;&lt;/p&gt;
+&lt;p&gt;If you don&amp;#39;t know them I&amp;#39;d check out the following links.&lt;/p&gt;
+
+&lt;ul&gt;
+&lt;li&gt;&lt;a href=&quot;http://msdn.microsoft.com/en-us/library/windows/hardware/hh406283(v=vs.85).aspx&quot;&gt;Debugging Using WinDbg&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;a href=&quot;http://msdn.microsoft.com/en-us/library/ms235629.aspx&quot;&gt;Walkthrough: Creating a Win32 Console Program (C++)&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;a href=&quot;http://msdn.microsoft.com/en-us/library/windows/desktop/ms682516(v=vs.85).aspx&quot;&gt;Creating Threads&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;a href=&quot;http://msdn.microsoft.com/en-us/library/windows/desktop/ms682530(v=vs.85).aspx&quot;&gt;Critical Section Objects&lt;/a&gt;&lt;/li&gt;
+&lt;/ul&gt;
 
 &lt;p&gt;Now that you know everything there is to know about Win32 programming and WinDbg, lets get started. :)&lt;/p&gt;
 
@@ -36,55 +160,55 @@
 &lt;p&gt;The application that is being used is a contrived example that demonstrates a deadlock in the purest sense. One application, two threads, two locks out of order.&lt;/p&gt;
 
 &lt;p&gt;The repository for the code &lt;a href=&quot;https://github.com/jldgit/DebugThingsCode&quot;&gt;is here&lt;/a&gt;, and is displayed below.&lt;/p&gt;
-&lt;div class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-cpp&quot; data-lang=&quot;cpp&quot;&gt;int _tmain(int argc, _TCHAR* argv[])
-{
-  hStdOut = GetStdHandle(STD_OUTPUT_HANDLE);
-  InitializeCriticalSection(&amp;amp;cs1);
-  InitializeCriticalSection(&amp;amp;cs2);
-  DWORD tid1;
-  DWORD tid2;
-  HANDLE t1 = CreateThread(NULL, 0, Thread1, NULL, 0, &amp;amp;tid1);
-  HANDLE t2 = CreateThread(NULL, 0, Thread2, NULL, 0, &amp;amp;tid2);
-  HANDLE multiHandle[2] = { t1, t2 };
-  WaitForMultipleObjects(2, multiHandle, TRUE, INFINITE);
-  return 0;
-}
 
-DWORD WINAPI  Thread1(LPVOID lpParam)
-{
-  int i = 0;
-  do
-  {
-    EnterCriticalSection(&amp;amp;cs2);
-    Sleep(5); // Artificial do work
-    EnterCriticalSection(&amp;amp;cs1);
-    SetConsoleTextAttribute(hStdOut, FOREGROUND_RED);
-    std::cout &amp;lt;&amp;lt; ++i &amp;lt;&amp;lt; &amp;quot;Thread 1&amp;quot; &amp;lt;&amp;lt; std::endl;
-    Sleep(250);
-    LeaveCriticalSection(&amp;amp;cs2);
-    LeaveCriticalSection(&amp;amp;cs1);
-  } while (true);
-}
+&lt;div class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-cpp&quot; data-lang=&quot;cpp&quot;&gt;&lt;span class=&quot;kt&quot;&gt;int&lt;/span&gt; &lt;span class=&quot;nf&quot;&gt;_tmain&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;kt&quot;&gt;int&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;argc&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;_TCHAR&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;*&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;argv&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;[])&lt;/span&gt;
+&lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;
+  &lt;span class=&quot;n&quot;&gt;hStdOut&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;GetStdHandle&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;STD_OUTPUT_HANDLE&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;);&lt;/span&gt;
+  &lt;span class=&quot;n&quot;&gt;InitializeCriticalSection&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;&amp;amp;&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;cs1&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;);&lt;/span&gt;
+  &lt;span class=&quot;n&quot;&gt;InitializeCriticalSection&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;&amp;amp;&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;cs2&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;);&lt;/span&gt;
+  &lt;span class=&quot;n&quot;&gt;DWORD&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;tid1&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+  &lt;span class=&quot;n&quot;&gt;DWORD&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;tid2&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+  &lt;span class=&quot;n&quot;&gt;HANDLE&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;t1&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;CreateThread&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;nb&quot;&gt;NULL&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;mi&quot;&gt;0&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;Thread1&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;nb&quot;&gt;NULL&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;mi&quot;&gt;0&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;&amp;amp;&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;tid1&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;);&lt;/span&gt;
+  &lt;span class=&quot;n&quot;&gt;HANDLE&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;t2&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;CreateThread&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;nb&quot;&gt;NULL&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;mi&quot;&gt;0&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;Thread2&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;nb&quot;&gt;NULL&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;mi&quot;&gt;0&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;&amp;amp;&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;tid2&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;);&lt;/span&gt;
+  &lt;span class=&quot;n&quot;&gt;HANDLE&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;multiHandle&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;2&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;]&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;{&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;t1&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;t2&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;};&lt;/span&gt;
+  &lt;span class=&quot;n&quot;&gt;WaitForMultipleObjects&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;2&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;multiHandle&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;TRUE&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;INFINITE&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;);&lt;/span&gt;
+  &lt;span class=&quot;k&quot;&gt;return&lt;/span&gt; &lt;span class=&quot;mi&quot;&gt;0&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+&lt;span class=&quot;p&quot;&gt;}&lt;/span&gt;
 
-DWORD WINAPI  Thread2(LPVOID lpParam)
-{
-  int i = 0;
-  do
-  {
-    EnterCriticalSection(&amp;amp;cs1);
-    Sleep(5); // Artificial do work
-    EnterCriticalSection(&amp;amp;cs2);
+&lt;span class=&quot;n&quot;&gt;DWORD&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;WINAPI&lt;/span&gt;  &lt;span class=&quot;nf&quot;&gt;Thread1&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;LPVOID&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;lpParam&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt;
+&lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;
+  &lt;span class=&quot;kt&quot;&gt;int&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;i&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;mi&quot;&gt;0&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+  &lt;span class=&quot;k&quot;&gt;do&lt;/span&gt;
+  &lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;
+    &lt;span class=&quot;n&quot;&gt;EnterCriticalSection&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;&amp;amp;&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;cs2&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;);&lt;/span&gt;
+    &lt;span class=&quot;n&quot;&gt;Sleep&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;5&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;);&lt;/span&gt; &lt;span class=&quot;c1&quot;&gt;// Artificial do work&lt;/span&gt;
+    &lt;span class=&quot;n&quot;&gt;EnterCriticalSection&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;&amp;amp;&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;cs1&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;);&lt;/span&gt;
+    &lt;span class=&quot;n&quot;&gt;SetConsoleTextAttribute&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;hStdOut&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;FOREGROUND_RED&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;);&lt;/span&gt;
+    &lt;span class=&quot;n&quot;&gt;std&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;::&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;cout&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;&amp;lt;&amp;lt;&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;++&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;i&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;&amp;lt;&amp;lt;&lt;/span&gt; &lt;span class=&quot;s&quot;&gt;&amp;quot;Thread 1&amp;quot;&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;&amp;lt;&amp;lt;&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;std&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;::&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;endl&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+    &lt;span class=&quot;n&quot;&gt;Sleep&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;250&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;);&lt;/span&gt;
+    &lt;span class=&quot;n&quot;&gt;LeaveCriticalSection&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;&amp;amp;&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;cs2&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;);&lt;/span&gt;
+    &lt;span class=&quot;n&quot;&gt;LeaveCriticalSection&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;&amp;amp;&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;cs1&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;);&lt;/span&gt;
+  &lt;span class=&quot;p&quot;&gt;}&lt;/span&gt; &lt;span class=&quot;k&quot;&gt;while&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;nb&quot;&gt;true&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;);&lt;/span&gt;
+&lt;span class=&quot;p&quot;&gt;}&lt;/span&gt;
 
-    SetConsoleTextAttribute(hStdOut, FOREGROUND_BLUE);
-    std::cout &amp;lt;&amp;lt; ++i &amp;lt;&amp;lt; &amp;quot; Thread 2&amp;quot; &amp;lt;&amp;lt; std::endl;
-    Sleep(250);
-    LeaveCriticalSection(&amp;amp;cs1);
-    LeaveCriticalSection(&amp;amp;cs2);
+&lt;span class=&quot;n&quot;&gt;DWORD&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;WINAPI&lt;/span&gt;  &lt;span class=&quot;nf&quot;&gt;Thread2&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;LPVOID&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;lpParam&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt;
+&lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;
+  &lt;span class=&quot;kt&quot;&gt;int&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;i&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;mi&quot;&gt;0&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+  &lt;span class=&quot;k&quot;&gt;do&lt;/span&gt;
+  &lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;
+    &lt;span class=&quot;n&quot;&gt;EnterCriticalSection&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;&amp;amp;&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;cs1&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;);&lt;/span&gt;
+    &lt;span class=&quot;n&quot;&gt;Sleep&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;5&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;);&lt;/span&gt; &lt;span class=&quot;c1&quot;&gt;// Artificial do work&lt;/span&gt;
+    &lt;span class=&quot;n&quot;&gt;EnterCriticalSection&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;&amp;amp;&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;cs2&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;);&lt;/span&gt;
+    
+    &lt;span class=&quot;n&quot;&gt;SetConsoleTextAttribute&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;hStdOut&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;FOREGROUND_BLUE&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;);&lt;/span&gt;
+    &lt;span class=&quot;n&quot;&gt;std&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;::&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;cout&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;&amp;lt;&amp;lt;&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;++&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;i&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;&amp;lt;&amp;lt;&lt;/span&gt; &lt;span class=&quot;s&quot;&gt;&amp;quot; Thread 2&amp;quot;&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;&amp;lt;&amp;lt;&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;std&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;::&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;endl&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+    &lt;span class=&quot;n&quot;&gt;Sleep&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;250&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;);&lt;/span&gt;
+    &lt;span class=&quot;n&quot;&gt;LeaveCriticalSection&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;&amp;amp;&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;cs1&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;);&lt;/span&gt;
+    &lt;span class=&quot;n&quot;&gt;LeaveCriticalSection&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;&amp;amp;&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;cs2&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;);&lt;/span&gt;
+    
+  &lt;span class=&quot;p&quot;&gt;}&lt;/span&gt; &lt;span class=&quot;k&quot;&gt;while&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;nb&quot;&gt;true&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;);&lt;/span&gt;
+&lt;span class=&quot;p&quot;&gt;}&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
 
-  } while (true);
-}
-
-&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
 &lt;h2&gt;The Problem&lt;/h2&gt;
 
 &lt;p&gt;In this example the problem is simply the locks are out of order. The fix is simple if you have the source code.  Have the locks fire in order and your problems will go away.&lt;/p&gt;
@@ -139,7 +263,7 @@ DWORD WINAPI  Thread2(LPVOID lpParam)
 &lt;p&gt;&lt;strong&gt;TIP&lt;/strong&gt; type &lt;code&gt;.hh ~&lt;/code&gt; to view the help file for the thread syntax command. You can use &lt;code&gt;.hh&lt;/code&gt; for every single command that you use with WinDbg, save for some of the custom extensions.&lt;/p&gt;
 &lt;/blockquote&gt;
 
-&lt;p&gt;Now that we can see we have three threads we should take a look at what each one is doing. First lest switch to &lt;strong&gt;Thread 1&lt;/strong&gt;. The syntax of the command is &lt;code&gt;~1s&lt;/code&gt;. We can then inspect the call stack using &lt;code&gt;k&lt;/code&gt; to output the methods only or &lt;code&gt;kbn&lt;/code&gt; to display the frame numbers, method name, and the first three arguments. I added the line breaks to make it easier to read.&lt;/p&gt;
+&lt;p&gt;Now that we can see we have three threads (and one debug thread) we should take a look at what each one is doing. First lest switch to &lt;strong&gt;Thread 1&lt;/strong&gt;. The syntax of the command is &lt;code&gt;~1s&lt;/code&gt;. We can then inspect the call stack using &lt;code&gt;k&lt;/code&gt; to output the methods only or &lt;code&gt;kbn&lt;/code&gt; to display the frame numbers, method name, and the first three arguments. I added the line breaks to make it easier to read.&lt;/p&gt;
 &lt;div class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-text&quot; data-lang=&quot;text&quot;&gt;0:001&amp;gt; ~1s
 eax=00000000 ebx=00000000 ecx=00000000 edx=00000000 esi=01164450 edi=00000000
 eip=77dcf8d1 esp=006df7d8 ebp=006df83c iopl=0         nv up ei pl zr na pe nc
@@ -189,7 +313,6 @@ ChildEBP RetAddr
 05 00b3fa64 77de9f45 01161150 00000000 00000000 ntdll!__RtlUserThreadStart+0x70
 
 06 00b3fa7c 00000000 01161150 00000000 00000000 ntdll!_RtlUserThreadStart+0x1b
-
 &lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
 &lt;blockquote&gt;
 &lt;p&gt;&lt;strong&gt;TIP&lt;/strong&gt; Use the shortcut command &lt;code&gt;~2kbn&lt;/code&gt; which executes the &lt;code&gt;kbn&lt;/code&gt; command without switching to thread 2.&lt;/p&gt;
@@ -205,7 +328,6 @@ ChildEBP RetAddr
 &lt;div class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-text&quot; data-lang=&quot;text&quot;&gt;0:001&amp;gt; ~2kbn 1
  # ChildEBP RetAddr  Args to Child              
 00 00b3f970 77de8e44 00000040 00000000 00000000 ntdll!ZwWaitForSingleObject+0x15
-
 &lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
 &lt;p&gt;This method is waiting on a handle (&lt;code&gt;40&lt;/code&gt;). Let&amp;#39;s take a look at the handle in the parameter by using the &lt;code&gt;!handle&lt;/code&gt; command.&lt;/p&gt;
 &lt;div class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-text&quot; data-lang=&quot;text&quot;&gt;0:001&amp;gt; !handle 40
@@ -252,81 +374,62 @@ SpinCount          = 0x00000000
 &lt;h3&gt;Step 5 - Inspect the code&lt;/h3&gt;
 
 &lt;p&gt;Now that we&amp;#39;re certain we have a blocked thread we need to take a look at the functions that are part of this executable. In order to do that we will use the un-assemble &lt;code&gt;u&lt;/code&gt; command, and use the &lt;code&gt;uf&lt;/code&gt; variant to un-assemble a function. I added line breaks to make some lines easier to read.&lt;/p&gt;
-&lt;div class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-asm&quot; data-lang=&quot;asm&quot;&gt;CriticalSectionDeadlock!Thread2:
-01161150 55              push    ebp
-01161151 8bec            mov     ebp,esp
-01161153 83e4f8          and     esp,0FFFFFFF8h
-01161156 51              push    ecx
-01161157 53              push    ebx
-01161158 8b1d14301601    mov     ebx,dword ptr [CriticalSectionDeadlock!_imp__Sleep (01163014)]
+&lt;div class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-asm&quot; data-lang=&quot;asm&quot;&gt;&lt;span class=&quot;c&quot;&gt;# CriticalSectionDeadlock!Thread2:&lt;/span&gt;
+&lt;span class=&quot;nf&quot;&gt;mov&lt;/span&gt;     &lt;span class=&quot;no&quot;&gt;ebp&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt;&lt;span class=&quot;no&quot;&gt;esp&lt;/span&gt;
+&lt;span class=&quot;nf&quot;&gt;and&lt;/span&gt;     &lt;span class=&quot;no&quot;&gt;esp&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;0&lt;/span&gt;&lt;span class=&quot;no&quot;&gt;FFFFFFF8h&lt;/span&gt;
+&lt;span class=&quot;nf&quot;&gt;push&lt;/span&gt;    &lt;span class=&quot;no&quot;&gt;ebp&lt;/span&gt;
+&lt;span class=&quot;nf&quot;&gt;push&lt;/span&gt;    &lt;span class=&quot;no&quot;&gt;ecx&lt;/span&gt;
+&lt;span class=&quot;nf&quot;&gt;push&lt;/span&gt;    &lt;span class=&quot;no&quot;&gt;ebx&lt;/span&gt;
+&lt;span class=&quot;nf&quot;&gt;mov&lt;/span&gt;     &lt;span class=&quot;no&quot;&gt;ebx&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt;&lt;span class=&quot;no&quot;&gt;dword&lt;/span&gt; &lt;span class=&quot;no&quot;&gt;ptr&lt;/span&gt; &lt;span class=&quot;err&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;no&quot;&gt;CriticalSectionDeadlock&lt;/span&gt;&lt;span class=&quot;err&quot;&gt;!&lt;/span&gt;&lt;span class=&quot;no&quot;&gt;_imp__Sleep&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;01163014&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt;&lt;span class=&quot;err&quot;&gt;]&lt;/span&gt;
+&lt;span class=&quot;nf&quot;&gt;push&lt;/span&gt;    &lt;span class=&quot;no&quot;&gt;esi&lt;/span&gt;
+&lt;span class=&quot;nf&quot;&gt;push&lt;/span&gt;    &lt;span class=&quot;no&quot;&gt;edi&lt;/span&gt;
+&lt;span class=&quot;nf&quot;&gt;mov&lt;/span&gt;     &lt;span class=&quot;no&quot;&gt;edi&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt;&lt;span class=&quot;no&quot;&gt;dword&lt;/span&gt; &lt;span class=&quot;no&quot;&gt;ptr&lt;/span&gt; &lt;span class=&quot;err&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;no&quot;&gt;CriticalSectionDeadlock&lt;/span&gt;&lt;span class=&quot;err&quot;&gt;!&lt;/span&gt;&lt;span class=&quot;no&quot;&gt;_imp__EnterCriticalSection&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;01163010&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt;&lt;span class=&quot;err&quot;&gt;]&lt;/span&gt;
+&lt;span class=&quot;nf&quot;&gt;xor&lt;/span&gt;     &lt;span class=&quot;no&quot;&gt;esi&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt;&lt;span class=&quot;no&quot;&gt;esi&lt;/span&gt;
 
-0116115e 56              push    esi
-0116115f 57              push    edi
-01161160 8b3d10301601    mov     edi,dword ptr [CriticalSectionDeadlock!_imp__EnterCriticalSection (01163010)]
-
-01161166 33f6            xor     esi,esi
-
-CriticalSectionDeadlock!Thread2+0x18:
-01161168 6850441601      push    offset CriticalSectionDeadlock!cs1 (01164450)
-
-0116116d ffd7            call    edi
-0116116f 6a05            push    5
-01161171 ffd3            call    ebx
-01161173 6838441601      push    offset CriticalSectionDeadlock!cs2 (01164438)
-
-01161178 ffd7            call    edi
-0116117a 6a02            push    2
-0116117c ff3568441601    push    dword ptr [CriticalSectionDeadlock!hStdOut (01164468)]
-
-01161182 ff1518301601    call    dword ptr [CriticalSectionDeadlock!_imp__SetConsoleTextAttribute (01163018)]
-
-01161188 6820141601      push    offset CriticalSectionDeadlock!std::endl&amp;lt;char,std::char_traits&amp;lt;char&amp;gt; &amp;gt; (01161420)
-
-0116118d 51              push    ecx
-0116118e 8b0d80301601    mov     ecx,dword ptr [CriticalSectionDeadlock!_imp_?coutstd (01163080)]
-
-01161194 46              inc     esi
-01161195 56              push    esi
-01161196 ff1564301601    call    dword ptr [CriticalSectionDeadlock!_imp_??6?$basic_ostreamDU?$char_traitsDstdstdQAEAAV01HZ (01163064)]
-
-0116119c baa4311601      mov     edx,offset CriticalSectionDeadlock!`string' (011631a4)
-
-011611a1 8bc8            mov     ecx,eax
-011611a3 e838000000      call    CriticalSectionDeadlock!std::operator&amp;lt;&amp;lt;&amp;lt;std::char_traits&amp;lt;char&amp;gt; &amp;gt; (011611e0)
-
-011611a8 83c404          add     esp,4
-011611ab 8bc8            mov     ecx,eax
-011611ad ff1568301601    call    dword ptr [CriticalSectionDeadlock!_imp_??6?$basic_ostreamDU?$char_traitsDstdstdQAEAAV01P6AAAV01AAV01ZZ (01163068)]
-
-011611b3 68fa000000      push    0FAh
-011611b8 ffd3            call    ebx
-011611ba 6850441601      push    offset CriticalSectionDeadlock!cs1 (01164450)
-
-011611bf ff151c301601    call    dword ptr [CriticalSectionDeadlock!_imp__LeaveCriticalSection (0116301c)]
-
-011611c5 6838441601      push    offset CriticalSectionDeadlock!cs2 (01164438)
-
-011611ca ff151c301601    call    dword ptr [CriticalSectionDeadlock!_imp__LeaveCriticalSection (0116301c)]
-
-011611d0 eb96            jmp     CriticalSectionDeadlock!Thread2+0x18 (01161168)
-
+&lt;span class=&quot;c&quot;&gt;# CriticalSectionDeadlock!Thread2+0x18:&lt;/span&gt;
+&lt;span class=&quot;nf&quot;&gt;push&lt;/span&gt;    &lt;span class=&quot;no&quot;&gt;offset&lt;/span&gt; &lt;span class=&quot;no&quot;&gt;CriticalSectionDeadlock&lt;/span&gt;&lt;span class=&quot;err&quot;&gt;!&lt;/span&gt;&lt;span class=&quot;no&quot;&gt;cs1&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;01164450&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt;
+&lt;span class=&quot;nf&quot;&gt;call&lt;/span&gt;    &lt;span class=&quot;no&quot;&gt;edi&lt;/span&gt;
+&lt;span class=&quot;nf&quot;&gt;push&lt;/span&gt;    &lt;span class=&quot;mi&quot;&gt;5&lt;/span&gt;
+&lt;span class=&quot;nf&quot;&gt;call&lt;/span&gt;    &lt;span class=&quot;no&quot;&gt;ebx&lt;/span&gt;
+&lt;span class=&quot;nf&quot;&gt;push&lt;/span&gt;    &lt;span class=&quot;no&quot;&gt;offset&lt;/span&gt; &lt;span class=&quot;no&quot;&gt;CriticalSectionDeadlock&lt;/span&gt;&lt;span class=&quot;err&quot;&gt;!&lt;/span&gt;&lt;span class=&quot;no&quot;&gt;cs2&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;01164438&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt;
+&lt;span class=&quot;nf&quot;&gt;call&lt;/span&gt;    &lt;span class=&quot;no&quot;&gt;edi&lt;/span&gt;
+&lt;span class=&quot;nf&quot;&gt;push&lt;/span&gt;    &lt;span class=&quot;mi&quot;&gt;2&lt;/span&gt;
+&lt;span class=&quot;nf&quot;&gt;push&lt;/span&gt;    &lt;span class=&quot;no&quot;&gt;dword&lt;/span&gt; &lt;span class=&quot;no&quot;&gt;ptr&lt;/span&gt; &lt;span class=&quot;err&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;no&quot;&gt;CriticalSectionDeadlock&lt;/span&gt;&lt;span class=&quot;err&quot;&gt;!&lt;/span&gt;&lt;span class=&quot;no&quot;&gt;hStdOut&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;01164468&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt;&lt;span class=&quot;err&quot;&gt;]&lt;/span&gt;
+&lt;span class=&quot;nf&quot;&gt;call&lt;/span&gt;    &lt;span class=&quot;no&quot;&gt;dword&lt;/span&gt; &lt;span class=&quot;no&quot;&gt;ptr&lt;/span&gt; &lt;span class=&quot;err&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;no&quot;&gt;CriticalSectionDeadlock&lt;/span&gt;&lt;span class=&quot;err&quot;&gt;!&lt;/span&gt;&lt;span class=&quot;no&quot;&gt;_imp__SetConsoleTextAttribute&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;01163018&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt;&lt;span class=&quot;err&quot;&gt;]&lt;/span&gt;
+&lt;span class=&quot;nf&quot;&gt;push&lt;/span&gt;    &lt;span class=&quot;no&quot;&gt;offset&lt;/span&gt; &lt;span class=&quot;no&quot;&gt;CriticalSectionDeadlock&lt;/span&gt;&lt;span class=&quot;err&quot;&gt;!&lt;/span&gt;&lt;span class=&quot;no&quot;&gt;std&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;::&lt;/span&gt;&lt;span class=&quot;no&quot;&gt;endl&lt;/span&gt;&lt;span class=&quot;err&quot;&gt;&amp;lt;&lt;/span&gt;&lt;span class=&quot;no&quot;&gt;char&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt;&lt;span class=&quot;no&quot;&gt;std&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;::&lt;/span&gt;&lt;span class=&quot;no&quot;&gt;char_traits&lt;/span&gt;&lt;span class=&quot;err&quot;&gt;&amp;lt;&lt;/span&gt;&lt;span class=&quot;no&quot;&gt;char&lt;/span&gt;&lt;span class=&quot;err&quot;&gt;&amp;gt;&lt;/span&gt; &lt;span class=&quot;err&quot;&gt;&amp;gt;&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;01161420&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt;
+&lt;span class=&quot;nf&quot;&gt;push&lt;/span&gt;    &lt;span class=&quot;no&quot;&gt;ecx&lt;/span&gt;
+&lt;span class=&quot;nf&quot;&gt;mov&lt;/span&gt;     &lt;span class=&quot;no&quot;&gt;ecx&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt;&lt;span class=&quot;no&quot;&gt;dword&lt;/span&gt; &lt;span class=&quot;no&quot;&gt;ptr&lt;/span&gt; &lt;span class=&quot;err&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;no&quot;&gt;CriticalSectionDeadlock&lt;/span&gt;&lt;span class=&quot;err&quot;&gt;!&lt;/span&gt;&lt;span class=&quot;no&quot;&gt;_imp_&lt;/span&gt;&lt;span class=&quot;err&quot;&gt;?&lt;/span&gt;&lt;span class=&quot;no&quot;&gt;coutstd&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;01163080&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt;&lt;span class=&quot;err&quot;&gt;]&lt;/span&gt;
+&lt;span class=&quot;nf&quot;&gt;inc&lt;/span&gt;     &lt;span class=&quot;no&quot;&gt;esi&lt;/span&gt;
+&lt;span class=&quot;nf&quot;&gt;push&lt;/span&gt;    &lt;span class=&quot;no&quot;&gt;esi&lt;/span&gt;
+&lt;span class=&quot;nf&quot;&gt;call&lt;/span&gt;    &lt;span class=&quot;no&quot;&gt;dword&lt;/span&gt; &lt;span class=&quot;no&quot;&gt;ptr&lt;/span&gt; &lt;span class=&quot;err&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;no&quot;&gt;CriticalSectionDeadlock&lt;/span&gt;&lt;span class=&quot;err&quot;&gt;!&lt;/span&gt;&lt;span class=&quot;no&quot;&gt;_imp_&lt;/span&gt;&lt;span class=&quot;err&quot;&gt;??&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;6&lt;/span&gt;&lt;span class=&quot;err&quot;&gt;?&lt;/span&gt;&lt;span class=&quot;no&quot;&gt;$basic_ostreamDU&lt;/span&gt;&lt;span class=&quot;err&quot;&gt;?&lt;/span&gt;&lt;span class=&quot;no&quot;&gt;$char_traitsDstdstdQAEAAV01HZ&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;01163064&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt;&lt;span class=&quot;err&quot;&gt;]&lt;/span&gt;
+&lt;span class=&quot;nf&quot;&gt;mov&lt;/span&gt;     &lt;span class=&quot;no&quot;&gt;edx&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt;&lt;span class=&quot;no&quot;&gt;offset&lt;/span&gt; &lt;span class=&quot;no&quot;&gt;CriticalSectionDeadlock&lt;/span&gt;&lt;span class=&quot;err&quot;&gt;!`&lt;/span&gt;&lt;span class=&quot;no&quot;&gt;string&lt;/span&gt;&lt;span class=&quot;err&quot;&gt;&amp;#39;&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;011631&lt;/span&gt;&lt;span class=&quot;no&quot;&gt;a4&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt;
+&lt;span class=&quot;nf&quot;&gt;mov&lt;/span&gt;     &lt;span class=&quot;no&quot;&gt;ecx&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt;&lt;span class=&quot;no&quot;&gt;eax&lt;/span&gt;
+&lt;span class=&quot;nf&quot;&gt;call&lt;/span&gt;    &lt;span class=&quot;no&quot;&gt;CriticalSectionDeadlock&lt;/span&gt;&lt;span class=&quot;err&quot;&gt;!&lt;/span&gt;&lt;span class=&quot;no&quot;&gt;std&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;::&lt;/span&gt;&lt;span class=&quot;no&quot;&gt;operator&lt;/span&gt;&lt;span class=&quot;err&quot;&gt;&amp;lt;&amp;lt;&amp;lt;&lt;/span&gt;&lt;span class=&quot;no&quot;&gt;std&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;::&lt;/span&gt;&lt;span class=&quot;no&quot;&gt;char_traits&lt;/span&gt;&lt;span class=&quot;err&quot;&gt;&amp;lt;&lt;/span&gt;&lt;span class=&quot;no&quot;&gt;char&lt;/span&gt;&lt;span class=&quot;err&quot;&gt;&amp;gt;&lt;/span&gt; &lt;span class=&quot;err&quot;&gt;&amp;gt;&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;011611&lt;/span&gt;&lt;span class=&quot;no&quot;&gt;e0&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt;
+&lt;span class=&quot;nf&quot;&gt;add&lt;/span&gt;     &lt;span class=&quot;no&quot;&gt;esp&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;4&lt;/span&gt;
+&lt;span class=&quot;nf&quot;&gt;mov&lt;/span&gt;     &lt;span class=&quot;no&quot;&gt;ecx&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt;&lt;span class=&quot;no&quot;&gt;eax&lt;/span&gt;
+&lt;span class=&quot;nf&quot;&gt;call&lt;/span&gt;    &lt;span class=&quot;no&quot;&gt;dword&lt;/span&gt; &lt;span class=&quot;no&quot;&gt;ptr&lt;/span&gt; &lt;span class=&quot;err&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;no&quot;&gt;CriticalSectionDeadlock&lt;/span&gt;&lt;span class=&quot;err&quot;&gt;!&lt;/span&gt;&lt;span class=&quot;no&quot;&gt;_imp_&lt;/span&gt;&lt;span class=&quot;err&quot;&gt;??&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;6&lt;/span&gt;&lt;span class=&quot;err&quot;&gt;?&lt;/span&gt;&lt;span class=&quot;no&quot;&gt;$basic_ostreamDU&lt;/span&gt;&lt;span class=&quot;err&quot;&gt;?&lt;/span&gt;&lt;span class=&quot;no&quot;&gt;$char_traitsDstdstdQAEAAV01P6AAAV01AAV01ZZ&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;01163068&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt;&lt;span class=&quot;err&quot;&gt;]&lt;/span&gt;
+&lt;span class=&quot;nf&quot;&gt;push&lt;/span&gt;    &lt;span class=&quot;mi&quot;&gt;0&lt;/span&gt;&lt;span class=&quot;no&quot;&gt;FAh&lt;/span&gt;
+&lt;span class=&quot;nf&quot;&gt;call&lt;/span&gt;    &lt;span class=&quot;no&quot;&gt;ebx&lt;/span&gt;
+&lt;span class=&quot;nf&quot;&gt;push&lt;/span&gt;    &lt;span class=&quot;no&quot;&gt;offset&lt;/span&gt; &lt;span class=&quot;no&quot;&gt;CriticalSectionDeadlock&lt;/span&gt;&lt;span class=&quot;err&quot;&gt;!&lt;/span&gt;&lt;span class=&quot;no&quot;&gt;cs1&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;01164450&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt;
+&lt;span class=&quot;nf&quot;&gt;call&lt;/span&gt;    &lt;span class=&quot;no&quot;&gt;dword&lt;/span&gt; &lt;span class=&quot;no&quot;&gt;ptr&lt;/span&gt; &lt;span class=&quot;err&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;no&quot;&gt;CriticalSectionDeadlock&lt;/span&gt;&lt;span class=&quot;err&quot;&gt;!&lt;/span&gt;&lt;span class=&quot;no&quot;&gt;_imp__LeaveCriticalSection&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;0116301&lt;/span&gt;&lt;span class=&quot;no&quot;&gt;c&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt;&lt;span class=&quot;err&quot;&gt;]&lt;/span&gt;
+&lt;span class=&quot;nf&quot;&gt;push&lt;/span&gt;    &lt;span class=&quot;no&quot;&gt;offset&lt;/span&gt; &lt;span class=&quot;no&quot;&gt;CriticalSectionDeadlock&lt;/span&gt;&lt;span class=&quot;err&quot;&gt;!&lt;/span&gt;&lt;span class=&quot;no&quot;&gt;cs2&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;01164438&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt;
+&lt;span class=&quot;nf&quot;&gt;call&lt;/span&gt;    &lt;span class=&quot;no&quot;&gt;dword&lt;/span&gt; &lt;span class=&quot;no&quot;&gt;ptr&lt;/span&gt; &lt;span class=&quot;err&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;no&quot;&gt;CriticalSectionDeadlock&lt;/span&gt;&lt;span class=&quot;err&quot;&gt;!&lt;/span&gt;&lt;span class=&quot;no&quot;&gt;_imp__LeaveCriticalSection&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;0116301&lt;/span&gt;&lt;span class=&quot;no&quot;&gt;c&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt;&lt;span class=&quot;err&quot;&gt;]&lt;/span&gt;
+&lt;span class=&quot;nf&quot;&gt;jmp&lt;/span&gt;     &lt;span class=&quot;no&quot;&gt;CriticalSectionDeadlock&lt;/span&gt;&lt;span class=&quot;err&quot;&gt;!&lt;/span&gt;&lt;span class=&quot;no&quot;&gt;Thread2&lt;/span&gt;&lt;span class=&quot;err&quot;&gt;+&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;0x18&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;01161168&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt;
 &lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
 &lt;p&gt;I won&amp;#39;t walk this code line by line, but I will point out some interesting parts.&lt;/p&gt;
 
 &lt;p&gt;&lt;strong&gt;Storing the EnterCriticalSection function pointer in $edi&lt;/strong&gt;&lt;/p&gt;
-&lt;div class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-text&quot; data-lang=&quot;text&quot;&gt;mov     edi,dword ptr [CriticalSectionDeadlock!_imp__EnterCriticalSection (01163010)]
+&lt;div class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-asm&quot; data-lang=&quot;asm&quot;&gt;&lt;span class=&quot;nf&quot;&gt;mov&lt;/span&gt;     &lt;span class=&quot;no&quot;&gt;edi&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt;&lt;span class=&quot;no&quot;&gt;dword&lt;/span&gt; &lt;span class=&quot;no&quot;&gt;ptr&lt;/span&gt; &lt;span class=&quot;err&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;no&quot;&gt;CriticalSectionDeadlock&lt;/span&gt;&lt;span class=&quot;err&quot;&gt;!&lt;/span&gt;&lt;span class=&quot;no&quot;&gt;_imp__EnterCriticalSection&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;01163010&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt;&lt;span class=&quot;err&quot;&gt;]&lt;/span&gt;
 &lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
 &lt;p&gt;&lt;strong&gt;Calls to $edi&lt;/strong&gt;&lt;/p&gt;
 
 &lt;p&gt;We first &lt;code&gt;push&lt;/code&gt; the critical section to the stack and then call the function located at $edi. The addresses to the left are important.&lt;/p&gt;
-&lt;div class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-text&quot; data-lang=&quot;text&quot;&gt;01161168 6850441601      push    offset CriticalSectionDeadlock!cs1 (01164450)
-
-0116116d ffd7            call    edi
+&lt;div class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-asm&quot; data-lang=&quot;asm&quot;&gt;&lt;span class=&quot;nf&quot;&gt;push&lt;/span&gt;    &lt;span class=&quot;no&quot;&gt;offset&lt;/span&gt; &lt;span class=&quot;no&quot;&gt;CriticalSectionDeadlock&lt;/span&gt;&lt;span class=&quot;err&quot;&gt;!&lt;/span&gt;&lt;span class=&quot;no&quot;&gt;cs1&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;01164450&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt;
+&lt;span class=&quot;nf&quot;&gt;call&lt;/span&gt;    &lt;span class=&quot;no&quot;&gt;edi&lt;/span&gt;
 &lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
 &lt;p&gt;and&lt;/p&gt;
-&lt;div class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-text&quot; data-lang=&quot;text&quot;&gt;01161173 6838441601      push    offset CriticalSectionDeadlock!cs2 (01164438)
-
-01161178 ffd7            call    edi
+&lt;div class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-asm&quot; data-lang=&quot;asm&quot;&gt;&lt;span class=&quot;nf&quot;&gt;push&lt;/span&gt;    &lt;span class=&quot;no&quot;&gt;offset&lt;/span&gt; &lt;span class=&quot;no&quot;&gt;CriticalSectionDeadlock&lt;/span&gt;&lt;span class=&quot;err&quot;&gt;!&lt;/span&gt;&lt;span class=&quot;no&quot;&gt;cs2&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;01164438&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt;
+&lt;span class=&quot;nf&quot;&gt;call&lt;/span&gt;    &lt;span class=&quot;no&quot;&gt;edi&lt;/span&gt;
 &lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
 &lt;p&gt;These two parts of the code are critical to understanding the code flow and how we will go about editing the application to get it to work.&lt;/p&gt;
 
@@ -350,7 +453,6 @@ Size of Words
 Size of Bytes
 0:002&amp;gt; db 0x01161168 L 5
 01161168  68 50 44 16 01
-
 &lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
 &lt;p&gt;Notice that I specified length using L. Pay attention to the last command when I displayed the bytes and notice I specified the number 5. Why?&lt;/p&gt;
 
@@ -390,47 +492,47 @@ After:
 &lt;/blockquote&gt;
 
 &lt;p&gt;Here is the resulting assembly.  Look for the code at the addresses we&amp;#39;ve changed and you will see the order of the locks has changed.&lt;/p&gt;
-&lt;div class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-text&quot; data-lang=&quot;text&quot;&gt;CriticalSectionDeadlock!Thread2:
-01161150 55              push    ebp
-01161151 8bec            mov     ebp,esp
-01161153 83e4f8          and     esp,0FFFFFFF8h
-01161156 51              push    ecx
-01161157 53              push    ebx
-01161158 8b1d14301601    mov     ebx,dword ptr [CriticalSectionDeadlock!_imp__Sleep (01163014)]
-0116115e 56              push    esi
-0116115f 57              push    edi
-01161160 8b3d10301601    mov     edi,dword ptr [CriticalSectionDeadlock!_imp__EnterCriticalSection (01163010)]
-01161166 33f6            xor     esi,esi
+&lt;div class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-asm&quot; data-lang=&quot;asm&quot;&gt;&lt;span class=&quot;nf&quot;&gt;CriticalSectionDeadlock&lt;/span&gt;&lt;span class=&quot;err&quot;&gt;!&lt;/span&gt;&lt;span class=&quot;no&quot;&gt;Thread2&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;:&lt;/span&gt;
+&lt;span class=&quot;nf&quot;&gt;push&lt;/span&gt;    &lt;span class=&quot;no&quot;&gt;ebp&lt;/span&gt;
+&lt;span class=&quot;nf&quot;&gt;mov&lt;/span&gt;     &lt;span class=&quot;no&quot;&gt;ebp&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt;&lt;span class=&quot;no&quot;&gt;esp&lt;/span&gt;
+&lt;span class=&quot;nf&quot;&gt;and&lt;/span&gt;     &lt;span class=&quot;no&quot;&gt;esp&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;0&lt;/span&gt;&lt;span class=&quot;no&quot;&gt;FFFFFFF8h&lt;/span&gt;
+&lt;span class=&quot;nf&quot;&gt;push&lt;/span&gt;    &lt;span class=&quot;no&quot;&gt;ecx&lt;/span&gt;
+&lt;span class=&quot;nf&quot;&gt;push&lt;/span&gt;    &lt;span class=&quot;no&quot;&gt;ebx&lt;/span&gt;
+&lt;span class=&quot;nf&quot;&gt;mov&lt;/span&gt;     &lt;span class=&quot;no&quot;&gt;ebx&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt;&lt;span class=&quot;no&quot;&gt;dword&lt;/span&gt; &lt;span class=&quot;no&quot;&gt;ptr&lt;/span&gt; &lt;span class=&quot;err&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;no&quot;&gt;CriticalSectionDeadlock&lt;/span&gt;&lt;span class=&quot;err&quot;&gt;!&lt;/span&gt;&lt;span class=&quot;no&quot;&gt;_imp__Sleep&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;01163014&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt;&lt;span class=&quot;err&quot;&gt;]&lt;/span&gt;
+&lt;span class=&quot;nf&quot;&gt;push&lt;/span&gt;    &lt;span class=&quot;no&quot;&gt;esi&lt;/span&gt;
+&lt;span class=&quot;nf&quot;&gt;push&lt;/span&gt;    &lt;span class=&quot;no&quot;&gt;edi&lt;/span&gt;
+&lt;span class=&quot;nf&quot;&gt;mov&lt;/span&gt;     &lt;span class=&quot;no&quot;&gt;edi&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt;&lt;span class=&quot;no&quot;&gt;dword&lt;/span&gt; &lt;span class=&quot;no&quot;&gt;ptr&lt;/span&gt; &lt;span class=&quot;err&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;no&quot;&gt;CriticalSectionDeadlock&lt;/span&gt;&lt;span class=&quot;err&quot;&gt;!&lt;/span&gt;&lt;span class=&quot;no&quot;&gt;_imp__EnterCriticalSection&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;01163010&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt;&lt;span class=&quot;err&quot;&gt;]&lt;/span&gt;
+&lt;span class=&quot;nf&quot;&gt;xor&lt;/span&gt;     &lt;span class=&quot;no&quot;&gt;esi&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt;&lt;span class=&quot;no&quot;&gt;esi&lt;/span&gt;
 
-CriticalSectionDeadlock!Thread2+0x18:
-01161168 6838441601      push    offset CriticalSectionDeadlock!cs2 (01164438)
-0116116d ffd7            call    edi
-0116116f 6a05            push    5
-01161171 ffd3            call    ebx
-01161173 6850441601      push    offset CriticalSectionDeadlock!cs1 (01164450)
-01161178 ffd7            call    edi
-0116117a 6a02            push    2
-0116117c ff3568441601    push    dword ptr [CriticalSectionDeadlock!hStdOut (01164468)]
-01161182 ff1518301601    call    dword ptr [CriticalSectionDeadlock!_imp__SetConsoleTextAttribute (01163018)]
-01161188 6820141601      push    offset CriticalSectionDeadlock!std::endl&amp;lt;char,std::char_traits&amp;lt;char&amp;gt; &amp;gt; (01161420)
-0116118d 51              push    ecx
-0116118e 8b0d80301601    mov     ecx,dword ptr [CriticalSectionDeadlock!_imp_?coutstd (01163080)]
-01161194 46              inc     esi
-01161195 56              push    esi
-01161196 ff1564301601    call    dword ptr [CriticalSectionDeadlock!_imp_??6?$basic_ostreamDU?$char_traitsDstdstdQAEAAV01HZ (01163064)]
-0116119c baa4311601      mov     edx,offset CriticalSectionDeadlock!`string' (011631a4)
-011611a1 8bc8            mov     ecx,eax
-011611a3 e838000000      call    CriticalSectionDeadlock!std::operator&amp;lt;&amp;lt;&amp;lt;std::char_traits&amp;lt;char&amp;gt; &amp;gt; (011611e0)
-011611a8 83c404          add     esp,4
-011611ab 8bc8            mov     ecx,eax
-011611ad ff1568301601    call    dword ptr [CriticalSectionDeadlock!_imp_??6?$basic_ostreamDU?$char_traitsDstdstdQAEAAV01P6AAAV01AAV01ZZ (01163068)]
-011611b3 68fa000000      push    0FAh
-011611b8 ffd3            call    ebx
-011611ba 6838441601      push    offset CriticalSectionDeadlock!cs2 (01164438)
-011611bf ff151c301601    call    dword ptr [CriticalSectionDeadlock!_imp__LeaveCriticalSection (0116301c)]
-011611c5 6850441601      push    offset CriticalSectionDeadlock!cs1 (01164450)
-011611ca ff151c301601    call    dword ptr [CriticalSectionDeadlock!_imp__LeaveCriticalSection (0116301c)]
-011611d0 eb96            jmp     CriticalSectionDeadlock!Thread2+0x18 (01161168)
+&lt;span class=&quot;nf&quot;&gt;CriticalSectionDeadlock&lt;/span&gt;&lt;span class=&quot;err&quot;&gt;!&lt;/span&gt;&lt;span class=&quot;no&quot;&gt;Thread2&lt;/span&gt;&lt;span class=&quot;err&quot;&gt;+&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;0x18&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;:&lt;/span&gt;
+&lt;span class=&quot;nf&quot;&gt;push&lt;/span&gt;    &lt;span class=&quot;no&quot;&gt;offset&lt;/span&gt; &lt;span class=&quot;no&quot;&gt;CriticalSectionDeadlock&lt;/span&gt;&lt;span class=&quot;err&quot;&gt;!&lt;/span&gt;&lt;span class=&quot;no&quot;&gt;cs2&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;01164438&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt;
+&lt;span class=&quot;nf&quot;&gt;call&lt;/span&gt;    &lt;span class=&quot;no&quot;&gt;edi&lt;/span&gt;
+&lt;span class=&quot;nf&quot;&gt;push&lt;/span&gt;    &lt;span class=&quot;mi&quot;&gt;5&lt;/span&gt;
+&lt;span class=&quot;nf&quot;&gt;call&lt;/span&gt;    &lt;span class=&quot;no&quot;&gt;ebx&lt;/span&gt;
+&lt;span class=&quot;nf&quot;&gt;push&lt;/span&gt;    &lt;span class=&quot;no&quot;&gt;offset&lt;/span&gt; &lt;span class=&quot;no&quot;&gt;CriticalSectionDeadlock&lt;/span&gt;&lt;span class=&quot;err&quot;&gt;!&lt;/span&gt;&lt;span class=&quot;no&quot;&gt;cs1&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;01164450&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt;
+&lt;span class=&quot;nf&quot;&gt;call&lt;/span&gt;    &lt;span class=&quot;no&quot;&gt;edi&lt;/span&gt;
+&lt;span class=&quot;nf&quot;&gt;push&lt;/span&gt;    &lt;span class=&quot;mi&quot;&gt;2&lt;/span&gt;
+&lt;span class=&quot;nf&quot;&gt;push&lt;/span&gt;    &lt;span class=&quot;no&quot;&gt;dword&lt;/span&gt; &lt;span class=&quot;no&quot;&gt;ptr&lt;/span&gt; &lt;span class=&quot;err&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;no&quot;&gt;CriticalSectionDeadlock&lt;/span&gt;&lt;span class=&quot;err&quot;&gt;!&lt;/span&gt;&lt;span class=&quot;no&quot;&gt;hStdOut&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;01164468&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt;&lt;span class=&quot;err&quot;&gt;]&lt;/span&gt;
+&lt;span class=&quot;nf&quot;&gt;call&lt;/span&gt;    &lt;span class=&quot;no&quot;&gt;dword&lt;/span&gt; &lt;span class=&quot;no&quot;&gt;ptr&lt;/span&gt; &lt;span class=&quot;err&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;no&quot;&gt;CriticalSectionDeadlock&lt;/span&gt;&lt;span class=&quot;err&quot;&gt;!&lt;/span&gt;&lt;span class=&quot;no&quot;&gt;_imp__SetConsoleTextAttribute&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;01163018&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt;&lt;span class=&quot;err&quot;&gt;]&lt;/span&gt;
+&lt;span class=&quot;nf&quot;&gt;push&lt;/span&gt;    &lt;span class=&quot;no&quot;&gt;offset&lt;/span&gt; &lt;span class=&quot;no&quot;&gt;CriticalSectionDeadlock&lt;/span&gt;&lt;span class=&quot;err&quot;&gt;!&lt;/span&gt;&lt;span class=&quot;no&quot;&gt;std&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;::&lt;/span&gt;&lt;span class=&quot;no&quot;&gt;endl&lt;/span&gt;&lt;span class=&quot;err&quot;&gt;&amp;lt;&lt;/span&gt;&lt;span class=&quot;no&quot;&gt;char&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt;&lt;span class=&quot;no&quot;&gt;std&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;::&lt;/span&gt;&lt;span class=&quot;no&quot;&gt;char_traits&lt;/span&gt;&lt;span class=&quot;err&quot;&gt;&amp;lt;&lt;/span&gt;&lt;span class=&quot;no&quot;&gt;char&lt;/span&gt;&lt;span class=&quot;err&quot;&gt;&amp;gt;&lt;/span&gt; &lt;span class=&quot;err&quot;&gt;&amp;gt;&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;01161420&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt;
+&lt;span class=&quot;nf&quot;&gt;push&lt;/span&gt;    &lt;span class=&quot;no&quot;&gt;ecx&lt;/span&gt;
+&lt;span class=&quot;nf&quot;&gt;mov&lt;/span&gt;     &lt;span class=&quot;no&quot;&gt;ecx&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt;&lt;span class=&quot;no&quot;&gt;dword&lt;/span&gt; &lt;span class=&quot;no&quot;&gt;ptr&lt;/span&gt; &lt;span class=&quot;err&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;no&quot;&gt;CriticalSectionDeadlock&lt;/span&gt;&lt;span class=&quot;err&quot;&gt;!&lt;/span&gt;&lt;span class=&quot;no&quot;&gt;_imp_&lt;/span&gt;&lt;span class=&quot;err&quot;&gt;?&lt;/span&gt;&lt;span class=&quot;no&quot;&gt;coutstd&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;01163080&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt;&lt;span class=&quot;err&quot;&gt;]&lt;/span&gt;
+&lt;span class=&quot;nf&quot;&gt;inc&lt;/span&gt;     &lt;span class=&quot;no&quot;&gt;esi&lt;/span&gt;
+&lt;span class=&quot;nf&quot;&gt;push&lt;/span&gt;    &lt;span class=&quot;no&quot;&gt;esi&lt;/span&gt;
+&lt;span class=&quot;nf&quot;&gt;call&lt;/span&gt;    &lt;span class=&quot;no&quot;&gt;dword&lt;/span&gt; &lt;span class=&quot;no&quot;&gt;ptr&lt;/span&gt; &lt;span class=&quot;err&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;no&quot;&gt;CriticalSectionDeadlock&lt;/span&gt;&lt;span class=&quot;err&quot;&gt;!&lt;/span&gt;&lt;span class=&quot;no&quot;&gt;_imp_&lt;/span&gt;&lt;span class=&quot;err&quot;&gt;??&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;6&lt;/span&gt;&lt;span class=&quot;err&quot;&gt;?&lt;/span&gt;&lt;span class=&quot;no&quot;&gt;$basic_ostreamDU&lt;/span&gt;&lt;span class=&quot;err&quot;&gt;?&lt;/span&gt;&lt;span class=&quot;no&quot;&gt;$char_traitsDstdstdQAEAAV01HZ&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;01163064&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt;&lt;span class=&quot;err&quot;&gt;]&lt;/span&gt;
+&lt;span class=&quot;nf&quot;&gt;mov&lt;/span&gt;     &lt;span class=&quot;no&quot;&gt;edx&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt;&lt;span class=&quot;no&quot;&gt;offset&lt;/span&gt; &lt;span class=&quot;no&quot;&gt;CriticalSectionDeadlock&lt;/span&gt;&lt;span class=&quot;err&quot;&gt;!`&lt;/span&gt;&lt;span class=&quot;no&quot;&gt;string&lt;/span&gt;&lt;span class=&quot;err&quot;&gt;&amp;#39;&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;011631&lt;/span&gt;&lt;span class=&quot;no&quot;&gt;a4&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt;
+&lt;span class=&quot;nf&quot;&gt;mov&lt;/span&gt;     &lt;span class=&quot;no&quot;&gt;ecx&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt;&lt;span class=&quot;no&quot;&gt;eax&lt;/span&gt;
+&lt;span class=&quot;nf&quot;&gt;call&lt;/span&gt;    &lt;span class=&quot;no&quot;&gt;CriticalSectionDeadlock&lt;/span&gt;&lt;span class=&quot;err&quot;&gt;!&lt;/span&gt;&lt;span class=&quot;no&quot;&gt;std&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;::&lt;/span&gt;&lt;span class=&quot;no&quot;&gt;operator&lt;/span&gt;&lt;span class=&quot;err&quot;&gt;&amp;lt;&amp;lt;&amp;lt;&lt;/span&gt;&lt;span class=&quot;no&quot;&gt;std&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;::&lt;/span&gt;&lt;span class=&quot;no&quot;&gt;char_traits&lt;/span&gt;&lt;span class=&quot;err&quot;&gt;&amp;lt;&lt;/span&gt;&lt;span class=&quot;no&quot;&gt;char&lt;/span&gt;&lt;span class=&quot;err&quot;&gt;&amp;gt;&lt;/span&gt; &lt;span class=&quot;err&quot;&gt;&amp;gt;&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;011611&lt;/span&gt;&lt;span class=&quot;no&quot;&gt;e0&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt;
+&lt;span class=&quot;nf&quot;&gt;add&lt;/span&gt;     &lt;span class=&quot;no&quot;&gt;esp&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;4&lt;/span&gt;
+&lt;span class=&quot;nf&quot;&gt;mov&lt;/span&gt;     &lt;span class=&quot;no&quot;&gt;ecx&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt;&lt;span class=&quot;no&quot;&gt;eax&lt;/span&gt;
+&lt;span class=&quot;nf&quot;&gt;call&lt;/span&gt;    &lt;span class=&quot;no&quot;&gt;dword&lt;/span&gt; &lt;span class=&quot;no&quot;&gt;ptr&lt;/span&gt; &lt;span class=&quot;err&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;no&quot;&gt;CriticalSectionDeadlock&lt;/span&gt;&lt;span class=&quot;err&quot;&gt;!&lt;/span&gt;&lt;span class=&quot;no&quot;&gt;_imp_&lt;/span&gt;&lt;span class=&quot;err&quot;&gt;??&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;6&lt;/span&gt;&lt;span class=&quot;err&quot;&gt;?&lt;/span&gt;&lt;span class=&quot;no&quot;&gt;$basic_ostreamDU&lt;/span&gt;&lt;span class=&quot;err&quot;&gt;?&lt;/span&gt;&lt;span class=&quot;no&quot;&gt;$char_traitsDstdstdQAEAAV01P6AAAV01AAV01ZZ&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;01163068&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt;&lt;span class=&quot;err&quot;&gt;]&lt;/span&gt;
+&lt;span class=&quot;nf&quot;&gt;push&lt;/span&gt;    &lt;span class=&quot;mi&quot;&gt;0&lt;/span&gt;&lt;span class=&quot;no&quot;&gt;FAh&lt;/span&gt;
+&lt;span class=&quot;nf&quot;&gt;call&lt;/span&gt;    &lt;span class=&quot;no&quot;&gt;ebx&lt;/span&gt;
+&lt;span class=&quot;nf&quot;&gt;push&lt;/span&gt;    &lt;span class=&quot;no&quot;&gt;offset&lt;/span&gt; &lt;span class=&quot;no&quot;&gt;CriticalSectionDeadlock&lt;/span&gt;&lt;span class=&quot;err&quot;&gt;!&lt;/span&gt;&lt;span class=&quot;no&quot;&gt;cs2&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;01164438&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt;
+&lt;span class=&quot;nf&quot;&gt;call&lt;/span&gt;    &lt;span class=&quot;no&quot;&gt;dword&lt;/span&gt; &lt;span class=&quot;no&quot;&gt;ptr&lt;/span&gt; &lt;span class=&quot;err&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;no&quot;&gt;CriticalSectionDeadlock&lt;/span&gt;&lt;span class=&quot;err&quot;&gt;!&lt;/span&gt;&lt;span class=&quot;no&quot;&gt;_imp__LeaveCriticalSection&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;0116301&lt;/span&gt;&lt;span class=&quot;no&quot;&gt;c&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt;&lt;span class=&quot;err&quot;&gt;]&lt;/span&gt;
+&lt;span class=&quot;nf&quot;&gt;push&lt;/span&gt;    &lt;span class=&quot;no&quot;&gt;offset&lt;/span&gt; &lt;span class=&quot;no&quot;&gt;CriticalSectionDeadlock&lt;/span&gt;&lt;span class=&quot;err&quot;&gt;!&lt;/span&gt;&lt;span class=&quot;no&quot;&gt;cs1&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;01164450&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt;
+&lt;span class=&quot;nf&quot;&gt;call&lt;/span&gt;    &lt;span class=&quot;no&quot;&gt;dword&lt;/span&gt; &lt;span class=&quot;no&quot;&gt;ptr&lt;/span&gt; &lt;span class=&quot;err&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;no&quot;&gt;CriticalSectionDeadlock&lt;/span&gt;&lt;span class=&quot;err&quot;&gt;!&lt;/span&gt;&lt;span class=&quot;no&quot;&gt;_imp__LeaveCriticalSection&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;0116301&lt;/span&gt;&lt;span class=&quot;no&quot;&gt;c&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt;&lt;span class=&quot;err&quot;&gt;]&lt;/span&gt;
+&lt;span class=&quot;nf&quot;&gt;jmp&lt;/span&gt;     &lt;span class=&quot;no&quot;&gt;CriticalSectionDeadlock&lt;/span&gt;&lt;span class=&quot;err&quot;&gt;!&lt;/span&gt;&lt;span class=&quot;no&quot;&gt;Thread2&lt;/span&gt;&lt;span class=&quot;err&quot;&gt;+&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;0x18&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;01161168&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt;
 &lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
 &lt;h3&gt;Step 7 - Run it!&lt;/h3&gt;
 
@@ -477,7 +579,6 @@ CriticalSectionDeadlock!Thread2+0x18:
 
 
 87  HIGHLOW            00401150  ?Thread2@@YGKPAX@Z (unsigned long __stdcall Thread2(void *))
-
 &lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
 &lt;p&gt;Make note of the address 00401150. Your address &lt;strong&gt;could&lt;/strong&gt; be different, but it is not likely because that is the standard base address for PE32 files. You can rebase your images if you want, but that is a different topic.&lt;/p&gt;
 
@@ -572,7 +673,6 @@ SECTION HEADER #1
 + File Pointer Offset:  00000400
 --------------------------------
 Location in file:       00000550
-
 &lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
 &lt;p&gt;The location of the start of &lt;code&gt;Thread2()&lt;/code&gt; in the executable is &lt;strong&gt;0x500&lt;/strong&gt;.&lt;/p&gt;
 
@@ -629,8 +729,6 @@ Reading 3200 bytes.......
 000f05c5 6838444000      push    404438h
 000f05ca ff151c304000    call    dword ptr ds:[40301Ch]
 000f05d0 eb96            jmp     000f0568
-
-
 &lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
 &lt;p&gt;You will notice this disassembly looks close to the disassembly in previous steps. However, none of the symbols are resolved. That&amp;#39;s because this file isn&amp;#39;t actually loaded, it is just resident in memory.&lt;/p&gt;
 
@@ -643,7 +741,6 @@ Reading 3200 bytes.......
 &lt;p&gt;To do this we will use the &lt;code&gt;.witemem&lt;/code&gt; command.&lt;/p&gt;
 &lt;div class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-text&quot; data-lang=&quot;text&quot;&gt;0:000&amp;gt; .writemem c:\temp\fixedfile.exe 0xf0000 L 0n12800
 Writing 3200 bytes.......
-
 &lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
 &lt;p&gt;Thats it! &lt;/p&gt;
 
@@ -768,7 +865,6 @@ RESPONSE BYTES (by Content-Type)
 application/x-javascript: 2,978
          text/javascript: 401
                image/gif: 86
-
 &lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
 &lt;p&gt;In the real world you won&amp;#39;t have that many return visitors. Depending on the type of requests you have (dynamic v. static) and what your business model is like (information or sales) you could be more in the camp of 30% to 50% return. You know your data best. I could offer some foolhardy estimates based on experience, but it would do you a disservice. Explore your data and know your numbers.&lt;/p&gt;
 
@@ -784,7 +880,6 @@ Total:
 
 Fuzzed number (80%):
 7056 pages per minute
-
 &lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
 &lt;p&gt;Now, this number sounds more like a enterprise level application. But, it seems kind of high.&lt;/p&gt;
 

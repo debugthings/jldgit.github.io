@@ -1,6 +1,6 @@
 # Dependencies
 markdown:         redcarpet
-highlighter:         true
+highlighter:      pygments
 
 # Permalinks
 permalink:        pretty
@@ -20,3 +20,5 @@ author:
 version:          1.0.0
 github:
   repo:           https://www.github.com/jldgit
+post:
+  twitembed:      BLANK

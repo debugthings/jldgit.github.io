@@ -11,6 +11,7 @@ While I don't recommend what I am doing for an application you are delivering to
 For this article I am making an assumption you have a working knowledge of WinDbg. As well I suspect you should have working knowledge of C or C++. And also, of Win32. Do I even need to mention the stack?
 
 If you don't know them I'd check out the following links.
+
 - [Debugging Using WinDbg](http://msdn.microsoft.com/en-us/library/windows/hardware/hh406283(v=vs.85).aspx)
 - [Walkthrough: Creating a Win32 Console Program (C++)](http://msdn.microsoft.com/en-us/library/ms235629.aspx)
 - [Creating Threads](http://msdn.microsoft.com/en-us/library/windows/desktop/ms682516(v=vs.85).aspx)
@@ -22,8 +23,7 @@ Now that you know everything there is to know about Win32 programming and WinDbg
 The application that is being used is a contrived example that demonstrates a deadlock in the purest sense. One application, two threads, two locks out of order.
 
 The repository for the code [is here][code], and is displayed below.
-
-```cpp
+{% highlight cpp %}
 int _tmain(int argc, _TCHAR* argv[])
 {
   hStdOut = GetStdHandle(STD_OUTPUT_HANDLE);
@@ -71,8 +71,7 @@ DWORD WINAPI  Thread2(LPVOID lpParam)
     
   } while (true);
 }
-
-```
+{% endhighlight %}
 
 ##The Problem
 In this example the problem is simply the locks are out of order. The fix is simple if you have the source code.  Have the locks fire in order and your problems will go away.
@@ -120,7 +119,7 @@ Next, type ``~`` to view the active threads. You should see a screen that resemb
 
 >**TIP** type ``.hh ~`` to view the help file for the thread syntax command. You can use ``.hh`` for every single command that you use with WinDbg, save for some of the custom extensions.
 
-Now that we can see we have three threads we should take a look at what each one is doing. First lest switch to **Thread 1**. The syntax of the command is ``~1s``. We can then inspect the call stack using ``k`` to output the methods only or ``kbn`` to display the frame numbers, method name, and the first three arguments. I added the line breaks to make it easier to read.
+Now that we can see we have three threads (and one debug thread) we should take a look at what each one is doing. First lest switch to **Thread 1**. The syntax of the command is ``~1s``. We can then inspect the call stack using ``k`` to output the methods only or ``kbn`` to display the frame numbers, method name, and the first three arguments. I added the line breaks to make it easier to read.
 
 ```
 0:001> ~1s
@@ -249,63 +248,47 @@ Look at that. It is **Thread 1**. But, we don't see the call to that critical se
 Now that we're certain we have a blocked thread we need to take a look at the functions that are part of this executable. In order to do that we will use the un-assemble ``u`` command, and use the ``uf`` variant to un-assemble a function. I added line breaks to make some lines easier to read.
 
 ```asm
-CriticalSectionDeadlock!Thread2:
-01161150 55              push    ebp
-01161151 8bec            mov     ebp,esp
-01161153 83e4f8          and     esp,0FFFFFFF8h
-01161156 51              push    ecx
-01161157 53              push    ebx
-01161158 8b1d14301601    mov     ebx,dword ptr [CriticalSectionDeadlock!_imp__Sleep (01163014)]
+# CriticalSectionDeadlock!Thread2:
+mov     ebp,esp
+and     esp,0FFFFFFF8h
+push    ebp
+push    ecx
+push    ebx
+mov     ebx,dword ptr [CriticalSectionDeadlock!_imp__Sleep (01163014)]
+push    esi
+push    edi
+mov     edi,dword ptr [CriticalSectionDeadlock!_imp__EnterCriticalSection (01163010)]
+xor     esi,esi
 
-0116115e 56              push    esi
-0116115f 57              push    edi
-01161160 8b3d10301601    mov     edi,dword ptr [CriticalSectionDeadlock!_imp__EnterCriticalSection (01163010)]
-
-01161166 33f6            xor     esi,esi
-
-CriticalSectionDeadlock!Thread2+0x18:
-01161168 6850441601      push    offset CriticalSectionDeadlock!cs1 (01164450)
-
-0116116d ffd7            call    edi
-0116116f 6a05            push    5
-01161171 ffd3            call    ebx
-01161173 6838441601      push    offset CriticalSectionDeadlock!cs2 (01164438)
-
-01161178 ffd7            call    edi
-0116117a 6a02            push    2
-0116117c ff3568441601    push    dword ptr [CriticalSectionDeadlock!hStdOut (01164468)]
-
-01161182 ff1518301601    call    dword ptr [CriticalSectionDeadlock!_imp__SetConsoleTextAttribute (01163018)]
-
-01161188 6820141601      push    offset CriticalSectionDeadlock!std::endl<char,std::char_traits<char> > (01161420)
-
-0116118d 51              push    ecx
-0116118e 8b0d80301601    mov     ecx,dword ptr [CriticalSectionDeadlock!_imp_?coutstd (01163080)]
-
-01161194 46              inc     esi
-01161195 56              push    esi
-01161196 ff1564301601    call    dword ptr [CriticalSectionDeadlock!_imp_??6?$basic_ostreamDU?$char_traitsDstdstdQAEAAV01HZ (01163064)]
-
-0116119c baa4311601      mov     edx,offset CriticalSectionDeadlock!`string' (011631a4)
-
-011611a1 8bc8            mov     ecx,eax
-011611a3 e838000000      call    CriticalSectionDeadlock!std::operator<<<std::char_traits<char> > (011611e0)
-
-011611a8 83c404          add     esp,4
-011611ab 8bc8            mov     ecx,eax
-011611ad ff1568301601    call    dword ptr [CriticalSectionDeadlock!_imp_??6?$basic_ostreamDU?$char_traitsDstdstdQAEAAV01P6AAAV01AAV01ZZ (01163068)]
-
-011611b3 68fa000000      push    0FAh
-011611b8 ffd3            call    ebx
-011611ba 6850441601      push    offset CriticalSectionDeadlock!cs1 (01164450)
-
-011611bf ff151c301601    call    dword ptr [CriticalSectionDeadlock!_imp__LeaveCriticalSection (0116301c)]
-
-011611c5 6838441601      push    offset CriticalSectionDeadlock!cs2 (01164438)
-
-011611ca ff151c301601    call    dword ptr [CriticalSectionDeadlock!_imp__LeaveCriticalSection (0116301c)]
-
-011611d0 eb96            jmp     CriticalSectionDeadlock!Thread2+0x18 (01161168)
+# CriticalSectionDeadlock!Thread2+0x18:
+push    offset CriticalSectionDeadlock!cs1 (01164450)
+call    edi
+push    5
+call    ebx
+push    offset CriticalSectionDeadlock!cs2 (01164438)
+call    edi
+push    2
+push    dword ptr [CriticalSectionDeadlock!hStdOut (01164468)]
+call    dword ptr [CriticalSectionDeadlock!_imp__SetConsoleTextAttribute (01163018)]
+push    offset CriticalSectionDeadlock!std::endl<char,std::char_traits<char> > (01161420)
+push    ecx
+mov     ecx,dword ptr [CriticalSectionDeadlock!_imp_?coutstd (01163080)]
+inc     esi
+push    esi
+call    dword ptr [CriticalSectionDeadlock!_imp_??6?$basic_ostreamDU?$char_traitsDstdstdQAEAAV01HZ (01163064)]
+mov     edx,offset CriticalSectionDeadlock!`string' (011631a4)
+mov     ecx,eax
+call    CriticalSectionDeadlock!std::operator<<<std::char_traits<char> > (011611e0)
+add     esp,4
+mov     ecx,eax
+call    dword ptr [CriticalSectionDeadlock!_imp_??6?$basic_ostreamDU?$char_traitsDstdstdQAEAAV01P6AAAV01AAV01ZZ (01163068)]
+push    0FAh
+call    ebx
+push    offset CriticalSectionDeadlock!cs1 (01164450)
+call    dword ptr [CriticalSectionDeadlock!_imp__LeaveCriticalSection (0116301c)]
+push    offset CriticalSectionDeadlock!cs2 (01164438)
+call    dword ptr [CriticalSectionDeadlock!_imp__LeaveCriticalSection (0116301c)]
+jmp     CriticalSectionDeadlock!Thread2+0x18 (01161168)
 
 ```
 
@@ -313,7 +296,7 @@ I won't walk this code line by line, but I will point out some interesting parts
 
 **Storing the EnterCriticalSection function pointer in $edi**
 
-```
+```asm
 mov     edi,dword ptr [CriticalSectionDeadlock!_imp__EnterCriticalSection (01163010)]
 ```
 
@@ -321,17 +304,15 @@ mov     edi,dword ptr [CriticalSectionDeadlock!_imp__EnterCriticalSection (01163
 
 We first `push` the critical section to the stack and then call the function located at $edi. The addresses to the left are important.
 
-```
-01161168 6850441601      push    offset CriticalSectionDeadlock!cs1 (01164450)
-
-0116116d ffd7            call    edi
+```asm
+push    offset CriticalSectionDeadlock!cs1 (01164450)
+call    edi
 ```
 and
 
-```
-01161173 6838441601      push    offset CriticalSectionDeadlock!cs2 (01164438)
-
-01161178 ffd7            call    edi
+```asm
+push    offset CriticalSectionDeadlock!cs2 (01164438)
+call    edi
 ```
 
 These two parts of the code are critical to understanding the code flow and how we will go about editing the application to get it to work.
@@ -401,48 +382,48 @@ After:
 
 Here is the resulting assembly.  Look for the code at the addresses we've changed and you will see the order of the locks has changed.
 
-```
+```asm
 CriticalSectionDeadlock!Thread2:
-01161150 55              push    ebp
-01161151 8bec            mov     ebp,esp
-01161153 83e4f8          and     esp,0FFFFFFF8h
-01161156 51              push    ecx
-01161157 53              push    ebx
-01161158 8b1d14301601    mov     ebx,dword ptr [CriticalSectionDeadlock!_imp__Sleep (01163014)]
-0116115e 56              push    esi
-0116115f 57              push    edi
-01161160 8b3d10301601    mov     edi,dword ptr [CriticalSectionDeadlock!_imp__EnterCriticalSection (01163010)]
-01161166 33f6            xor     esi,esi
+push    ebp
+mov     ebp,esp
+and     esp,0FFFFFFF8h
+push    ecx
+push    ebx
+mov     ebx,dword ptr [CriticalSectionDeadlock!_imp__Sleep (01163014)]
+push    esi
+push    edi
+mov     edi,dword ptr [CriticalSectionDeadlock!_imp__EnterCriticalSection (01163010)]
+xor     esi,esi
 
 CriticalSectionDeadlock!Thread2+0x18:
-01161168 6838441601      push    offset CriticalSectionDeadlock!cs2 (01164438)
-0116116d ffd7            call    edi
-0116116f 6a05            push    5
-01161171 ffd3            call    ebx
-01161173 6850441601      push    offset CriticalSectionDeadlock!cs1 (01164450)
-01161178 ffd7            call    edi
-0116117a 6a02            push    2
-0116117c ff3568441601    push    dword ptr [CriticalSectionDeadlock!hStdOut (01164468)]
-01161182 ff1518301601    call    dword ptr [CriticalSectionDeadlock!_imp__SetConsoleTextAttribute (01163018)]
-01161188 6820141601      push    offset CriticalSectionDeadlock!std::endl<char,std::char_traits<char> > (01161420)
-0116118d 51              push    ecx
-0116118e 8b0d80301601    mov     ecx,dword ptr [CriticalSectionDeadlock!_imp_?coutstd (01163080)]
-01161194 46              inc     esi
-01161195 56              push    esi
-01161196 ff1564301601    call    dword ptr [CriticalSectionDeadlock!_imp_??6?$basic_ostreamDU?$char_traitsDstdstdQAEAAV01HZ (01163064)]
-0116119c baa4311601      mov     edx,offset CriticalSectionDeadlock!`string' (011631a4)
-011611a1 8bc8            mov     ecx,eax
-011611a3 e838000000      call    CriticalSectionDeadlock!std::operator<<<std::char_traits<char> > (011611e0)
-011611a8 83c404          add     esp,4
-011611ab 8bc8            mov     ecx,eax
-011611ad ff1568301601    call    dword ptr [CriticalSectionDeadlock!_imp_??6?$basic_ostreamDU?$char_traitsDstdstdQAEAAV01P6AAAV01AAV01ZZ (01163068)]
-011611b3 68fa000000      push    0FAh
-011611b8 ffd3            call    ebx
-011611ba 6838441601      push    offset CriticalSectionDeadlock!cs2 (01164438)
-011611bf ff151c301601    call    dword ptr [CriticalSectionDeadlock!_imp__LeaveCriticalSection (0116301c)]
-011611c5 6850441601      push    offset CriticalSectionDeadlock!cs1 (01164450)
-011611ca ff151c301601    call    dword ptr [CriticalSectionDeadlock!_imp__LeaveCriticalSection (0116301c)]
-011611d0 eb96            jmp     CriticalSectionDeadlock!Thread2+0x18 (01161168)
+push    offset CriticalSectionDeadlock!cs2 (01164438)
+call    edi
+push    5
+call    ebx
+push    offset CriticalSectionDeadlock!cs1 (01164450)
+call    edi
+push    2
+push    dword ptr [CriticalSectionDeadlock!hStdOut (01164468)]
+call    dword ptr [CriticalSectionDeadlock!_imp__SetConsoleTextAttribute (01163018)]
+push    offset CriticalSectionDeadlock!std::endl<char,std::char_traits<char> > (01161420)
+push    ecx
+mov     ecx,dword ptr [CriticalSectionDeadlock!_imp_?coutstd (01163080)]
+inc     esi
+push    esi
+call    dword ptr [CriticalSectionDeadlock!_imp_??6?$basic_ostreamDU?$char_traitsDstdstdQAEAAV01HZ (01163064)]
+mov     edx,offset CriticalSectionDeadlock!`string' (011631a4)
+mov     ecx,eax
+call    CriticalSectionDeadlock!std::operator<<<std::char_traits<char> > (011611e0)
+add     esp,4
+mov     ecx,eax
+call    dword ptr [CriticalSectionDeadlock!_imp_??6?$basic_ostreamDU?$char_traitsDstdstdQAEAAV01P6AAAV01AAV01ZZ (01163068)]
+push    0FAh
+call    ebx
+push    offset CriticalSectionDeadlock!cs2 (01164438)
+call    dword ptr [CriticalSectionDeadlock!_imp__LeaveCriticalSection (0116301c)]
+push    offset CriticalSectionDeadlock!cs1 (01164450)
+call    dword ptr [CriticalSectionDeadlock!_imp__LeaveCriticalSection (0116301c)]
+jmp     CriticalSectionDeadlock!Thread2+0x18 (01161168)
 ```
 
 ###Step 7 - Run it!

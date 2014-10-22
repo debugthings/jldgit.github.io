@@ -1,27 +1,29 @@
 <!DOCTYPE html>
 <html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en-us">
 
-  {% include head.html %}
+{% include head.html %}
 
-  <body>
-
-    <div class="container content">
-      <div class="masthead">
-        <h3 class="masthead-title">
-          <a href="{{ site.baseurl }}" title="Home">{{ site.title }}</a>
-          <small>{{ site.tagline }}</small>
-          <small><a href="http://www.twitter.com/debugthings">@debugthings</a><a href="http://www.twitter.com/debugthings">@chainsapm</a></small>
-        </h3>
-      </div>
-
-      {{ content }}
-
-      <div class="footer">
-        <p>
-          &copy; {{ site.time | date: '%Y' }}. All rights reserved.
-        </p>
+<body>
+  <div class="container content">
+    <div class="masthead">
+      <h3 class="masthead-title">
+        <a href="{{ site.baseurl }}" title="Home">{{ site.title }}</a>
+      </h3>
+      <small>{{ site.tagline }}</small><br />
+      <div style="display: flex">
+      <a href="http://www.linkedin.com/in/debugthings/"><img src="https://dlc1-s.licdn.com/sites/default/files/InBug-60px-R.png" class="linked" /></a>
+      <a href="http://www.twitter.com/debugthings"><div class="twitbox"><img src="https://g.twimg.com/Twitter_logo_white.png" /></div>@debugthings</a>
       </div>
     </div>
 
-  </body>
+    {{ content }}
+
+    <div class="footer">
+      <p>
+        &copy; {{ site.time | date: '%Y' }}. All rights reserved.
+      </p>
+    </div>
+  </div>
+
+</body>
 </html>
