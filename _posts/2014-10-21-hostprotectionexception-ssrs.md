@@ -13,7 +13,7 @@ Sometime between SSRS install, v1, and vNow of this custom DLL there were numero
 So, it's probably fair to say that the code we once had is not the code we have now. Knowing that simple--but useful--fact,  we can get right down to business.
 
 ##Steps##
-The first thing I always do when trying to debug a "we've been working on it for weeks," scenario is try to figure out who has been doing what. In this case we had a very skilled senior engineer working on the issue. So, I was able to forego a ton of leg work and get down to the meat of the problem. The engineer had already compared config files, checked parameters, run numerous tests, and even added some compensating configuration changes but to no avail.
+The first thing I always do when trying to debug a "we've been working on it for weeks," scenario is try to figure out who has been doing what. In this case we had a very skilled senior engineer working on the issue. So, I was able to forgo a ton of leg work and get down to the meat of the problem. The engineer had already compared config files, checked parameters, run numerous tests, and even added some compensating configuration changes but to no avail.
 
 1. Run report. Fail.
 2. Check Application Log. Clean.
@@ -23,6 +23,8 @@ The first thing I always do when trying to debug a "we've been working on it for
   - Run the report a couple of times to correlate exceptions
 
 ##Debugging##
+I started by attaching to the `ReportingServices.exe` with WinDbg and continued execution. I had hoped that any messages to be displayed would show up in the console. I was in luck. As the application ran I could see CLR exceptions. 
+
 Once I was able to see there was an exception I needed to see what the exception was. So I loaded up PSSCOR2 and dumped all of the exceptions using `!dae`. With this I was able to see that there were 2 exceptions. This correlated to the number of times that I ran this particular report. An output example is below.  Note the first line of the output.
 
 ```
@@ -47,9 +49,9 @@ HResult: 80131640
 
 After seeing that I was able to use `!StopOnException (!soe)` to pause the execution once we reached this particular exception. To ensure I was ready once the CLR was loaded. I did this by setting an exception(event) breakpoint by using `sxe ld mscorwks; g`. After that I loaded PSSCOR2 with `.load exts/psccor2`. Look at the following WinDbg log recreation below.
 
-With the command `!soe -create System.Security.HostProtectionException 1` I created a break point on the first chance exception of this host protection exception. The `-create` option tells `!soe` to stop on first chance. The number `1` is a psuedo register that you can use to check for a passfail condition. This is useful if you need to use ADPlus and check exactly WHAT exception was thrown automagically.
+With the command `!soe -create System.Security.HostProtectionException 1` I created a break point on the first chance exception of this host protection exception. The `-create` option tells `!soe` to stop on first chance. The number `1` is a pseudo register that you can use to check for a pass-fail condition. This is useful if you need to use ADPlus and check exactly WHAT exception was thrown "automagically."
 
->**NOTE** There are help files in WinDbg that breifly explain ADPlus. However, you can also use procdump.exe to create dump files on specific exceptions. ADPlus gives very, very, very granular control over taking a crash dump; there is a learning curve. Procdump.exe gives great power with one command line but does not allow for complex evaluations.
+>**NOTE** There are help files in WinDbg that briefly explain ADPlus. However, you can also use procdump.exe to create dump files on specific exceptions. ADPlus gives very, very, very granular control over taking a crash dump; there is a learning curve. Procdump.exe gives great power with one command line but does not allow for complex evaluations.
 
 ```
 0:000> sxe ld mscorwks; g
@@ -109,9 +111,12 @@ The SSRS reporting engine hosts it's own CLR (CLR Integration) and this is where
 ##Resolution##
 So, in this case we had the application team remove the `Trace.WriteLine()` calls. This kept us from having to put our SSRS server in some insecure state according to this page on [SSRS Security Policies][ssrssecpol].
 
-While this explains the behvior, it does not explain why the code used to work and now it does not. While I would assume there is some change in 
+While this explains the behavior, it does not explain why the code used to work and now it does not. While I would assume there is some change in 
 
+##Side Note##
+I had already fixed this issue and moved on to another so I wasn't able to recreate the EXACT data from the SSRS dump. I did how ever create a quick and dirty integrated host so I could recreate the issue and walk through the stack traces. You can find the code in the following repo: [DebugThingsIntegratedCLRExample][dbg].
 
 
 [ssrssecpol]: http://msdn.microsoft.com/en-us/library/ms154466
 [evap]: http://msdn.microsoft.com/en-us/library/system.security.permissions.hostprotectionattribute(v=vs.110).aspx
+[dbg]:https://github.com/jldgit/DebugThingsIntegratedCLRExample

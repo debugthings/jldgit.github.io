@@ -58,7 +58,7 @@
 
 <h2>Steps</h2>
 
-<p>The first thing I always do when trying to debug a &quot;we&#39;ve been working on it for weeks,&quot; scenario is try to figure out who has been doing what. In this case we had a very skilled senior engineer working on the issue. So, I was able to forego a ton of leg work and get down to the meat of the problem. The engineer had already compared config files, checked parameters, run numerous tests, and even added some compensating configuration changes but to no avail.</p>
+<p>The first thing I always do when trying to debug a &quot;we&#39;ve been working on it for weeks,&quot; scenario is try to figure out who has been doing what. In this case we had a very skilled senior engineer working on the issue. So, I was able to forgo a ton of leg work and get down to the meat of the problem. The engineer had already compared config files, checked parameters, run numerous tests, and even added some compensating configuration changes but to no avail.</p>
 
 <ol>
 <li>Run report. Fail.</li>
@@ -73,6 +73,8 @@
 </ol>
 
 <h2>Debugging</h2>
+
+<p>I started by attaching to the <code>ReportingServices.exe</code> with WinDbg and continued execution. I had hoped that any messages to be displayed would show up in the console. I was in luck. As the application ran I could see CLR exceptions. </p>
 
 <p>Once I was able to see there was an exception I needed to see what the exception was. So I loaded up PSSCOR2 and dumped all of the exceptions using <code>!dae</code>. With this I was able to see that there were 2 exceptions. This correlated to the number of times that I ran this particular report. An output example is below.  Note the first line of the output.</p>
 <div class="highlight"><pre><code class="language-text" data-lang="text">0:000&gt; !dae
@@ -95,10 +97,10 @@ HResult: 80131640
 </code></pre></div>
 <p>After seeing that I was able to use <code>!StopOnException (!soe)</code> to pause the execution once we reached this particular exception. To ensure I was ready once the CLR was loaded. I did this by setting an exception(event) breakpoint by using <code>sxe ld mscorwks; g</code>. After that I loaded PSSCOR2 with <code>.load exts/psccor2</code>. Look at the following WinDbg log recreation below.</p>
 
-<p>With the command <code>!soe -create System.Security.HostProtectionException 1</code> I created a break point on the first chance exception of this host protection exception. The <code>-create</code> option tells <code>!soe</code> to stop on first chance. The number <code>1</code> is a psuedo register that you can use to check for a passfail condition. This is useful if you need to use ADPlus and check exactly WHAT exception was thrown automagically.</p>
+<p>With the command <code>!soe -create System.Security.HostProtectionException 1</code> I created a break point on the first chance exception of this host protection exception. The <code>-create</code> option tells <code>!soe</code> to stop on first chance. The number <code>1</code> is a pseudo register that you can use to check for a pass-fail condition. This is useful if you need to use ADPlus and check exactly WHAT exception was thrown &quot;automagically.&quot;</p>
 
 <blockquote>
-<p><strong>NOTE</strong> There are help files in WinDbg that breifly explain ADPlus. However, you can also use procdump.exe to create dump files on specific exceptions. ADPlus gives very, very, very granular control over taking a crash dump; there is a learning curve. Procdump.exe gives great power with one command line but does not allow for complex evaluations.</p>
+<p><strong>NOTE</strong> There are help files in WinDbg that briefly explain ADPlus. However, you can also use procdump.exe to create dump files on specific exceptions. ADPlus gives very, very, very granular control over taking a crash dump; there is a learning curve. Procdump.exe gives great power with one command line but does not allow for complex evaluations.</p>
 </blockquote>
 <div class="highlight"><pre><code class="language-text" data-lang="text">0:000&gt; sxe ld mscorwks; g
 ModLoad: 6bb20000 6c0ce000   C:\Windows\Microsoft.NET\Framework\v2.0.50727\mscorwks.dll
@@ -158,7 +160,11 @@ ESP       EIP
 
 <p>So, in this case we had the application team remove the <code>Trace.WriteLine()</code> calls. This kept us from having to put our SSRS server in some insecure state according to this page on <a href="http://msdn.microsoft.com/en-us/library/ms154466">SSRS Security Policies</a>.</p>
 
-<p>While this explains the behvior, it does not explain why the code used to work and now it does not. While I would assume there is some change in </p>
+<p>While this explains the behavior, it does not explain why the code used to work and now it does not. While I would assume there is some change in </p>
+
+<h2>Side Note</h2>
+
+<p>I had already fixed this issue and moved on to another so I wasn&#39;t able to recreate the EXACT data from the SSRS dump. I did how ever create a quick and dirty integrated host so I could recreate the issue and walk through the stack traces. You can find the code in the following repo: <a href="https://github.com/jldgit/DebugThingsIntegratedCLRExample">DebugThingsIntegratedCLRExample</a>.</p>
 
 </div>
 
