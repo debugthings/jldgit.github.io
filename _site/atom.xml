@@ -4,13 +4,46 @@
  <title>Debug Things</title>
  <link href="/atom.xml" rel="self"/>
  <link href="/"/>
- <updated>2014-10-22T12:33:43-07:00</updated>
+ <updated>2014-11-06T20:00:27-08:00</updated>
  <id></id>
  <author>
    <name>James Davis</name>
    <email>james.l.davis@outlook.com</email>
  </author>
 
+ 
+ <entry>
+   <title>Contributing to a Forum for 10 Days Straight</title>
+   <link href="//2014/10/31/answering-questions/"/>
+   <updated>2014-10-31T00:00:00-07:00</updated>
+   <id>/2014/10/31/answering-questions</id>
+   <content type="html">&lt;p&gt;Back in early October my company sent me to &lt;a href=&quot;http://http://compuwareperform.com/&quot;&gt;Perform 2014&lt;/a&gt;. While there, I met with some great people and found out that I&amp;#39;m not alone. It was also very humbling. I liked that. But, with all of the meeting I found that there were a lot of people who didn&amp;#39;t know where to turn to for help. Turns out there is a very active user community. I wanted to get involved.
+&amp;lt;!--more--&amp;gt;
+I have always been in and out of the forums and spent most of my time seeking answers as well. Most of the answers were hard to find, or if we called support weren&amp;#39;t very easy to implement. And, sometimes, we were actually told to search there to see if someone else had seen or done what we were asking. I noticed that a lot of the questions being asked I knew the answer to. It was time to give back.&lt;/p&gt;
+
+&lt;p&gt;So, I decided to turn on notifications for the &lt;a href=&quot;http://www.dynatrace.com/en/index.html&quot;&gt;dynatrace&lt;/a&gt; forum and started watching. Within the first two days I saw a topic I wanted to jump on. It was exciting and unnerving because I felt uneasy typing my response. I was anxious because I rarely share knowledge with people that I haven&amp;#39;t established myself with. I thought, honestly, I was going to fail.&lt;/p&gt;
+
+&lt;p&gt;While I can&amp;#39;t say that all of my answers were correct, I did feel that I was helping. I felt a rejuvenation of the tool that I have been using the past 4 years. If anything I was moving the needle a bit for some people who may be stuck. Even if the person said, &amp;quot;Man, WTF is that guy talking about?&amp;quot; and was able to move on I &lt;/p&gt;
+
+&lt;p&gt;There were puzzles to be solved that I have never tried, but I knew could be done. I don&amp;#39;t have any specific examples but I can say that just trying to find the most succinct solution is very satisfying. It is also, understandably, a lot of work. This work translates into knowledge, so the return is tremendous&lt;/p&gt;
+
+&lt;p&gt;So. What have I learned?&lt;/p&gt;
+
+&lt;ul&gt;
+&lt;li&gt;There are some people out there doing some very complex things with a very complex tool.&lt;/li&gt;
+&lt;li&gt;Contrary to my personal delusions, I don&amp;#39;t know the answer to everything. &lt;/li&gt;
+&lt;li&gt;People need help.&lt;/li&gt;
+&lt;li&gt;A lot of people don&amp;#39;t know what they need. But one idea takes them miles.&lt;/li&gt;
+&lt;li&gt;Only a few people respond back.&lt;/li&gt;
+&lt;li&gt;Time between questions and answers can be a year (or more).&lt;/li&gt;
+&lt;li&gt;Beware of the technical black hole. Not everyone knows the internals.&lt;/li&gt;
+&lt;li&gt;Beware of those who know a lot. Like myself they often have too many answers.&lt;/li&gt;
+&lt;li&gt;Patience.&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;p&gt;Will I continue? Of course. I do like it, I get asked questions all the time at work about the tool and I can always point them in the right direction. But, helping other people out with their issues broadens my view and gives me more to offer internally.&lt;/p&gt;
+</content>
+ </entry>
  
  <entry>
    <title>Debugging - HostProtectionException in SSRS</title>
