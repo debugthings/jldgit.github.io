@@ -4,13 +4,140 @@
  <title>Debug Things</title>
  <link href="/atom.xml" rel="self"/>
  <link href="/"/>
- <updated>2014-11-11T21:51:42-08:00</updated>
+ <updated>2014-11-11T23:43:58-08:00</updated>
  <id></id>
  <author>
    <name>James Davis</name>
    <email>james.l.davis@outlook.com</email>
  </author>
 
+ 
+ <entry>
+   <title>MySQL .NET Hosting Extension - Part 1 - Compile Sample UDF</title>
+   <link href="//2014/11/11/extending-mysql-server-part1/"/>
+   <updated>2014-11-11T00:00:00-08:00</updated>
+   <id>/2014/11/11/extending-mysql-server-part1</id>
+   <content type="html">&lt;p&gt;So, the first thing I had to do was compile the MySQL sample UDF which is included in the source tree. While it seems like a simple thing to do with CMake and all of the proper tools installed, there are a few things not documented. The steps to compile &lt;a href=&quot;http://dev.mysql.com/doc/refman/5.5/en/udf-compiling.html&quot;&gt;can be found here&lt;/a&gt;. The steps are really straight forward, but there is a catch. In order to build on Windows there are a few steps you will need to do in order to fully get the example working.&lt;/p&gt;
+
+&lt;h2&gt;Prerequisites&lt;/h2&gt;
+
+&lt;ol&gt;
+&lt;li&gt;&lt;a href=&quot;http://dev.mysql.com/downloads/mysql/&quot;&gt;The source files&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;a href=&quot;http://www.cmake.org/&quot;&gt;CMake&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;a href=&quot;http://gnuwin32.sourceforge.net/packages/bison.htm&quot;&gt;Bison&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;a href=&quot;http://msdn.microsoft.com/en-us/library/dd831853.aspx&quot;&gt;Visual Studio 2013&lt;/a&gt;&lt;/li&gt;
+&lt;/ol&gt;
+
+&lt;h2&gt;Issues&lt;/h2&gt;
+
+&lt;p&gt;With the source tree downloaded I was able to get started. I unfortunately went the route of installing Bazaar and downloading the source. The easier&amp;mdash;and better&amp;mdash;way is to go &lt;a href=&quot;http://dev.mysql.com/downloads/mysql/&quot;&gt;here and download&lt;/a&gt; the developer source; make sure you select &lt;code&gt;Source Code&lt;/code&gt; from the drop down box.&lt;/p&gt;
+
+&lt;p&gt;After the source is downloaded, follow the &lt;a href=&quot;http://dev.mysql.com/doc/refman/5.5/en/udf-compiling.html&quot;&gt;UDF compile&lt;/a&gt; instructions. Now, try it. Did it work? Probably not. You can try and update the &lt;code&gt;CMakeLists.txt&lt;/code&gt; file to include extra directories, because it seems like it would help.&lt;/p&gt;
+&lt;div class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-text&quot; data-lang=&quot;text&quot;&gt;cmake_minimum_required(VERSION 3.1)
+PROJECT(udf_example)
+
+# Path for MySQL include directory
+INCLUDE_DIRECTORIES(&amp;quot;C:/Users/James/Source/BazaarRepos/mysql-server/mysql-5.5/include&amp;quot;)
+INCLUDE_DIRECTORIES(&amp;quot;C:/Users/James/Source/BazaarRepos/mysql-server/mysql-5.5/sql&amp;quot;)
+INCLUDE_DIRECTORIES(&amp;quot;C:/Users/James/Source/BazaarRepos/mysql-server/mysql-5.5/regex&amp;quot;)
+
+ADD_DEFINITIONS(&amp;quot;-DHAVE_DLOPEN&amp;quot;)
+ADD_LIBRARY(udf_example MODULE udf_example.c udf_example.def)
+TARGET_LINK_LIBRARIES(udf_example wsock32)
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+&lt;p&gt;Try again. Nope?&lt;/p&gt;
+
+&lt;p&gt;You may have seen an error like this: &lt;code&gt;include\my_global.h(77): fatal error C1083: Cannot open include file: &amp;#39;my_config.h&amp;#39;: No such file or directory&lt;/code&gt;. This is pretty straight forward and says you don&amp;rsquo;t have that file. But how do we get it?&lt;/p&gt;
+
+&lt;p&gt;What I found I had to do was do a &lt;a href=&quot;http://dev.mysql.com/doc/internals/en/cmake-howto-detailed.html&quot;&gt;full compile&lt;/a&gt; of the MySQL source to generate all of the proper libraries and to generate a few configuration header files. In hind sight if I had found that article before starting with the UDF I would have gotten a lot further.&lt;/p&gt;
+
+&lt;p&gt;However, there is still a gotcha here. When compiling &lt;code&gt;mysqld.exe&lt;/code&gt; you may get an error that looks like this &lt;code&gt;error LNK2001: unresolved external symbol _xmm@0000001100000010000000050000000f&lt;/code&gt;. Apparently when you compile with debug symbols a few compiler intrinsics make it through the &lt;code&gt;create_def_file.js&lt;/code&gt; CScript file. In order to fix this you can alter the &lt;code&gt;IsCompilerDefinedSymbol()&lt;/code&gt; method in the CScript file to look like below. This removes any instance of XMM that is generated in the DEF file.&lt;/p&gt;
+&lt;div class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-js&quot; data-lang=&quot;js&quot;&gt;&lt;span class=&quot;c1&quot;&gt;// returns true if the symbol is compiler defined&lt;/span&gt;
+&lt;span class=&quot;kd&quot;&gt;function&lt;/span&gt; &lt;span class=&quot;nx&quot;&gt;IsCompilerDefinedSymbol&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;nx&quot;&gt;symbol&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt;
+&lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;
+    &lt;span class=&quot;k&quot;&gt;return&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;((&lt;/span&gt;&lt;span class=&quot;nx&quot;&gt;symbol&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;nx&quot;&gt;indexOf&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;s2&quot;&gt;&amp;quot;__real@&amp;quot;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;!=&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;-&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;1&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;||&lt;/span&gt;
+    &lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;nx&quot;&gt;symbol&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;nx&quot;&gt;indexOf&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;s2&quot;&gt;&amp;quot;_RTC_&amp;quot;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;!=&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;-&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;1&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;||&lt;/span&gt; 
+    &lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;nx&quot;&gt;symbol&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;nx&quot;&gt;indexOf&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;s2&quot;&gt;&amp;quot;??_C@_&amp;quot;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;!=&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;-&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;1&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;||&lt;/span&gt;
+    &lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;nx&quot;&gt;symbol&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;nx&quot;&gt;indexOf&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;s2&quot;&gt;&amp;quot;??_R&amp;quot;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;!=&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;-&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;1&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;||&lt;/span&gt;
+    &lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;nx&quot;&gt;symbol&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;nx&quot;&gt;indexOf&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;s2&quot;&gt;&amp;quot;??_7&amp;quot;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;!=&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;-&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;1&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt;  &lt;span class=&quot;o&quot;&gt;||&lt;/span&gt;
+    &lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;nx&quot;&gt;symbol&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;nx&quot;&gt;indexOf&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;s2&quot;&gt;&amp;quot;?_G&amp;quot;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;!=&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;-&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;1&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;||&lt;/span&gt;           &lt;span class=&quot;c1&quot;&gt;// scalar deleting destructor&lt;/span&gt;
+    &lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;nx&quot;&gt;symbol&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;nx&quot;&gt;indexOf&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;s2&quot;&gt;&amp;quot;_VInfreq_?&amp;quot;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;!=&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;-&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;1&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;||&lt;/span&gt;    &lt;span class=&quot;c1&quot;&gt;// special label (exception handler?) for Intel compiler&lt;/span&gt;
+    &lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;nx&quot;&gt;symbol&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;nx&quot;&gt;indexOf&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;s2&quot;&gt;&amp;quot;?_E&amp;quot;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;!=&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;-&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;1&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;||&lt;/span&gt;           &lt;span class=&quot;c1&quot;&gt;// vector deleting destructor&lt;/span&gt;
+    &lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;nx&quot;&gt;symbol&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;nx&quot;&gt;indexOf&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;s2&quot;&gt;&amp;quot;_xmm&amp;quot;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;!=&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;-&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;1&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;||&lt;/span&gt;           &lt;span class=&quot;c1&quot;&gt;// Compiler XMM intrinsic&lt;/span&gt;
+    &lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;nx&quot;&gt;symbol&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;nx&quot;&gt;indexOf&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;s2&quot;&gt;&amp;quot;__xmm&amp;quot;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;!=&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;-&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;1&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;));&lt;/span&gt;          &lt;span class=&quot;c1&quot;&gt;// Compiler XMM intrinsic&lt;/span&gt;
+&lt;span class=&quot;p&quot;&gt;}&lt;/span&gt;
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+&lt;p&gt;After this change I was able to run the following command &lt;code&gt;devenv MySQL.sln /build RelWithDebInfo &amp;gt; output_build.txt&lt;/code&gt; to generate all of the files I needed.&lt;/p&gt;
+
+&lt;p&gt;Once I had the binaries compiled and all of the headers I needed I attempted to create a standalone project again. This time I only received one error.
+&lt;code&gt;1&amp;gt;udf_example.obj : error LNK2019: unresolved external symbol _stpcpy referenced in function _avgcost_init&lt;/code&gt;. &lt;/p&gt;
+
+&lt;p&gt;In order to fix this I made a quick change to a line of code in the &lt;code&gt;udf_example.c&lt;/code&gt; file. The proper way would have been to include the strings library that was generated from the full compile but I didn&amp;rsquo;t want to fuss with it completely.&lt;/p&gt;
+&lt;div class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-C&quot; data-lang=&quot;C&quot;&gt;&lt;span class=&quot;c1&quot;&gt;// udf_example.c - Lines removed for brevity&lt;/span&gt;
+
+&lt;span class=&quot;cm&quot;&gt;/* BEFORE */&lt;/span&gt;
+&lt;span class=&quot;cp&quot;&gt;#include &amp;lt;string.h&amp;gt;&lt;/span&gt;
+&lt;span class=&quot;cp&quot;&gt;#define strmov(a,b) stpcpy(a,b)&lt;/span&gt;
+&lt;span class=&quot;cp&quot;&gt;#define bzero(a,b) memset(a,0,b)&lt;/span&gt;
+&lt;span class=&quot;cp&quot;&gt;#endif&lt;/span&gt;
+
+&lt;span class=&quot;cm&quot;&gt;/* AFTER CODE CHANGE */&lt;/span&gt;
+&lt;span class=&quot;cp&quot;&gt;#include &amp;lt;string.h&amp;gt;&lt;/span&gt;
+&lt;span class=&quot;cp&quot;&gt;#define strmov(a,b) strcpy(a,b)&lt;/span&gt;
+&lt;span class=&quot;cp&quot;&gt;#define bzero(a,b) memset(a,0,b)&lt;/span&gt;
+&lt;span class=&quot;cp&quot;&gt;#endif&lt;/span&gt;
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+&lt;p&gt;Now the application will compile! At least it did for me. If you want to check you can either install it using the instructions from the compile link above or just execute the &lt;code&gt;&amp;lt;root&amp;gt;\sql\RelWithDebInfo\mysqld.exe&lt;/code&gt;.&lt;/p&gt;
+
+&lt;h2&gt;Results&lt;/h2&gt;
+
+&lt;p&gt;I compiled and renamed the UDF example to myudf.dll. I was able to load this hello world function into MySQL using the &lt;code&gt;CREATE FUNCTION&lt;/code&gt; command.&lt;/p&gt;
+&lt;div class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-text&quot; data-lang=&quot;text&quot;&gt;mysql&amp;gt; CREATE FUNCTION myfunc_double RETURNS REAL SONAME &amp;quot;myudf.dll&amp;quot;;
+Query OK, 0 rows affected (0.01 sec)
+
+mysql&amp;gt; SELECT myfunc_double(1.2);
++--------------------+
+| myfunc_double(1.2) |
++--------------------+
+|              48.33 |
++--------------------+
+1 row in set (0.00 sec)
+
+mysql&amp;gt; SELECT myfunc_double(22);
++-------------------+
+| myfunc_double(22) |
++-------------------+
+|             50.00 |
++-------------------+
+1 row in set (0.00 sec)
+
+mysql&amp;gt; SELECT myfunc_double(10000);
++----------------------+
+| myfunc_double(10000) |
++----------------------+
+|                48.20 |
++----------------------+
+1 row in set (0.00 sec)
+
+mysql&amp;gt; SELECT myfunc_double(10000);
++----------------------+
+| myfunc_double(10000) |
++----------------------+
+|                48.20 |
++----------------------+
+1 row in set (0.00 sec)
+
+mysql&amp;gt; SELECT myfunc_double(10000);
++----------------------+
+| myfunc_double(10000) |
++----------------------+
+|                48.20 |
++----------------------+
+1 row in set (0.00 sec)
+
+mysql&amp;gt;
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;</content>
+ </entry>
  
  <entry>
    <title>MySQL .NET Hosting Extension - Part 0</title>
