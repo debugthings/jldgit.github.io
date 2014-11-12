@@ -4,7 +4,7 @@
  <title>Debug Things</title>
  <link href="/atom.xml" rel="self"/>
  <link href="/"/>
- <updated>2014-11-06T21:36:54-08:00</updated>
+ <updated>2014-11-11T21:51:42-08:00</updated>
  <id></id>
  <author>
    <name>James Davis</name>
@@ -13,13 +13,56 @@
 
  
  <entry>
+   <title>MySQL .NET Hosting Extension - Part 0</title>
+   <link href="//2014/11/11/extending-mysql-server-part0/"/>
+   <updated>2014-11-11T00:00:00-08:00</updated>
+   <id>/2014/11/11/extending-mysql-server-part0</id>
+   <content type="html">&lt;p&gt;For some reason I feel compelled to write an extension for &lt;a href=&quot;http://www.mysql.com/&quot;&gt;MySQL&lt;/a&gt; that allows use of .NET classes for functions. It&amp;rsquo;s really a purely academic exercise&amp;mdash;even though I&amp;rsquo;m not in school&amp;mdash;that I&amp;rsquo;m using to explore the use of the &lt;a href=&quot;http://msdn.microsoft.com/en-us/library/dd380850(v=vs.110).aspx&quot;&gt;.NET Hosting APIs&lt;/a&gt;. I will use my blog as a way to keep myself focused and accountable. But more over it&amp;rsquo;s so I don&amp;rsquo;t forget what I wanted to do. I will line out a few milestones.&lt;/p&gt;
+
+&lt;h2&gt;Background&lt;/h2&gt;
+
+&lt;p&gt;I started messing around with the Hosting API when I was researching a debugging issue surrounding Host Access Protection. I have a &lt;a href=&quot;(/2014/10/21/hostprotectionexception-ssrs/)&quot;&gt;blog post&lt;/a&gt; that talks about it. This got me curious as to some areas it would be applicable. I wanted to make the extension useful and not just a way for me to load a .NET assembly into a &amp;ldquo;hello world!&amp;rdquo; application. Although, that&amp;rsquo;s where this all started.&lt;/p&gt;
+
+&lt;h3&gt;What is the Hosting API?&lt;/h3&gt;
+
+&lt;p&gt;Quite simply, it is a way for you (the developer) to integrate &lt;a href=&quot;http://msdn.microsoft.com/en-us/library/8bs2ecf4(v=vs.110).aspx&quot;&gt;Microsoft&amp;rsquo;s CLR&lt;/a&gt; implementation into your application. You can extend your application by allowing managed code execution in safe containers that can interact with the state of your application by predefined interfaces. Check out this &lt;a href=&quot;http://msdn.microsoft.com/en-us/library/dd380850(v=vs.110).aspx&quot;&gt;article&lt;/a&gt; for more info. I also highly recommend reading &lt;a href=&quot;https://www.microsoft.com/learning/en-us/book.aspx?ID=6895&amp;amp;locale=en-us&quot;&gt;Customizing the .NET Framework&lt;/a&gt; by &lt;a href=&quot;http://www.linkedin.com/pub/steven-pratschner/0/a92/8a4&quot;&gt;Steven Pratschner&lt;/a&gt;.&lt;/p&gt;
+
+&lt;h3&gt;Why MySQL?&lt;/h3&gt;
+
+&lt;p&gt;Well, I have a soft spot in my heart for this particular database. It was the first real RDBMS that I developed with. I started back in 1999 using the good &amp;lsquo;ole LAMP stack. Also, MySQL is used on Windows occasionally and I thought it would be fun trying to extend something I&amp;rsquo;ve used for so long.&lt;/p&gt;
+
+&lt;h3&gt;Will this be production ready?&lt;/h3&gt;
+
+&lt;p&gt;No, probably never. I think the idea is great, but its too niche to be of any use to a lot of people. I&amp;rsquo;d like to see it mentioned as examples of what (not) to do when extending MySQL or using the Hosting API.&lt;/p&gt;
+
+&lt;h2&gt;Milestones&lt;/h2&gt;
+
+&lt;p&gt;Like I said before in my opening, I wanted to use the blog as a way to hold myself accountable. The milestones are going to be lofty, changing and probably never fully realized. That being said, here is a short list of what I want to do in the coming weeks and months.&lt;/p&gt;
+
+&lt;ol&gt;
+&lt;li&gt;Create a simple hello world application using the hosting API&lt;/li&gt;
+&lt;li&gt;Create a simple &lt;a href=&quot;http://dev.mysql.com/doc/refman/5.1/en/adding-udf.html&quot;&gt;User Defined Function&lt;/a&gt; (UDF) for MySQL&lt;/li&gt;
+&lt;li&gt;Send and retrieve data from the UDF&lt;/li&gt;
+&lt;li&gt;Extend the simple UDF to load the CLR&lt;/li&gt;
+&lt;li&gt;Implement a custom interface to interact with the UDF&lt;/li&gt;
+&lt;li&gt;Load an assembly from the file system&lt;/li&gt;
+&lt;li&gt;Allow dynamic loading of UDF based on parameters&lt;/li&gt;
+&lt;li&gt;Implement Host Access Protection to protect MySQL&lt;/li&gt;
+&lt;li&gt;Extend MySQL to include a BLOB table to install assemblies&lt;/li&gt;
+&lt;li&gt;Load assemblies from BLOB table&lt;/li&gt;
+&lt;li&gt;Write the same for &lt;a href=&quot;http://www.mono-project.com/&quot;&gt;Mono&lt;/a&gt;?&lt;/li&gt;
+&lt;/ol&gt;
+</content>
+ </entry>
+ 
+ <entry>
    <title>First Time Speaking at OWASP Tampa</title>
    <link href="//2014/11/06/owasp-top-10-mvc-tampa-day-talk/"/>
    <updated>2014-11-06T00:00:00-08:00</updated>
    <id>/2014/11/06/owasp-top-10-mvc-tampa-day-talk</id>
-   <content type="html">&lt;p&gt;A few weeks ago I submitted a talk for &lt;a href=&quot;https://www.owasp.org/index.php/Tampa&quot;&gt;OWASP Tampa Days 2014&lt;/a&gt; and I was selected.  The topic I picked to demonstrate was how MVC for .NET can solve some of the problems listed in the &lt;a href=&quot;https://www.owasp.org/index.php/Top_10_2013-Top_10&quot;&gt;OWASP Top 10&lt;/a&gt;. Let me be the first to say that I was truly unprepared for what I was about to get into. This was truly an exercise in conciseness.
-&amp;lt;!--more--&amp;gt;
-When choosing my topic I was guided by my friend Rich who suggested I take my knowledge of programming and apply it to security. I am very comfortable programming in .NET and MVC. However, I never applied a formal discipline or regime to my development. I always thought about this and that, but never really put it into words.&lt;/p&gt;
+   <content type="html">&lt;p&gt;A few weeks ago I submitted a talk for &lt;a href=&quot;https://www.owasp.org/index.php/Tampa&quot;&gt;OWASP Tampa Days 2014&lt;/a&gt; and I was selected.  The topic I picked to demonstrate was how MVC for .NET can solve some of the problems listed in the &lt;a href=&quot;https://www.owasp.org/index.php/Top_10_2013-Top_10&quot;&gt;OWASP Top 10&lt;/a&gt;. Let me be the first to say that I was truly unprepared for what I was about to get into. This was truly an exercise in conciseness. &lt;a href=&quot;/owasp/&quot;&gt;Get the slides here&lt;/a&gt;&lt;/p&gt;
+
+&lt;p&gt;When choosing my topic I was guided by my friend Rich who suggested I take my knowledge of programming and apply it to security. I am very comfortable programming in .NET and MVC. However, I never applied a formal discipline or regime to my development. I always thought about this and that, but never really put it into words.&lt;/p&gt;
 
 &lt;p&gt;After a couple of days reading over the Top 10 and banging out some quick code examples I was ready to start on the presentation. The easy part was making a slide for each of the top 10. The hard part was keeping it brief. I am not brief. At all.&lt;/p&gt;
 
@@ -27,19 +70,19 @@ When choosing my topic I was guided by my friend Rich who suggested I take my kn
 
 &lt;p&gt;The night before the meeting I looked back over the presentation and did one final rehearsal on the back porch in 50 degree weather. It felt right. I had my timings down; the demonstrations made sense. I was even able to finish up with about 5 minutes to spare for questions.&lt;/p&gt;
 
-&lt;p&gt;Now, here&amp;#39;s the reality of what happened. I make my way over to Tampa and start to enjoy the first talks of the day. I notice there is no Wifi, but that&amp;#39;s alright because I have my hotspot. I start adjusting my screens and font sizes to be shown on the projector. Lunch comes and goes and I&amp;#39;m up at 1 o&amp;#39;clock. I get a little uneasy because I have to use a microphone; not because I don&amp;#39;t like my voice, but because I use my hands all the goddamn time.&lt;/p&gt;
+&lt;p&gt;Now, here&amp;rsquo;s the reality of what happened. I make my way over to Tampa and start to enjoy the first talks of the day. I notice there is no Wifi, but that&amp;rsquo;s all right because I have my hotspot. I start adjusting my screens and font sizes to be shown on the projector. Lunch comes and goes and I&amp;rsquo;m up at 1 o&amp;#39;clock. I get a little uneasy because I have to use a microphone; not because I don&amp;rsquo;t like my voice, but because I use my hands all the goddamn time.&lt;/p&gt;
 
-&lt;p&gt;I plug in and all seems well, that is, until I had to start talking. I feel that my voice is pitchy and genuinely start to feel nervous. I start remembering all those confidence talks my dad gave me about people are just people. I notice I&amp;#39;m getting a little bit of cotton mouth, but luckily I had some water up there.&lt;/p&gt;
+&lt;p&gt;I plug in and all seems well, that is, until I had to start talking. I feel that my voice is pitchy and genuinely start to feel nervous. I start remembering all those confidence talks my dad gave me about people are just people. I notice I&amp;rsquo;m getting a little bit of cotton mouth, but luckily I had some water up there.&lt;/p&gt;
 
-&lt;p&gt;Part of my day-to-day is to give classes at work a few times a year, but this time was different. I didn&amp;#39;t have that comfort of being being known and vetted by my work credentials. Everyone was a stranger, save for a couple of folks.&lt;/p&gt;
+&lt;p&gt;Part of my day-to-day is to give classes at work a few times a year, but this time was different. I didn&amp;rsquo;t have that comfort of being being known and vetted by my work credentials. Everyone was a stranger, save for a couple of folks.&lt;/p&gt;
 
-&lt;p&gt;Another fear that came crashing down, was the fact that I only had 45 minutes. I didn&amp;#39;t have the luxury of a 8-hour or even a 4-hour class time. Forty-Five. Minutes. I wasted about 10 minutes introducing myself and describing was MVC was. Thirty-Five. Minutes. And I still had about 14 slides to go. I still can&amp;#39;t use my hands to their full potential.&lt;/p&gt;
+&lt;p&gt;Another fear that came crashing down, was the fact that I only had 45 minutes. I didn&amp;rsquo;t have the luxury of a 8-hour or even a 4-hour class time. Forty-Five. Minutes. I wasted about 10 minutes introducing myself and describing was MVC was. Thirty-Five. Minutes. And I still had about 14 slides to go. I still can&amp;rsquo;t use my hands to their full potential.&lt;/p&gt;
 
-&lt;p&gt;But, sometime around the 20 minute mark I felt a little bit at ease. I had already thumped the microphone, fumbled a couple of lines in my presentation, and forgot where I put &amp;quot;that one code example.&amp;quot; Squeaked. Had an audible dry mouth moment. All in all, it was a terrifying experience.&lt;/p&gt;
+&lt;p&gt;But, sometime around the 20 minute mark I felt a little bit at ease. I had already thumped the microphone, fumbled a couple of lines in my presentation, and forgot where I put &amp;ldquo;that one code example.&amp;rdquo; Squeaked. Had an audible dry mouth moment. All in all, it was a terrifying experience.&lt;/p&gt;
 
-&lt;p&gt;Terrifying, challenging, and great. While I have some things to work on (timing, confidence, conciseness, direction, etc.) I know this won&amp;#39;t be the last thing that I decide to deliver a talk on. I already have some other topics I want to present to other groups--B-Sides, for example.&lt;/p&gt;
+&lt;p&gt;Terrifying, challenging, and great. While I have some things to work on (timing, confidence, conciseness, direction, etc.) I know this won&amp;rsquo;t be the last thing that I decide to deliver a talk on. I already have some other topics I want to present to other groups&amp;mdash;B-Sides, for example.&lt;/p&gt;
 
-&lt;p&gt;So, if you&amp;#39;re one of the unlucky few who had to sit through me trying to cram what was more likely a code example class rather than a quick talk I&amp;#39;m truly sorry. However, this doesn&amp;#39;t mean you&amp;#39;re completely off the hook. I am taking this petrifying experience and learning from it.&lt;/p&gt;
+&lt;p&gt;So, if you&amp;rsquo;re one of the unlucky few who had to sit through me trying to cram what was more likely a code example class rather than a quick talk I&amp;rsquo;m truly sorry. However, this doesn&amp;rsquo;t mean you&amp;rsquo;re completely off the hook. I am taking this petrifying experience and learning from it.&lt;/p&gt;
 </content>
  </entry>
  
@@ -48,23 +91,23 @@ When choosing my topic I was guided by my friend Rich who suggested I take my kn
    <link href="//2014/10/31/answering-questions/"/>
    <updated>2014-10-31T00:00:00-07:00</updated>
    <id>/2014/10/31/answering-questions</id>
-   <content type="html">&lt;p&gt;Back in early October my company sent me to &lt;a href=&quot;http://http://compuwareperform.com/&quot;&gt;Perform 2014&lt;/a&gt;. While there, I met with some great people and found out that I&amp;#39;m not alone. It was also very humbling. I liked that. But, with all of the meeting I found that there were a lot of people who didn&amp;#39;t know where to turn to for help. Turns out there is a very active user community. I wanted to get involved.
-&amp;lt;!--more--&amp;gt;
-I have always been in and out of the forums and spent most of my time seeking answers as well. Most of the answers were hard to find, or if we called support weren&amp;#39;t very easy to implement. And, sometimes, we were actually told to search there to see if someone else had seen or done what we were asking. I noticed that a lot of the questions being asked I knew the answer to. It was time to give back.&lt;/p&gt;
+   <content type="html">&lt;p&gt;Back in early October my company sent me to &lt;a href=&quot;http://http://compuwareperform.com/&quot;&gt;Perform 2014&lt;/a&gt;. While there, I met with some great people and found out that I&amp;rsquo;m not alone. It was also very humbling. I liked that. But, with all of the meeting I found that there were a lot of people who didn&amp;rsquo;t know where to turn to for help. Turns out there is a very active user community. I wanted to get involved.&lt;/p&gt;
 
-&lt;p&gt;So, I decided to turn on notifications for the &lt;a href=&quot;http://www.dynatrace.com/en/index.html&quot;&gt;dynatrace&lt;/a&gt; forum and started watching. Within the first two days I saw a topic I wanted to jump on. It was exciting and unnerving because I felt uneasy typing my response. I was anxious because I rarely share knowledge with people that I haven&amp;#39;t established myself with. I thought, honestly, I was going to fail.&lt;/p&gt;
+&lt;p&gt;I have always been in and out of the forums and spent most of my time seeking answers as well. Most of the answers were hard to find, or if we called support weren&amp;rsquo;t very easy to implement. And, sometimes, we were actually told to search there to see if someone else had seen or done what we were asking. I noticed that a lot of the questions being asked I knew the answer to. It was time to give back.&lt;/p&gt;
 
-&lt;p&gt;While I can&amp;#39;t say that all of my answers were correct, I did feel that I was helping. I felt a rejuvenation of the tool that I have been using the past 4 years. If anything I was moving the needle a bit for some people who may be stuck. Even if the person said, &amp;quot;Man, WTF is that guy talking about?&amp;quot; and was able to move on I &lt;/p&gt;
+&lt;p&gt;So, I decided to turn on notifications for the &lt;a href=&quot;http://www.dynatrace.com/en/index.html&quot;&gt;dynatrace&lt;/a&gt; forum and started watching. Within the first two days I saw a topic I wanted to jump on. It was exciting and unnerving because I felt uneasy typing my response. I was anxious because I rarely share knowledge with people that I haven&amp;rsquo;t established myself with. I thought, honestly, I was going to fail.&lt;/p&gt;
 
-&lt;p&gt;There were puzzles to be solved that I have never tried, but I knew could be done. I don&amp;#39;t have any specific examples but I can say that just trying to find the most succinct solution is very satisfying. It is also, understandably, a lot of work. This work translates into knowledge, so the return is tremendous&lt;/p&gt;
+&lt;p&gt;While I can&amp;rsquo;t say that all of my answers were correct, I did feel that I was helping. I felt a rejuvenation of the tool that I have been using the past 4 years. If anything I was moving the needle a bit for some people who may be stuck. Even if the person said, &amp;ldquo;Man, WTF is that guy talking about?&amp;rdquo; and was able to move on I &lt;/p&gt;
+
+&lt;p&gt;There were puzzles to be solved that I have never tried, but I knew could be done. I don&amp;rsquo;t have any specific examples but I can say that just trying to find the most succinct solution is very satisfying. It is also, understandably, a lot of work. This work translates into knowledge, so the return is tremendous&lt;/p&gt;
 
 &lt;p&gt;So. What have I learned?&lt;/p&gt;
 
 &lt;ul&gt;
 &lt;li&gt;There are some people out there doing some very complex things with a very complex tool.&lt;/li&gt;
-&lt;li&gt;Contrary to my personal delusions, I don&amp;#39;t know the answer to everything. &lt;/li&gt;
+&lt;li&gt;Contrary to my personal delusions, I don&amp;rsquo;t know the answer to everything. &lt;/li&gt;
 &lt;li&gt;People need help.&lt;/li&gt;
-&lt;li&gt;A lot of people don&amp;#39;t know what they need. But one idea takes them miles.&lt;/li&gt;
+&lt;li&gt;A lot of people don&amp;rsquo;t know what they need. But one idea takes them miles.&lt;/li&gt;
 &lt;li&gt;Only a few people respond back.&lt;/li&gt;
 &lt;li&gt;Time between questions and answers can be a year (or more).&lt;/li&gt;
 &lt;li&gt;Beware of the technical black hole. Not everyone knows the internals.&lt;/li&gt;
@@ -89,11 +132,11 @@ I have always been in and out of the forums and spent most of my time seeking an
 
 &lt;p&gt;Sometime between SSRS install, v1, and vNow of this custom DLL there were numerous changes before during, and after deployment. Most of these changes are just code deployment for SSRS. But, some are a bit more insidious. There are OS level changes, patches, security updates and the like.&lt;/p&gt;
 
-&lt;p&gt;So, it&amp;#39;s probably fair to say that the code we once had is not the code we have now. Knowing that simple--but useful--fact,  we can get right down to business.&lt;/p&gt;
+&lt;p&gt;So, it&amp;rsquo;s probably fair to say that the code we once had is not the code we have now. Knowing that simple&amp;mdash;but useful&amp;mdash;fact,  we can get right down to business.&lt;/p&gt;
 
 &lt;h2&gt;Steps&lt;/h2&gt;
 
-&lt;p&gt;The first thing I always do when trying to debug a &amp;quot;we&amp;#39;ve been working on it for weeks,&amp;quot; scenario is try to figure out who has been doing what. In this case we had a very skilled senior engineer working on the issue. So, I was able to forgo a ton of leg work and get down to the meat of the problem. The engineer had already compared config files, checked parameters, run numerous tests, and even added some compensating configuration changes but to no avail.&lt;/p&gt;
+&lt;p&gt;The first thing I always do when trying to debug a &amp;ldquo;we&amp;rsquo;ve been working on it for weeks,&amp;rdquo; scenario is try to figure out who has been doing what. In this case we had a very skilled senior engineer working on the issue. So, I was able to forgo a ton of leg work and get down to the meat of the problem. The engineer had already compared config files, checked parameters, run numerous tests, and even added some compensating configuration changes but to no avail.&lt;/p&gt;
 
 &lt;ol&gt;
 &lt;li&gt;Run report. Fail.&lt;/li&gt;
@@ -132,7 +175,7 @@ HResult: 80131640
 &lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
 &lt;p&gt;After seeing that I was able to use &lt;code&gt;!StopOnException (!soe)&lt;/code&gt; to pause the execution once we reached this particular exception. To ensure I was ready once the CLR was loaded. I did this by setting an exception(event) breakpoint by using &lt;code&gt;sxe ld mscorwks; g&lt;/code&gt;. After that I loaded PSSCOR2 with &lt;code&gt;.load exts/psccor2&lt;/code&gt;. Look at the following WinDbg log recreation below.&lt;/p&gt;
 
-&lt;p&gt;With the command &lt;code&gt;!soe -create System.Security.HostProtectionException 1&lt;/code&gt; I created a break point on the first chance exception of this host protection exception. The &lt;code&gt;-create&lt;/code&gt; option tells &lt;code&gt;!soe&lt;/code&gt; to stop on first chance. The number &lt;code&gt;1&lt;/code&gt; is a pseudo register that you can use to check for a pass-fail condition. This is useful if you need to use ADPlus and check exactly WHAT exception was thrown &amp;quot;automagically.&amp;quot;&lt;/p&gt;
+&lt;p&gt;With the command &lt;code&gt;!soe -create System.Security.HostProtectionException 1&lt;/code&gt; I created a break point on the first chance exception of this host protection exception. The &lt;code&gt;-create&lt;/code&gt; option tells &lt;code&gt;!soe&lt;/code&gt; to stop on first chance. The number &lt;code&gt;1&lt;/code&gt; is a pseudo register that you can use to check for a pass-fail condition. This is useful if you need to use ADPlus and check exactly WHAT exception was thrown &amp;ldquo;automagically.&amp;rdquo;&lt;/p&gt;
 
 &lt;blockquote&gt;
 &lt;p&gt;&lt;strong&gt;NOTE&lt;/strong&gt; There are help files in WinDbg that briefly explain ADPlus. However, you can also use procdump.exe to create dump files on specific exceptions. ADPlus gives very, very, very granular control over taking a crash dump; there is a learning curve. Procdump.exe gives great power with one command line but does not allow for complex evaluations.&lt;/p&gt;
@@ -185,11 +228,11 @@ ESP       EIP
 &lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
 &lt;p&gt;This stack trace shows us that when we call &lt;code&gt;Trace.WriteLine()&lt;/code&gt; it invokes security checks. This is all fine and well, but my code is executing as FullTrust. Right?&lt;/p&gt;
 
-&lt;p&gt;Well, not exactly. Depending on how you use your custom code it may not execute with FullTrust. For example, if I use my code in an expression it will inherit it&amp;#39;s security from &lt;code&gt;Report_Expressions_Default_Permissions&lt;/code&gt; which is a CodeGroup with a permission set of Execution. This whacks any FullTrust you may have set on your custom code.&lt;/p&gt;
+&lt;p&gt;Well, not exactly. Depending on how you use your custom code it may not execute with FullTrust. For example, if I use my code in an expression it will inherit it&amp;rsquo;s security from &lt;code&gt;Report_Expressions_Default_Permissions&lt;/code&gt; which is a CodeGroup with a permission set of Execution. This whacks any FullTrust you may have set on your custom code.&lt;/p&gt;
 
 &lt;h2&gt;Explanation&lt;/h2&gt;
 
-&lt;p&gt;The SSRS reporting engine hosts it&amp;#39;s own CLR (CLR Integration) and this is where your code will execute. As mentioned in the previous paragraph the &amp;quot;Expressions Engine&amp;quot; will take default permissions of &lt;strong&gt;Execute&lt;/strong&gt;. This causes the code to inherit the lowered security. So, in this case it will perform the security checks required to validate the CAS. Otherwise FullTrust code will cause this check to &lt;a href=&quot;http://msdn.microsoft.com/en-us/library/system.security.permissions.hostprotectionattribute(v=vs.110).aspx&quot;&gt;evaporate&lt;/a&gt; and not be looked at.&lt;/p&gt;
+&lt;p&gt;The SSRS reporting engine hosts it&amp;rsquo;s own CLR (CLR Integration) and this is where your code will execute. As mentioned in the previous paragraph the &amp;ldquo;Expressions Engine&amp;rdquo; will take default permissions of &lt;strong&gt;Execute&lt;/strong&gt;. This causes the code to inherit the lowered security. So, in this case it will perform the security checks required to validate the CAS. Otherwise FullTrust code will cause this check to &lt;a href=&quot;http://msdn.microsoft.com/en-us/library/system.security.permissions.hostprotectionattribute(v=vs.110).aspx&quot;&gt;evaporate&lt;/a&gt; and not be looked at.&lt;/p&gt;
 
 &lt;h2&gt;Resolution&lt;/h2&gt;
 
@@ -199,7 +242,7 @@ ESP       EIP
 
 &lt;h2&gt;Side Note&lt;/h2&gt;
 
-&lt;p&gt;I had already fixed this issue and moved on to another so I wasn&amp;#39;t able to recreate the EXACT data from the SSRS dump. I did how ever create a quick and dirty integrated host so I could recreate the issue and walk through the stack traces. You can find the code in the following repo: &lt;a href=&quot;https://github.com/jldgit/DebugThingsIntegratedCLRExample&quot;&gt;DebugThingsIntegratedCLRExample&lt;/a&gt;.&lt;/p&gt;
+&lt;p&gt;I had already fixed this issue and moved on to another so I wasn&amp;rsquo;t able to recreate the EXACT data from the SSRS dump. I did how ever create a quick and dirty integrated host so I could recreate the issue and walk through the stack traces. You can find the code in the following repo: &lt;a href=&quot;https://github.com/jldgit/DebugThingsIntegratedCLRExample&quot;&gt;DebugThingsIntegratedCLRExample&lt;/a&gt;.&lt;/p&gt;
 </content>
  </entry>
  
@@ -210,11 +253,11 @@ ESP       EIP
    <id>/2014/09/24/critical-section-deadlock</id>
    <content type="html">&lt;p&gt;More often than not I do postmortem debugging. That is to say, I get a dump file long after the machine has experienced an issue. But, on occasion I get pulled in to take a look at problems that need to be run through the debugger. This article will show you some commands you can use to locate and fix code using WinDbg.&lt;/p&gt;
 
-&lt;p&gt;While I don&amp;#39;t recommend what I am doing for an application you are delivering to production, sometimes you have to be creative when debugging. However, your hands may be tied and this set of solutions could help.&lt;/p&gt;
+&lt;p&gt;While I don&amp;rsquo;t recommend what I am doing for an application you are delivering to production, sometimes you have to be creative when debugging. However, your hands may be tied and this set of solutions could help.&lt;/p&gt;
 
 &lt;p&gt;For this article I am making an assumption you have a working knowledge of WinDbg. As well I suspect you should have working knowledge of C or C++. And also, of Win32. Do I even need to mention the stack?&lt;/p&gt;
 
-&lt;p&gt;If you don&amp;#39;t know them I&amp;#39;d check out the following links.&lt;/p&gt;
+&lt;p&gt;If you don&amp;rsquo;t know them I&amp;rsquo;d check out the following links.&lt;/p&gt;
 
 &lt;ul&gt;
 &lt;li&gt;&lt;a href=&quot;http://msdn.microsoft.com/en-us/library/windows/hardware/hh406283(v=vs.85).aspx&quot;&gt;Debugging Using WinDbg&lt;/a&gt;&lt;/li&gt;
@@ -283,9 +326,9 @@ ESP       EIP
 
 &lt;p&gt;In this example the problem is simply the locks are out of order. The fix is simple if you have the source code.  Have the locks fire in order and your problems will go away.&lt;/p&gt;
 
-&lt;p&gt;But, what if you don&amp;#39;t have the code? What do you do then? What if the code is critical and just started doing this because of a change in load or a change in the operating system, or ... the list goes on and on.&lt;/p&gt;
+&lt;p&gt;But, what if you don&amp;rsquo;t have the code? What do you do then? What if the code is critical and just started doing this because of a change in load or a change in the operating system, or &amp;hellip; the list goes on and on.&lt;/p&gt;
 
-&lt;p&gt;It&amp;#39;s not often you will encounter this, but you just might.&lt;/p&gt;
+&lt;p&gt;It&amp;rsquo;s not often you will encounter this, but you just might.&lt;/p&gt;
 
 &lt;h2&gt;The Solution Overview&lt;/h2&gt;
 
@@ -306,11 +349,11 @@ ESP       EIP
 
 &lt;h2&gt;The Solution Details&lt;/h2&gt;
 
-&lt;p&gt;From here on out I will make some assumptions about your familiarity with the tool and concepts. I may simply state: &amp;quot;Open the executable in WinDbg,&amp;quot; and expect you to know what I mean.&lt;/p&gt;
+&lt;p&gt;From here on out I will make some assumptions about your familiarity with the tool and concepts. I may simply state: &amp;ldquo;Open the executable in WinDbg,&amp;rdquo; and expect you to know what I mean.&lt;/p&gt;
 
 &lt;h3&gt;Step 1 - Start the application&lt;/h3&gt;
 
-&lt;p&gt;Open the CriticalSectionDeadlock executable in WinDbg... &lt;/p&gt;
+&lt;p&gt;Open the CriticalSectionDeadlock executable in WinDbg&amp;hellip; &lt;/p&gt;
 
 &lt;h3&gt;Step 2 - Let it load&lt;/h3&gt;
 
@@ -367,7 +410,7 @@ ChildEBP RetAddr
 
 06 006df8e4 00000000 011610c0 00000000 00000000 ntdll!_RtlUserThreadStart+0x1b
 &lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
-&lt;p&gt;If you look at frame 02, you can see that we are entering a critical section. Let&amp;#39;s see if there is anything else going on. We will take a look at &lt;strong&gt;Thread 2&lt;/strong&gt; this time.&lt;/p&gt;
+&lt;p&gt;If you look at frame 02, you can see that we are entering a critical section. Let&amp;rsquo;s see if there is anything else going on. We will take a look at &lt;strong&gt;Thread 2&lt;/strong&gt; this time.&lt;/p&gt;
 &lt;div class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-text&quot; data-lang=&quot;text&quot;&gt;0:002&amp;gt; ~2kbn
  # ChildEBP RetAddr  Args to Child              
 00 00b3f970 77de8e44 00000040 00000000 00000000 ntdll!ZwWaitForSingleObject+0x15
@@ -388,18 +431,18 @@ ChildEBP RetAddr
 &lt;p&gt;&lt;strong&gt;TIP&lt;/strong&gt; Use the shortcut command &lt;code&gt;~2kbn&lt;/code&gt; which executes the &lt;code&gt;kbn&lt;/code&gt; command without switching to thread 2.&lt;/p&gt;
 &lt;/blockquote&gt;
 
-&lt;p&gt;If we look at this thread stack we can see that we also are entering a critical section. At the very top of the stack we can see the &lt;code&gt;ZwWaitForSingleObject()&lt;/code&gt; method, this tells me that we&amp;#39;re blocked waiting for this particular CS. Lets take a look at the data behind the CS and find out why.&lt;/p&gt;
+&lt;p&gt;If we look at this thread stack we can see that we also are entering a critical section. At the very top of the stack we can see the &lt;code&gt;ZwWaitForSingleObject()&lt;/code&gt; method, this tells me that we&amp;rsquo;re blocked waiting for this particular CS. Lets take a look at the data behind the CS and find out why.&lt;/p&gt;
 
 &lt;h3&gt;Step 4 - Inspect CRITICAL_SECTION(s)&lt;/h3&gt;
 
 &lt;p&gt;In the previous step we looked at the call stacks of the deadlocked threads. Judging from those call stacks we know that we are entering a critical section and we are waiting on something. But what are we waiting on?&lt;/p&gt;
 
-&lt;p&gt;In order to synchronize the critical sections Windows needs to be able to signal to other threads when it becomes available. In order to do this it uses a reset event. Let&amp;#39;s take a look at the &lt;code&gt;ZwWaitForSingleObject()&lt;/code&gt; parameters on &lt;strong&gt;Thread 2&lt;/strong&gt;&lt;/p&gt;
+&lt;p&gt;In order to synchronize the critical sections Windows needs to be able to signal to other threads when it becomes available. In order to do this it uses a reset event. Let&amp;rsquo;s take a look at the &lt;code&gt;ZwWaitForSingleObject()&lt;/code&gt; parameters on &lt;strong&gt;Thread 2&lt;/strong&gt;&lt;/p&gt;
 &lt;div class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-text&quot; data-lang=&quot;text&quot;&gt;0:001&amp;gt; ~2kbn 1
  # ChildEBP RetAddr  Args to Child              
 00 00b3f970 77de8e44 00000040 00000000 00000000 ntdll!ZwWaitForSingleObject+0x15
 &lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
-&lt;p&gt;This method is waiting on a handle (&lt;code&gt;40&lt;/code&gt;). Let&amp;#39;s take a look at the handle in the parameter by using the &lt;code&gt;!handle&lt;/code&gt; command.&lt;/p&gt;
+&lt;p&gt;This method is waiting on a handle (&lt;code&gt;40&lt;/code&gt;). Let&amp;rsquo;s take a look at the handle in the parameter by using the &lt;code&gt;!handle&lt;/code&gt; command.&lt;/p&gt;
 &lt;div class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-text&quot; data-lang=&quot;text&quot;&gt;0:001&amp;gt; !handle 40
 Handle 40
   Type          Event
@@ -418,7 +461,7 @@ Handle 40
     Event Type Auto Reset
     Event is Waiting
 &lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
-&lt;p&gt;We can see that this handle is an auto reset event, but for what? We know that we are waiting on a critical section, let&amp;#39;s confirm it&amp;#39;s relationship. Let&amp;#39;s inspect the critical section using the &lt;code&gt;!cs&lt;/code&gt; command, with the parameter from the &lt;code&gt;RtlEnterCriticalSection()&lt;/code&gt; function in frame 02 (&lt;code&gt;01164438&lt;/code&gt;).&lt;/p&gt;
+&lt;p&gt;We can see that this handle is an auto reset event, but for what? We know that we are waiting on a critical section, let&amp;rsquo;s confirm it&amp;rsquo;s relationship. Let&amp;rsquo;s inspect the critical section using the &lt;code&gt;!cs&lt;/code&gt; command, with the parameter from the &lt;code&gt;RtlEnterCriticalSection()&lt;/code&gt; function in frame 02 (&lt;code&gt;01164438&lt;/code&gt;).&lt;/p&gt;
 &lt;div class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-text&quot; data-lang=&quot;text&quot;&gt;0:002&amp;gt; !cs 01164438 
 -----------------------------------------
 Critical section   = 0x01164438 (CriticalSectionDeadlock!cs2+0x0)
@@ -431,19 +474,19 @@ RecursionCount     = 0x1
 LockSemaphore      = 0x40
 SpinCount          = 0x00000000
 &lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
-&lt;p&gt;We can see that we are indeed waiting on this critical section&amp;#39;s lock semaphore (auto reset event). But, if the other thread is trying to enter a different critical section, why are we blocked? This is because this critical section is already LOCKED, as indicated by the &lt;code&gt;!cs&lt;/code&gt; command.&lt;/p&gt;
+&lt;p&gt;We can see that we are indeed waiting on this critical section&amp;rsquo;s lock semaphore (auto reset event). But, if the other thread is trying to enter a different critical section, why are we blocked? This is because this critical section is already LOCKED, as indicated by the &lt;code&gt;!cs&lt;/code&gt; command.&lt;/p&gt;
 
-&lt;p&gt;In fact, it is locked by thread &lt;code&gt;0x18fc&lt;/code&gt;, let&amp;#39;s find out who that is. Use the &lt;code&gt;~~[TID]&lt;/code&gt; command for this.&lt;/p&gt;
+&lt;p&gt;In fact, it is locked by thread &lt;code&gt;0x18fc&lt;/code&gt;, let&amp;rsquo;s find out who that is. Use the &lt;code&gt;~~[TID]&lt;/code&gt; command for this.&lt;/p&gt;
 &lt;div class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-text&quot; data-lang=&quot;text&quot;&gt;0:001&amp;gt; ~~[0x18fc]
 .  1  Id: 1618.18fc Suspend: 1 Teb: 7efda000 Unfrozen
       Start: CriticalSectionDeadlock!Thread1 (011610c0)
       Priority: 0  Priority class: 32  Affinity: ff
 &lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
-&lt;p&gt;Look at that. It is &lt;strong&gt;Thread 1&lt;/strong&gt;. But, we don&amp;#39;t see the call to that critical section in the call stack.  We can only assume that the call has came and went. Let&amp;#39;s find out how these calls are made inside of the &lt;code&gt;Thread1()&lt;/code&gt; and &lt;code&gt;Thread2()&lt;/code&gt; functions. We will need to take a look at the disassembly of the &lt;code&gt;Thread2()&lt;/code&gt; function located at stack frame 03 for &lt;strong&gt;Thread 2&lt;/strong&gt;.&lt;/p&gt;
+&lt;p&gt;Look at that. It is &lt;strong&gt;Thread 1&lt;/strong&gt;. But, we don&amp;rsquo;t see the call to that critical section in the call stack.  We can only assume that the call has came and went. Let&amp;rsquo;s find out how these calls are made inside of the &lt;code&gt;Thread1()&lt;/code&gt; and &lt;code&gt;Thread2()&lt;/code&gt; functions. We will need to take a look at the disassembly of the &lt;code&gt;Thread2()&lt;/code&gt; function located at stack frame 03 for &lt;strong&gt;Thread 2&lt;/strong&gt;.&lt;/p&gt;
 
 &lt;h3&gt;Step 5 - Inspect the code&lt;/h3&gt;
 
-&lt;p&gt;Now that we&amp;#39;re certain we have a blocked thread we need to take a look at the functions that are part of this executable. In order to do that we will use the un-assemble &lt;code&gt;u&lt;/code&gt; command, and use the &lt;code&gt;uf&lt;/code&gt; variant to un-assemble a function. I added line breaks to make some lines easier to read.&lt;/p&gt;
+&lt;p&gt;Now that we&amp;rsquo;re certain we have a blocked thread we need to take a look at the functions that are part of this executable. In order to do that we will use the un-assemble &lt;code&gt;u&lt;/code&gt; command, and use the &lt;code&gt;uf&lt;/code&gt; variant to un-assemble a function. I added line breaks to make some lines easier to read.&lt;/p&gt;
 &lt;div class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-asm&quot; data-lang=&quot;asm&quot;&gt;&lt;span class=&quot;c&quot;&gt;# CriticalSectionDeadlock!Thread2:&lt;/span&gt;
 &lt;span class=&quot;nf&quot;&gt;mov&lt;/span&gt;     &lt;span class=&quot;no&quot;&gt;ebp&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt;&lt;span class=&quot;no&quot;&gt;esp&lt;/span&gt;
 &lt;span class=&quot;nf&quot;&gt;and&lt;/span&gt;     &lt;span class=&quot;no&quot;&gt;esp&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;0&lt;/span&gt;&lt;span class=&quot;no&quot;&gt;FFFFFFF8h&lt;/span&gt;
@@ -486,7 +529,7 @@ SpinCount          = 0x00000000
 &lt;span class=&quot;nf&quot;&gt;call&lt;/span&gt;    &lt;span class=&quot;no&quot;&gt;dword&lt;/span&gt; &lt;span class=&quot;no&quot;&gt;ptr&lt;/span&gt; &lt;span class=&quot;err&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;no&quot;&gt;CriticalSectionDeadlock&lt;/span&gt;&lt;span class=&quot;err&quot;&gt;!&lt;/span&gt;&lt;span class=&quot;no&quot;&gt;_imp__LeaveCriticalSection&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;0116301&lt;/span&gt;&lt;span class=&quot;no&quot;&gt;c&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt;&lt;span class=&quot;err&quot;&gt;]&lt;/span&gt;
 &lt;span class=&quot;nf&quot;&gt;jmp&lt;/span&gt;     &lt;span class=&quot;no&quot;&gt;CriticalSectionDeadlock&lt;/span&gt;&lt;span class=&quot;err&quot;&gt;!&lt;/span&gt;&lt;span class=&quot;no&quot;&gt;Thread2&lt;/span&gt;&lt;span class=&quot;err&quot;&gt;+&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;0x18&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;01161168&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt;
 &lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
-&lt;p&gt;I won&amp;#39;t walk this code line by line, but I will point out some interesting parts.&lt;/p&gt;
+&lt;p&gt;I won&amp;rsquo;t walk this code line by line, but I will point out some interesting parts.&lt;/p&gt;
 
 &lt;p&gt;&lt;strong&gt;Storing the EnterCriticalSection function pointer in $edi&lt;/strong&gt;&lt;/p&gt;
 &lt;div class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-asm&quot; data-lang=&quot;asm&quot;&gt;&lt;span class=&quot;nf&quot;&gt;mov&lt;/span&gt;     &lt;span class=&quot;no&quot;&gt;edi&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt;&lt;span class=&quot;no&quot;&gt;dword&lt;/span&gt; &lt;span class=&quot;no&quot;&gt;ptr&lt;/span&gt; &lt;span class=&quot;err&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;no&quot;&gt;CriticalSectionDeadlock&lt;/span&gt;&lt;span class=&quot;err&quot;&gt;!&lt;/span&gt;&lt;span class=&quot;no&quot;&gt;_imp__EnterCriticalSection&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;01163010&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt;&lt;span class=&quot;err&quot;&gt;]&lt;/span&gt;
@@ -511,7 +554,7 @@ SpinCount          = 0x00000000
 
 &lt;p&gt;So, 0XDEAD would be represented in memory as it is show, but would be 0xADDE when passed to the instruction.&lt;/p&gt;
 
-&lt;p&gt;Let&amp;#39;s look at the instruction at address &lt;code&gt;0x01161168&lt;/code&gt; in the &lt;code&gt;Thread2()&lt;/code&gt; function. We will use the display memory &lt;code&gt;d&lt;/code&gt; command to do so.&lt;/p&gt;
+&lt;p&gt;Let&amp;rsquo;s look at the instruction at address &lt;code&gt;0x01161168&lt;/code&gt; in the &lt;code&gt;Thread2()&lt;/code&gt; function. We will use the display memory &lt;code&gt;d&lt;/code&gt; command to do so.&lt;/p&gt;
 &lt;div class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-text&quot; data-lang=&quot;text&quot;&gt;Size of Pointers
 0:002&amp;gt; dp 0x01161168 L 4
 01161168  16445068 6ad7ff01 68d3ff05 01164438
@@ -529,16 +572,16 @@ Size of Bytes
 &lt;p&gt;The &lt;code&gt;push&lt;/code&gt; instruction on x86 is represented by one byte (&lt;code&gt;0x68&lt;/code&gt;) plus four bytes for the address (&lt;code&gt;0x01164450&lt;/code&gt;). &lt;/p&gt;
 
 &lt;blockquote&gt;
-&lt;p&gt;&lt;strong&gt;NOTE&lt;/strong&gt; Notice how the bytes aren&amp;#39;t really in an order you expect to see them? The reason for this is they a normal address is a double word and would have to be aligned on a word boundary to be displayed properly.&lt;/p&gt;
+&lt;p&gt;&lt;strong&gt;NOTE&lt;/strong&gt; Notice how the bytes aren&amp;rsquo;t really in an order you expect to see them? The reason for this is they a normal address is a double word and would have to be aligned on a word boundary to be displayed properly.&lt;/p&gt;
 
 &lt;p&gt;Since instructions can (and usually are) odd sizes the code ends up misaligned. This is okay because the real issue is getting a code segment to fit into a cache line to be run by the processor. In most cases your entire function code block is aligned on a proper boundary.&lt;/p&gt;
 &lt;/blockquote&gt;
 
-&lt;p&gt;Since our main code defined the two critical sections directly next to each other the compiler gave them sequential addresses (plus the size of the object).  In reality it doesn&amp;#39;t always behave this way, but this sample application happens to.&lt;/p&gt;
+&lt;p&gt;Since our main code defined the two critical sections directly next to each other the compiler gave them sequential addresses (plus the size of the object).  In reality it doesn&amp;rsquo;t always behave this way, but this sample application happens to.&lt;/p&gt;
 
 &lt;p&gt;Now all we need to do is edit the proper byte in the function instruction to swap the order of the calling sequence. We can do this by using the edit memory &lt;code&gt;e&lt;/code&gt; command.&lt;/p&gt;
 
-&lt;p&gt;The instruction addresses I&amp;#39;m concerned with are the following:&lt;/p&gt;
+&lt;p&gt;The instruction addresses I&amp;rsquo;m concerned with are the following:&lt;/p&gt;
 &lt;div class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-text&quot; data-lang=&quot;text&quot;&gt;EnterCriticalSection order:
 01161168 6850441601      push    offset CriticalSectionDeadlock!cs1 (01164450)
 01161173 6838441601      push    offset CriticalSectionDeadlock!cs2 (01164438)
@@ -561,7 +604,7 @@ After:
 &lt;p&gt;&lt;strong&gt;TIP&lt;/strong&gt; Do not edit more than you need to. In the previous example the instructions only differed by 1 byte.&lt;/p&gt;
 &lt;/blockquote&gt;
 
-&lt;p&gt;Here is the resulting assembly.  Look for the code at the addresses we&amp;#39;ve changed and you will see the order of the locks has changed.&lt;/p&gt;
+&lt;p&gt;Here is the resulting assembly.  Look for the code at the addresses we&amp;rsquo;ve changed and you will see the order of the locks has changed.&lt;/p&gt;
 &lt;div class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-asm&quot; data-lang=&quot;asm&quot;&gt;&lt;span class=&quot;nf&quot;&gt;CriticalSectionDeadlock&lt;/span&gt;&lt;span class=&quot;err&quot;&gt;!&lt;/span&gt;&lt;span class=&quot;no&quot;&gt;Thread2&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;:&lt;/span&gt;
 &lt;span class=&quot;nf&quot;&gt;push&lt;/span&gt;    &lt;span class=&quot;no&quot;&gt;ebp&lt;/span&gt;
 &lt;span class=&quot;nf&quot;&gt;mov&lt;/span&gt;     &lt;span class=&quot;no&quot;&gt;ebp&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt;&lt;span class=&quot;no&quot;&gt;esp&lt;/span&gt;
@@ -608,9 +651,9 @@ After:
 
 &lt;p&gt;Go on, hit g. Let your code run! GO ON.&lt;/p&gt;
 
-&lt;p&gt;Did you do it? Why isn&amp;#39;t it running?&lt;/p&gt;
+&lt;p&gt;Did you do it? Why isn&amp;rsquo;t it running?&lt;/p&gt;
 
-&lt;p&gt;Don&amp;#39;t forget, you&amp;#39;re still in a wait state. We have to clear that. But, how?&lt;/p&gt;
+&lt;p&gt;Don&amp;rsquo;t forget, you&amp;rsquo;re still in a wait state. We have to clear that. But, how?&lt;/p&gt;
 
 &lt;p&gt;Before the application makes the first call into the thread functions you can over write them and test to see if the fix works. There is not much you need to do here.&lt;/p&gt;
 
@@ -630,7 +673,7 @@ After:
 
 &lt;p&gt;This step is not for the faint of heart, but I will describe it anyway.&lt;/p&gt;
 
-&lt;p&gt;So, you can&amp;#39;t just dump an executable from memory. By the time it is loaded Windows has fixed up your imports and exports, translated all of your RVAs and loaded the file into properly aligned memory sections.&lt;/p&gt;
+&lt;p&gt;So, you can&amp;rsquo;t just dump an executable from memory. By the time it is loaded Windows has fixed up your imports and exports, translated all of your RVAs and loaded the file into properly aligned memory sections.&lt;/p&gt;
 
 &lt;p&gt;The result is code that will execute if loaded into a process at the exact same address as you dumped it. Not likely. In fact, if you attempted to dump the file with the same exact length you will get a partial file.&lt;/p&gt;
 
@@ -640,9 +683,9 @@ After:
 
 &lt;h3&gt;Step 8.1 - Finding the RVA and file location&lt;/h3&gt;
 
-&lt;p&gt;I&amp;#39;d say the first real step is finding the location of the function inside of the actual executable file. In order to do this I will use &lt;code&gt;DUMPBIN&lt;/code&gt; which can be found in the Visual Studio Tools package.&lt;/p&gt;
+&lt;p&gt;I&amp;rsquo;d say the first real step is finding the location of the function inside of the actual executable file. In order to do this I will use &lt;code&gt;DUMPBIN&lt;/code&gt; which can be found in the Visual Studio Tools package.&lt;/p&gt;
 
-&lt;p&gt;&lt;em&gt;You will also want to get the RVA of the critical sections.  We won&amp;#39;t be dumping any information about them, but it will help in step 7.2.&lt;/em&gt;&lt;/p&gt;
+&lt;p&gt;&lt;em&gt;You will also want to get the RVA of the critical sections.  We won&amp;rsquo;t be dumping any information about them, but it will help in step 7.2.&lt;/em&gt;&lt;/p&gt;
 
 &lt;p&gt;To locate the RVA of &lt;strong&gt;Thread2&lt;/strong&gt; run the following, the output is below:&lt;/p&gt;
 &lt;div class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-text&quot; data-lang=&quot;text&quot;&gt;dumpbin /relocations CriticalSectionDeadlock.exe | findstr /i Thread2
@@ -750,7 +793,7 @@ Location in file:       00000550
 
 &lt;p&gt;Now that we have the file offset, we need to load it into WinDbg to alter the code. The assembly will look a bit different but you will get it once you see it.&lt;/p&gt;
 
-&lt;p&gt;In order to load the file into WinDbg you need to allocate space with &lt;code&gt;.dvalloc&lt;/code&gt; and then you need to read the file into memory using &lt;code&gt;.readmem&lt;/code&gt;. Once it&amp;#39;s loaded you can use &lt;code&gt;uf&lt;/code&gt; to inspect the function.&lt;/p&gt;
+&lt;p&gt;In order to load the file into WinDbg you need to allocate space with &lt;code&gt;.dvalloc&lt;/code&gt; and then you need to read the file into memory using &lt;code&gt;.readmem&lt;/code&gt;. Once it&amp;rsquo;s loaded you can use &lt;code&gt;uf&lt;/code&gt; to inspect the function.&lt;/p&gt;
 
 &lt;p&gt;Please note the address returned by &lt;code&gt;.dvalloc&lt;/code&gt; can be different depending on a few factors. Mind the address that is returned by this command. Also note that the radix for these commands is 16, so all of the numbers are in hex.&lt;/p&gt;
 &lt;div class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-text&quot; data-lang=&quot;text&quot;&gt;0:000&amp;gt; .dvalloc 0n13000
@@ -800,13 +843,13 @@ Reading 3200 bytes.......
 000f05ca ff151c304000    call    dword ptr ds:[40301Ch]
 000f05d0 eb96            jmp     000f0568
 &lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
-&lt;p&gt;You will notice this disassembly looks close to the disassembly in previous steps. However, none of the symbols are resolved. That&amp;#39;s because this file isn&amp;#39;t actually loaded, it is just resident in memory.&lt;/p&gt;
+&lt;p&gt;You will notice this disassembly looks close to the disassembly in previous steps. However, none of the symbols are resolved. That&amp;rsquo;s because this file isn&amp;rsquo;t actually loaded, it is just resident in memory.&lt;/p&gt;
 
 &lt;p&gt;&lt;strong&gt;Using Steps 5, 6 and 7 you can write the proper bytes to the function as you did before while debugging it.&lt;/strong&gt;&lt;/p&gt;
 
 &lt;h3&gt;Step 8.3 - Writing the file to disk&lt;/h3&gt;
 
-&lt;p&gt;We&amp;#39;re in the home stretch. If you&amp;#39;ve made it this far, you&amp;#39;re an animal. After we&amp;#39;ve deduced all of the information we need to about the file and corrected the bug, we need to save the file.&lt;/p&gt;
+&lt;p&gt;We&amp;rsquo;re in the home stretch. If you&amp;rsquo;ve made it this far, you&amp;rsquo;re an animal. After we&amp;rsquo;ve deduced all of the information we need to about the file and corrected the bug, we need to save the file.&lt;/p&gt;
 
 &lt;p&gt;To do this we will use the &lt;code&gt;.witemem&lt;/code&gt; command.&lt;/p&gt;
 &lt;div class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-text&quot; data-lang=&quot;text&quot;&gt;0:000&amp;gt; .writemem c:\temp\fixedfile.exe 0xf0000 L 0n12800
@@ -818,7 +861,7 @@ Writing 3200 bytes.......
 
 &lt;p&gt;This article series showed us how to work with the debugger, fix a bug, and then patch an executable all without using the source code or Visual Studio.&lt;/p&gt;
 
-&lt;p&gt;As I said before WinDbg is a powerful tool with a steep learning curve. But, once you get inside and poke around, it&amp;#39;s not so bad. I hope you found this article helpful. Leave me a tweet &lt;a href=&quot;https://twitter.com/debugthings&quot;&gt;@debugthings&lt;/a&gt;&lt;/p&gt;
+&lt;p&gt;As I said before WinDbg is a powerful tool with a steep learning curve. But, once you get inside and poke around, it&amp;rsquo;s not so bad. I hope you found this article helpful. Leave me a tweet &lt;a href=&quot;https://twitter.com/debugthings&quot;&gt;@debugthings&lt;/a&gt;&lt;/p&gt;
 </content>
  </entry>
  
@@ -827,25 +870,25 @@ Writing 3200 bytes.......
    <link href="//2014/09/23/bandwidth/"/>
    <updated>2014-09-23T00:00:00-07:00</updated>
    <id>/2014/09/23/bandwidth</id>
-   <content type="html">&lt;p&gt;Usually when I performance test internal applications I don&amp;#39;t consider bandwidth unless I know we&amp;#39;re doing something irrational like transferring multi gigabyte files all the time. And even then I only consider it if we&amp;#39;re crossing a WAN or some other &amp;quot;slow&amp;quot; link between sites. But, every now and then there is a project that runs over the Internet and it is very data intensive. And, a lot of that data is out of the control of the developers (images, 3rd party libraries, fonts). &lt;/p&gt;
+   <content type="html">&lt;p&gt;Usually when I performance test internal applications I don&amp;rsquo;t consider bandwidth unless I know we&amp;rsquo;re doing something irrational like transferring multi gigabyte files all the time. And even then I only consider it if we&amp;rsquo;re crossing a WAN or some other &amp;ldquo;slow&amp;rdquo; link between sites. But, every now and then there is a project that runs over the Internet and it is very data intensive. And, a lot of that data is out of the control of the developers (images, 3rd party libraries, fonts).&lt;/p&gt;
 
-&lt;p&gt;It&amp;#39;s a given that it will cost you money, but how much? A dedicated link can run anywhere from $100 a month on a broadband backbone, all the way up to $50,000 for Gbit Level3 Fiber. How much money you want to spend on your connection depends on the amount of content you need to control.&lt;/p&gt;
+&lt;p&gt;It&amp;rsquo;s a given that it will cost you money, but how much? A dedicated link can run anywhere from $100 a month on a broadband backbone, all the way up to $50,000 for Gbit Level3 Fiber. How much money you want to spend on your connection depends on the amount of content you need to control.&lt;/p&gt;
 
 &lt;p&gt;&lt;strong&gt;You may find that if you do some tuning on bandwidth you can save your self hundreds of thousands of dollars per year.&lt;/strong&gt; You read that right, &lt;strong&gt;hundreds of thousands of dollars&lt;/strong&gt;.&lt;/p&gt;
 
 &lt;h3&gt;Background&lt;/h3&gt;
 
-&lt;p&gt;Recently I was working on a launch of a new website and the main concern was hitting our requests per second target for daily use and what a holiday spike would look like. This is how things normally go. It&amp;#39;s easy. You drive load into the system until it eventually cracks. You suggest a fix. It gets implemented. Repeat.&lt;/p&gt;
+&lt;p&gt;Recently I was working on a launch of a new website and the main concern was hitting our requests per second target for daily use and what a holiday spike would look like. This is how things normally go. It&amp;rsquo;s easy. You drive load into the system until it eventually cracks. You suggest a fix. It gets implemented. Repeat.&lt;/p&gt;
 
 &lt;p&gt;So, here we are about 3 weeks out from our go-live date. We spent months on tuning the system to run as lean as possible. We turned logging down. Compression on. SSL offloading. SQL tuning. Everything. We were ready.&lt;/p&gt;
 
-&lt;p&gt;Yet, while doing all of this there wasn&amp;#39;t much visual content on the site. It wasn&amp;#39;t until this point in the project that &amp;quot;real&amp;quot; images and verbiage were coming in. When it did our bandwidth consumption jumped considerably. I don&amp;#39;t mean 2 times; 10 times. &lt;strong&gt;TEN TIMES&lt;/strong&gt;. We had to find out just how much data we were pushing, and we needed to know what it looked like from outside of the datacenter.&lt;/p&gt;
+&lt;p&gt;Yet, while doing all of this there wasn&amp;rsquo;t much visual content on the site. It wasn&amp;rsquo;t until this point in the project that &amp;ldquo;real&amp;rdquo; images and verbiage were coming in. When it did our bandwidth consumption jumped considerably. I don&amp;rsquo;t mean 2 times; 10 times. &lt;strong&gt;TEN TIMES&lt;/strong&gt;. We had to find out just how much data we were pushing, and we needed to know what it looked like from outside of the datacenter.&lt;/p&gt;
 
 &lt;h3&gt;Bandwidth Estimation&lt;/h3&gt;
 
 &lt;p&gt;Before we start running load tests willy nilly out on the open internet we need to do some math. Not hard math, but some fuzzy math to calculate our potential load. I will give some examples with a common website.&lt;/p&gt;
 
-&lt;p&gt;For this I always use &lt;a href=&quot;http://www.telerik.com/fiddler&quot;&gt;Fiddler&lt;/a&gt;. There are some great plugins that will help you determine impact of change as well. Here is an &lt;a href=&quot;http://www.telerik.com/fiddler/web-app-performance-testing&quot;&gt;overview&lt;/a&gt; of what it can provide. These next few sections assume you&amp;#39;re somewhat familiar with Fiddler. I will include a few small steps but nothing in-depth. This isn&amp;#39;t a Fiddler tutorial.&lt;/p&gt;
+&lt;p&gt;For this I always use &lt;a href=&quot;http://www.telerik.com/fiddler&quot;&gt;Fiddler&lt;/a&gt;. There are some great plugins that will help you determine impact of change as well. Here is an &lt;a href=&quot;http://www.telerik.com/fiddler/web-app-performance-testing&quot;&gt;overview&lt;/a&gt; of what it can provide. These next few sections assume you&amp;rsquo;re somewhat familiar with Fiddler. I will include a few small steps but nothing in-depth. This isn&amp;rsquo;t a Fiddler tutorial.&lt;/p&gt;
 
 &lt;p&gt;When we first navigate to &lt;a href=&quot;http://www.microsoft.com/&quot;&gt;www.microsoft.com&lt;/a&gt; we will see the total amount of requests that are sent over. We can see this by selecting all of the requests that make up a page. In this case the home page. I have trimmed off some extra data for brevity.&lt;/p&gt;
 &lt;div class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-text&quot; data-lang=&quot;text&quot;&gt;Request Count:   51
@@ -888,9 +931,9 @@ application/octet-stream: 86,289
 
 100Mbit/sec / 2.4Mbit/sec = 42 THEORETICAL simultaneous NEW page transfers in 3 seconds (14/sec)
 &lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
-&lt;p&gt;In reality we more than likely won&amp;#39;t be able to hit 42. If we kind of squint our eyes and do some estimating we will need to reduce the number of actual page transfers. I always use the 80% rule. So really we could do about 34 new page loads at one time and be safe.&lt;/p&gt;
+&lt;p&gt;In reality we more than likely won&amp;rsquo;t be able to hit 42. If we kind of squint our eyes and do some estimating we will need to reduce the number of actual page transfers. I always use the 80% rule. So really we could do about 34 new page loads at one time and be safe.&lt;/p&gt;
 
-&lt;p&gt;Great. We have a number to shoot for. We&amp;#39;re done right? Well, no. If you went to your management and said, we can handle 34 pages per second, you might get a sideways look and be asked to explain.&lt;/p&gt;
+&lt;p&gt;Great. We have a number to shoot for. We&amp;rsquo;re done right? Well, no. If you went to your management and said, we can handle 34 pages per second, you might get a sideways look and be asked to explain.&lt;/p&gt;
 
 &lt;p&gt;It may be more helpful to aggregate into minutes and even further translate that to users or sessions per minute. As you fuzz your numbers it may help make the overall point. Regardless of how fast the end user is there is a finite maximum number of pages that can be delivered in a finite amount of time.&lt;/p&gt;
 
@@ -898,11 +941,11 @@ application/octet-stream: 86,289
 
 &lt;h3&gt;Deep Estimation&lt;/h3&gt;
 
-&lt;p&gt;Once you have done your naive estimation, you need to follow up and employ due diligence. Try and flow through the heaviest use cases and do the same math. If there aren&amp;#39;t any cases yet, make it up! Remember that what ever your QA team can&amp;#39;t find a user will find the first time.&lt;/p&gt;
+&lt;p&gt;Once you have done your naive estimation, you need to follow up and employ due diligence. Try and flow through the heaviest use cases and do the same math. If there aren&amp;rsquo;t any cases yet, make it up! Remember that what ever your QA team can&amp;rsquo;t find a user will find the first time.&lt;/p&gt;
 
 &lt;p&gt;I believe that you have the same abilities. You, dear reader, can behave just like a user. Because, lets face it, you are a user deep in your soul. You order from Amazon, you poke around Ebay, you Google things wrong from time to time. Use this power. Embrace it. Go.&lt;/p&gt;
 
-&lt;p&gt;Once you identify the pages, the transfer times, and estimated mixtures you can stop right? No. You need to go a step further and start estimating your return users and how that will affect caching. You are caching aren&amp;#39;t you?&lt;/p&gt;
+&lt;p&gt;Once you identify the pages, the transfer times, and estimated mixtures you can stop right? No. You need to go a step further and start estimating your return users and how that will affect caching. You are caching aren&amp;rsquo;t you?&lt;/p&gt;
 
 &lt;h3&gt;Caching Estimation&lt;/h3&gt;
 
@@ -936,7 +979,7 @@ application/x-javascript: 2,978
          text/javascript: 401
                image/gif: 86
 &lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
-&lt;p&gt;In the real world you won&amp;#39;t have that many return visitors. Depending on the type of requests you have (dynamic v. static) and what your business model is like (information or sales) you could be more in the camp of 30% to 50% return. You know your data best. I could offer some foolhardy estimates based on experience, but it would do you a disservice. Explore your data and know your numbers.&lt;/p&gt;
+&lt;p&gt;In the real world you won&amp;rsquo;t have that many return visitors. Depending on the type of requests you have (dynamic v. static) and what your business model is like (information or sales) you could be more in the camp of 30% to 50% return. You know your data best. I could offer some foolhardy estimates based on experience, but it would do you a disservice. Explore your data and know your numbers.&lt;/p&gt;
 
 &lt;p&gt;Now, lets take this data and apply some fuzz to it and see what our effective rate at load would be.&lt;/p&gt;
 &lt;div class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-text&quot; data-lang=&quot;text&quot;&gt;New users:
@@ -1001,13 +1044,13 @@ Fuzzed number (80%):
 &lt;/ul&gt;&lt;/li&gt;
 &lt;/ul&gt;
 
-&lt;p&gt;This test load simulated production traffic with less users than were reported on the site.  By sacrificing &amp;quot;actual&amp;quot; user load you can save some additional overhead of extraneous virtual users. This will come in handy later when you get to the bottom of the page.&lt;/p&gt;
+&lt;p&gt;This test load simulated production traffic with less users than were reported on the site.  By sacrificing &amp;ldquo;actual&amp;rdquo; user load you can save some additional overhead of extraneous virtual users. This will come in handy later when you get to the bottom of the page.&lt;/p&gt;
 
 &lt;h3&gt;Caution&lt;/h3&gt;
 
 &lt;p&gt;We now have a page goal, and our possible load pattern. I urge you to exercise caution here. If you were keeping up and doing the math yourself you probably noticed were doing somewhere around 2,600 requests per second. Even at 260 requests/sec per server your looking at 10 servers serving this web site. Is that too many, is it not enough? &lt;/p&gt;
 
-&lt;p&gt;Don&amp;#39;t get caught up in the theoretical maximums. It is in everyone&amp;#39;s best interest to test as often as you can. Especially when you suggest a change, no matter how small. When in doubt, look at my previous blog post &lt;a href=&quot;/2014/09/16/always-performance-test/&quot;&gt;Always Performance Test!&lt;/a&gt;&lt;/p&gt;
+&lt;p&gt;Don&amp;rsquo;t get caught up in the theoretical maximums. It is in everyone&amp;rsquo;s best interest to test as often as you can. Especially when you suggest a change, no matter how small. When in doubt, look at my previous blog post &lt;a href=&quot;/2014/09/16/always-performance-test/&quot;&gt;Always Performance Test!&lt;/a&gt;&lt;/p&gt;
 
 &lt;h3&gt;Sanity Check&lt;/h3&gt;
 
@@ -1040,7 +1083,7 @@ Fuzzed number (80%):
 &lt;li&gt;Minification
 
 &lt;ul&gt;
-&lt;li&gt;If you can&amp;#39;t bundle, you should minify&lt;/li&gt;
+&lt;li&gt;If you can&amp;rsquo;t bundle, you should minify&lt;/li&gt;
 &lt;/ul&gt;&lt;/li&gt;
 &lt;li&gt;Compression
 
@@ -1051,7 +1094,7 @@ Fuzzed number (80%):
 
 &lt;ul&gt;
 &lt;li&gt;If all else fails, seriously consider this&lt;/li&gt;
-&lt;li&gt;Some common libraries are CDN&amp;#39;d for free, like jQuery on Google for instance&lt;/li&gt;
+&lt;li&gt;Some common libraries are CDN&amp;rsquo;d for free, like jQuery on Google for instance&lt;/li&gt;
 &lt;/ul&gt;&lt;/li&gt;
 &lt;/ul&gt;
 
@@ -1059,7 +1102,7 @@ Fuzzed number (80%):
 
 &lt;p&gt;Yes. Go ahead and start putting together a plan to test from the outside. &lt;/p&gt;
 
-&lt;p&gt;It&amp;#39;s no secret that when you use a Microsoft product it will cost you. But, in this case, you can easily map out the amount of money you need to spend. I haven&amp;#39;t used any other services that integrate so well with a tool set I&amp;#39;m familiar with. VSO, provided a great platform to test on. I was even able to bring that data back into my local load test database. No I&amp;#39;m not some shill recommending random products. It was genuinely a pleasant experience and I highly recommend it.&lt;/p&gt;
+&lt;p&gt;It&amp;rsquo;s no secret that when you use a Microsoft product it will cost you. But, in this case, you can easily map out the amount of money you need to spend. I haven&amp;rsquo;t used any other services that integrate so well with a tool set I&amp;rsquo;m familiar with. VSO, provided a great platform to test on. I was even able to bring that data back into my local load test database. No I&amp;rsquo;m not some shill recommending random products. It was genuinely a pleasant experience and I highly recommend it.&lt;/p&gt;
 
 &lt;p&gt;Knowing my goal allowed me to save a lot of money. The going rate for testing in the cloud at the time of this writing is $0.002 per user minute. For example:&lt;/p&gt;
 &lt;div class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-text&quot; data-lang=&quot;text&quot;&gt;1000 virtual users x 30 minutes = 30,000 virtual user minutes * $0.002 = $60
@@ -1074,7 +1117,7 @@ Fuzzed number (80%):
 
 &lt;p&gt;We all know bandwidth costs money. But you can really save yourself a ton of &lt;strong&gt;actual&lt;/strong&gt; dollars, and you can greatly enhance your user experience. Some of the glamor in performance testing, if there is such a thing, is finding that critical bit of code that would have taken down the site. But, we should not neglect this very fundamental test metric.&lt;/p&gt;
 
-&lt;p&gt;This wasn&amp;#39;t really meant as a tutorial but an overview of a process that may be skirted from time to time. It&amp;#39;s easy to forgo certain tests and skip over goals. Here are a few more links that will help out &lt;a href=&quot;https://developers.google.com/web/fundamentals/&quot;&gt;Web Fundamentals&lt;/a&gt;, &lt;a href=&quot;https://developers.google.com/speed/docs/insights/rules&quot;&gt;PageSpeed Insights&lt;/a&gt;, &lt;a href=&quot;https://developer.yahoo.com/performance/rules.html&quot;&gt;Yahoo Best Practices&lt;/a&gt;(a bit older but useful).&lt;/p&gt;
+&lt;p&gt;This wasn&amp;rsquo;t really meant as a tutorial but an overview of a process that may be skirted from time to time. It&amp;rsquo;s easy to forgo certain tests and skip over goals. Here are a few more links that will help out &lt;a href=&quot;https://developers.google.com/web/fundamentals/&quot;&gt;Web Fundamentals&lt;/a&gt;, &lt;a href=&quot;https://developers.google.com/speed/docs/insights/rules&quot;&gt;PageSpeed Insights&lt;/a&gt;, &lt;a href=&quot;https://developer.yahoo.com/performance/rules.html&quot;&gt;Yahoo Best Practices&lt;/a&gt;(a bit older but useful).&lt;/p&gt;
 </content>
  </entry>
  
@@ -1083,27 +1126,27 @@ Fuzzed number (80%):
    <link href="//2014/09/16/always-performance-test/"/>
    <updated>2014-09-16T00:00:00-07:00</updated>
    <id>/2014/09/16/always-performance-test</id>
-   <content type="html">&lt;p&gt;While thumbing through Twitter I ran across an &lt;a href=&quot;http://apmblog.compuware.com/2014/09/16/detecting-bad-deployments-resource-impact-response-time-hotspot-garbage-collection/&quot;&gt;article&lt;/a&gt; written by &lt;a href=&quot;https://twitter.com/grabnerandi&quot;&gt;@grabnerandi&lt;/a&gt; about a company not being able to load test a change for dependency injection. I can&amp;#39;t tell you how many times in my job that performance testing has been brushed over for speed to market.&lt;/p&gt;
+   <content type="html">&lt;p&gt;While thumbing through Twitter I ran across an &lt;a href=&quot;http://apmblog.compuware.com/2014/09/16/detecting-bad-deployments-resource-impact-response-time-hotspot-garbage-collection/&quot;&gt;article&lt;/a&gt; written by &lt;a href=&quot;https://twitter.com/grabnerandi&quot;&gt;@grabnerandi&lt;/a&gt; about a company not being able to load test a change for dependency injection. I can&amp;rsquo;t tell you how many times in my job that performance testing has been brushed over for speed to market.&lt;/p&gt;
 
-&lt;p&gt;Look, I get it. &lt;strong&gt;Money&lt;/strong&gt;. There, I said it. Most of the time the driving factor for not doing something you should be disciplined about is the bottom line. While I get it I don&amp;#39;t like it. I have had to inject myself into a release process to be the harbinger of doom. I try not to get all &amp;quot;the sky is falling,&amp;quot; but in reality it could.&lt;/p&gt;
+&lt;p&gt;Look, I get it. &lt;strong&gt;Money&lt;/strong&gt;. There, I said it. Most of the time the driving factor for not doing something you should be disciplined about is the bottom line. While I get it I don&amp;rsquo;t like it. I have had to inject myself into a release process to be the harbinger of doom. I try not to get all &amp;ldquo;the sky is falling,&amp;rdquo; but in reality it could.&lt;/p&gt;
 
-&lt;p&gt;I know, I know. &lt;strong&gt;Time&lt;/strong&gt;. Right after money, but usually goes hand-in-hand, is time. This excuse gets even the best of us. Does anyone have time? No. Do we do it anyway? Sometimes. I&amp;#39;d like to say that while being the performance testing and DevOps advocate that I just ooze availability. But, I don&amp;#39;t. Just like everyone else I have constraints.&lt;/p&gt;
+&lt;p&gt;I know, I know. &lt;strong&gt;Time&lt;/strong&gt;. Right after money, but usually goes hand-in-hand, is time. This excuse gets even the best of us. Does anyone have time? No. Do we do it anyway? Sometimes. I&amp;rsquo;d like to say that while being the performance testing and DevOps advocate that I just ooze availability. But, I don&amp;rsquo;t. Just like everyone else I have constraints.&lt;/p&gt;
 
 &lt;p&gt;What does it mean? Money + Time = &lt;strong&gt;Effort&lt;/strong&gt;. It always comes down to effort. This is the way to merge both time and money into one shortsighted mess. The effort required to test is usually deemed greater than the effort to just put it in. This is the death bringer of many of once stable applications.&lt;/p&gt;
 
 &lt;h2&gt;Story Time&lt;/h2&gt;
 
-&lt;p&gt;A while ago our team was asked to performance test a new web application. We got our grubby little hands on it we shredded the code and the database layout. Only to be met with &amp;quot;No one runs it like that.&amp;quot; Apparently we were &amp;quot;no one.&amp;quot; As a good performance testing team we provided solutions to the problems and the application team would make sure they went in. &lt;/p&gt;
+&lt;p&gt;A while ago our team was asked to performance test a new web application. We got our grubby little hands on it we shredded the code and the database layout. Only to be met with &amp;ldquo;No one runs it like that.&amp;rdquo; Apparently we were &amp;ldquo;no one.&amp;rdquo; As a good performance testing team we provided solutions to the problems and the application team would make sure they went in. &lt;/p&gt;
 
 &lt;p&gt;Ever since then, just about every dot release (x.1, x.2, etc.) has been tested by our team. A lot of things change from version to version, but we now had enough experience with the style of the developers and could keep up with the changes. Each time we found one or two things, but we rarely had major problems like we did in the first few releases. Our performance results always came back with positive results.&lt;/p&gt;
 
-&lt;p&gt;Fast forward about 2 years. Multiple major and minor releases have come and went without issue. The application team had requested a new feature a few months ago and it was now ready for deployment. The change was &amp;quot;small&amp;quot; and carried only a couple of new screens. &lt;em&gt;Our team never even heard about it.&lt;/em&gt;&lt;/p&gt;
+&lt;p&gt;Fast forward about 2 years. Multiple major and minor releases have come and went without issue. The application team had requested a new feature a few months ago and it was now ready for deployment. The change was &amp;ldquo;small&amp;rdquo; and carried only a couple of new screens. &lt;em&gt;Our team never even heard about it.&lt;/em&gt;&lt;/p&gt;
 
 &lt;p&gt;On go live, the applications started out fine but would always start performing poorly around 11am. This happened to be the peak time the application was used. A recycle would happen and the problem would go away for an hour and happen again. This process was repeated daily for a week. The application team was working with the vendor to find a solution.&lt;/p&gt;
 
-&lt;p&gt;Our team got involved and we decided to take a look at what was going on. Since the application didn&amp;#39;t have any APM tools on it we went the traditional route and started monitoring performance counters. We went back in time and looked at the historical data. We could see that CPU was definitely becoming saturated. A bit deeper inspection into the .NET counters revealed that the &lt;a href=&quot;http://msdn.microsoft.com/en-us/library/x2tyfybc(v=vs.110).aspx&quot;&gt;# of Induced GC&lt;/a&gt; counter was going up at a steady rate.&lt;/p&gt;
+&lt;p&gt;Our team got involved and we decided to take a look at what was going on. Since the application didn&amp;rsquo;t have any APM tools on it we went the traditional route and started monitoring performance counters. We went back in time and looked at the historical data. We could see that CPU was definitely becoming saturated. A bit deeper inspection into the .NET counters revealed that the &lt;a href=&quot;http://msdn.microsoft.com/en-us/library/x2tyfybc(v=vs.110).aspx&quot;&gt;# of Induced GC&lt;/a&gt; counter was going up at a steady rate.&lt;/p&gt;
 
-&lt;p&gt;We compared the counters to a date just before the go-live and to no one&amp;#39;s surprise the issue was not there. We went back and performance tested the new application with existing scripts (we did not include the new screens) and the issue was still there. This showed there was something wrong in something else besides the proposed &amp;quot;only changes.&amp;quot;&lt;/p&gt;
+&lt;p&gt;We compared the counters to a date just before the go-live and to no one&amp;rsquo;s surprise the issue was not there. We went back and performance tested the new application with existing scripts (we did not include the new screens) and the issue was still there. This showed there was something wrong in something else besides the proposed &amp;ldquo;only changes.&amp;rdquo;&lt;/p&gt;
 
 &lt;p&gt;Luckily we had &lt;a href=&quot;http://www.compuware.com/en_us/application-performance-management.html&quot;&gt;dynaTrace&lt;/a&gt; at our disposal in our lower life cycle and we were able to quickly find the offending code. Analysis from the vendor showed a junior developer pulled from a previous branch that had a bug that was fixed long ago. A patch was issued that day by the vendor. We performance tested it. :)&lt;/p&gt;
 
@@ -1113,7 +1156,7 @@ Fuzzed number (80%):
 
 &lt;p&gt;Considering all of the time, money, and effort (yes all three) wasted on: deploying bad code, end user impact, and time to resolution. It might have been quicker, easier, and cheaper to performance test this code.&lt;/p&gt;
 
-&lt;p&gt;If you&amp;#39;re ever in a situation where one of these big three come up you should always make a statement, on record, about the need to performance test. If you are silent it&amp;#39;s not a great place to be if someone asks why it was never done. Being in DevOps you have just as much of a responsibility and burden to ensure application performance is as high as possible.&lt;/p&gt;
+&lt;p&gt;If you&amp;rsquo;re ever in a situation where one of these big three come up you should always make a statement, on record, about the need to performance test. If you are silent it&amp;rsquo;s not a great place to be if someone asks why it was never done. Being in DevOps you have just as much of a responsibility and burden to ensure application performance is as high as possible.&lt;/p&gt;
 </content>
  </entry>
  
@@ -1124,15 +1167,15 @@ Fuzzed number (80%):
    <id>/2014/09/06/code-to-code</id>
    <content type="html">&lt;p&gt;Every now and then a balance needs to be struck from the every day coding of an application. While personal life is usually the topic for these types of posts, today that is not the case. Sometimes you have to write code in order to write code. This is somewhat of an extended rant from my previous post.&lt;/p&gt;
 
-&lt;p&gt;While developing the core components of my &lt;a href=&quot;http://www.github.com/chainsapm&quot;&gt;ChainsAPM&lt;/a&gt; solution I felt the need to write down thoughts and musings of what I&amp;#39;m trying to do as well as explain some details of the implementation. Plus, I have other things to talk about aside from that project. At the same time I need to keep myself organized; so I needed to make a separate space.&lt;/p&gt;
+&lt;p&gt;While developing the core components of my &lt;a href=&quot;http://www.github.com/chainsapm&quot;&gt;ChainsAPM&lt;/a&gt; solution I felt the need to write down thoughts and musings of what I&amp;rsquo;m trying to do as well as explain some details of the implementation. Plus, I have other things to talk about aside from that project. At the same time I need to keep myself organized; so I needed to make a separate space.&lt;/p&gt;
 
-&lt;p&gt;Behold, the humble blog. This has always been the best sounding board for getting ideas out there. While the normal blogging scene is great, there are a lot of gotchas and really some implementation details I don&amp;#39;t want to mess with. Places like Wordpress and blogger have excellent packages, software and templates. I have used these places before to bring to life some idea or useful tip. But, in all of this simplicity, lay a problem I never thought about. Once I signed up, I usually never signed back in once I wrote a couple of blogs.&lt;/p&gt;
+&lt;p&gt;Behold, the humble blog. This has always been the best sounding board for getting ideas out there. While the normal blogging scene is great, there are a lot of gotchas and really some implementation details I don&amp;rsquo;t want to mess with. Places like Wordpress and blogger have excellent packages, software and templates. I have used these places before to bring to life some idea or useful tip. But, in all of this simplicity, lay a problem I never thought about. Once I signed up, I usually never signed back in once I wrote a couple of blogs.&lt;/p&gt;
 
-&lt;p&gt;Part of the reason for this is beacause I never really used the software as it was intended. I didn&amp;#39;t connect with like minded bloggers, I didn&amp;#39;t share the pages and I was just overall uninterested in the process. I didn&amp;#39;t have much control over what the pages looked like unless I wanted to get into some Wordpress implementation details that I didn&amp;#39;t need.&lt;/p&gt;
+&lt;p&gt;Part of the reason for this is beacause I never really used the software as it was intended. I didn&amp;rsquo;t connect with like minded bloggers, I didn&amp;rsquo;t share the pages and I was just overall uninterested in the process. I didn&amp;rsquo;t have much control over what the pages looked like unless I wanted to get into some Wordpress implementation details that I didn&amp;rsquo;t need.&lt;/p&gt;
 
-&lt;p&gt;GitHub provides a very minimalistic blogging infrastructure based on Jekyll (which was written at GitHub). It&amp;#39;s a Ruby implemented web server that uses simple templating to make static content. Once you compile the Jekyll site you can publish it anywhere and not require any databases or other silly things just to deliver content.&lt;/p&gt;
+&lt;p&gt;GitHub provides a very minimalistic blogging infrastructure based on Jekyll (which was written at GitHub). It&amp;rsquo;s a Ruby implemented web server that uses simple templating to make static content. Once you compile the Jekyll site you can publish it anywhere and not require any databases or other silly things just to deliver content.&lt;/p&gt;
 
-&lt;p&gt;But, going this route meant I had to learn &lt;strong&gt;YET ANOTHER&lt;/strong&gt; thing in order to get some words on the internets. It&amp;#39;s starting to feel like Wordpress all over again. But, this time I have a vested interest because it&amp;#39;s somewhat of a unified front. I&amp;#39;m developing my blog site in my normal IDE using familiar tools and publishing to a place that I visit every day.&lt;/p&gt;
+&lt;p&gt;But, going this route meant I had to learn &lt;strong&gt;YET ANOTHER&lt;/strong&gt; thing in order to get some words on the internets. It&amp;rsquo;s starting to feel like Wordpress all over again. But, this time I have a vested interest because it&amp;rsquo;s somewhat of a unified front. I&amp;rsquo;m developing my blog site in my normal IDE using familiar tools and publishing to a place that I visit every day.&lt;/p&gt;
 
 &lt;p&gt;So instead of just sluffing off the task I decided to learn this new-to-me skill because it was also more robust and allowed me to do things that would be difficult at best and impossible overall to implement. I am now able to combine efforts and cross post to my two blogs. &lt;/p&gt;
 

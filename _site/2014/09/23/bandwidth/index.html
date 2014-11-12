@@ -13,10 +13,15 @@
     Bandwidth. It's not free... &middot; Debug Things
     
   </title>
+  <!--FONTS-->
+  <link href='http://fonts.googleapis.com/css?family=Lato&subset=latin,latin-ext' rel='stylesheet' type='text/css'>
+
 
   <!-- CSS -->
   <link rel="stylesheet" href="/public/css/monokai.css">
+  <link rel="stylesheet" href="/public/css/bootstrap.css">
   <link rel="stylesheet" href="/public/css/poole.css">
+
   
 
   <!-- Icons -->
@@ -41,42 +46,53 @@
 
 
 <body>
-  <div class="container content">
-    <div class="masthead">
-      <h3 class="masthead-title">
-        <a href="/" title="Home">Debug Things</a>
-      </h3>
-      <small>Debugging, performance testing, DevOps, and ranting.</small><br />
-      <div style="display: flex">
-      <a href="http://www.linkedin.com/in/debugthings/"><img src="https://dlc1-s.licdn.com/sites/default/files/InBug-60px-R.png" class="linked" /></a>
-      <a href="http://www.twitter.com/debugthings"><div class="twitbox"><img src="https://g.twimg.com/Twitter_logo_white.png" /></div>@debugthings</a>
+  <nav class="navbar navbar-inverse navbar-fixed-top" role="navigation">
+    <div class="container">
+      <div class="navbar-header">
+        <button type="button" class="navbar-toggle collapsed" data-toggle="collapse" data-target="#navbar" aria-expanded="false" aria-controls="navbar">
+          <span class="sr-only">Toggle navigation</span>
+          <span class="icon-bar"></span>
+          <span class="icon-bar"></span>
+          <span class="icon-bar"></span>
+        </button>
+        <a href="/" class="navbar-brand" title="Home">Debug Things</a>
       </div>
+      <div id="navbar" class="navbar-collapse collapse">
+        <ul class="nav navbar-nav">
+          <li><a href="/about/">About</a></li>
+          <li><a href="/projects">Projects</a></li>
+          <li><a href="/owasp/">OWASP Tampa</a></li>
+        </ul>
+      </div><!--/.navbar-collapse -->
     </div>
-
-    <div class="post">
+  </nav>
+  <div class="container containerbg">
+   <div class="row rowoffset">
+    <div class="col-md-8">
+      <div class="post">
   <h1 class="post-title">Bandwidth. It's not free...</h1>
   <span class="post-date">23 Sep 2014</span>
   <a href="https://twitter.com/share" class="twitter-share-button" data-via="debugthings" data-size="large">Tweet</a>
   <script>!function(d,s,id){var js,fjs=d.getElementsByTagName(s)[0],p=/^http:/.test(d.location)?'http':'https';if(!d.getElementById(id)){js=d.createElement(s);js.id=id;js.src=p+'://platform.twitter.com/widgets.js';fjs.parentNode.insertBefore(js,fjs);}}(document, 'script', 'twitter-wjs');</script>
-  <p>Usually when I performance test internal applications I don&#39;t consider bandwidth unless I know we&#39;re doing something irrational like transferring multi gigabyte files all the time. And even then I only consider it if we&#39;re crossing a WAN or some other &quot;slow&quot; link between sites. But, every now and then there is a project that runs over the Internet and it is very data intensive. And, a lot of that data is out of the control of the developers (images, 3rd party libraries, fonts). </p>
+  <p>Usually when I performance test internal applications I don&rsquo;t consider bandwidth unless I know we&rsquo;re doing something irrational like transferring multi gigabyte files all the time. And even then I only consider it if we&rsquo;re crossing a WAN or some other &ldquo;slow&rdquo; link between sites. But, every now and then there is a project that runs over the Internet and it is very data intensive. And, a lot of that data is out of the control of the developers (images, 3rd party libraries, fonts).</p>
 
-<p>It&#39;s a given that it will cost you money, but how much? A dedicated link can run anywhere from $100 a month on a broadband backbone, all the way up to $50,000 for Gbit Level3 Fiber. How much money you want to spend on your connection depends on the amount of content you need to control.</p>
+<p>It&rsquo;s a given that it will cost you money, but how much? A dedicated link can run anywhere from $100 a month on a broadband backbone, all the way up to $50,000 for Gbit Level3 Fiber. How much money you want to spend on your connection depends on the amount of content you need to control.</p>
 
 <p><strong>You may find that if you do some tuning on bandwidth you can save your self hundreds of thousands of dollars per year.</strong> You read that right, <strong>hundreds of thousands of dollars</strong>.</p>
 
 <h3>Background</h3>
 
-<p>Recently I was working on a launch of a new website and the main concern was hitting our requests per second target for daily use and what a holiday spike would look like. This is how things normally go. It&#39;s easy. You drive load into the system until it eventually cracks. You suggest a fix. It gets implemented. Repeat.</p>
+<p>Recently I was working on a launch of a new website and the main concern was hitting our requests per second target for daily use and what a holiday spike would look like. This is how things normally go. It&rsquo;s easy. You drive load into the system until it eventually cracks. You suggest a fix. It gets implemented. Repeat.</p>
 
 <p>So, here we are about 3 weeks out from our go-live date. We spent months on tuning the system to run as lean as possible. We turned logging down. Compression on. SSL offloading. SQL tuning. Everything. We were ready.</p>
 
-<p>Yet, while doing all of this there wasn&#39;t much visual content on the site. It wasn&#39;t until this point in the project that &quot;real&quot; images and verbiage were coming in. When it did our bandwidth consumption jumped considerably. I don&#39;t mean 2 times; 10 times. <strong>TEN TIMES</strong>. We had to find out just how much data we were pushing, and we needed to know what it looked like from outside of the datacenter.</p>
+<p>Yet, while doing all of this there wasn&rsquo;t much visual content on the site. It wasn&rsquo;t until this point in the project that &ldquo;real&rdquo; images and verbiage were coming in. When it did our bandwidth consumption jumped considerably. I don&rsquo;t mean 2 times; 10 times. <strong>TEN TIMES</strong>. We had to find out just how much data we were pushing, and we needed to know what it looked like from outside of the datacenter.</p>
 
 <h3>Bandwidth Estimation</h3>
 
 <p>Before we start running load tests willy nilly out on the open internet we need to do some math. Not hard math, but some fuzzy math to calculate our potential load. I will give some examples with a common website.</p>
 
-<p>For this I always use <a href="http://www.telerik.com/fiddler">Fiddler</a>. There are some great plugins that will help you determine impact of change as well. Here is an <a href="http://www.telerik.com/fiddler/web-app-performance-testing">overview</a> of what it can provide. These next few sections assume you&#39;re somewhat familiar with Fiddler. I will include a few small steps but nothing in-depth. This isn&#39;t a Fiddler tutorial.</p>
+<p>For this I always use <a href="http://www.telerik.com/fiddler">Fiddler</a>. There are some great plugins that will help you determine impact of change as well. Here is an <a href="http://www.telerik.com/fiddler/web-app-performance-testing">overview</a> of what it can provide. These next few sections assume you&rsquo;re somewhat familiar with Fiddler. I will include a few small steps but nothing in-depth. This isn&rsquo;t a Fiddler tutorial.</p>
 
 <p>When we first navigate to <a href="http://www.microsoft.com/">www.microsoft.com</a> we will see the total amount of requests that are sent over. We can see this by selecting all of the requests that make up a page. In this case the home page. I have trimmed off some extra data for brevity.</p>
 <div class="highlight"><pre><code class="language-text" data-lang="text">Request Count:   51
@@ -119,9 +135,9 @@ application/octet-stream: 86,289
 
 100Mbit/sec / 2.4Mbit/sec = 42 THEORETICAL simultaneous NEW page transfers in 3 seconds (14/sec)
 </code></pre></div>
-<p>In reality we more than likely won&#39;t be able to hit 42. If we kind of squint our eyes and do some estimating we will need to reduce the number of actual page transfers. I always use the 80% rule. So really we could do about 34 new page loads at one time and be safe.</p>
+<p>In reality we more than likely won&rsquo;t be able to hit 42. If we kind of squint our eyes and do some estimating we will need to reduce the number of actual page transfers. I always use the 80% rule. So really we could do about 34 new page loads at one time and be safe.</p>
 
-<p>Great. We have a number to shoot for. We&#39;re done right? Well, no. If you went to your management and said, we can handle 34 pages per second, you might get a sideways look and be asked to explain.</p>
+<p>Great. We have a number to shoot for. We&rsquo;re done right? Well, no. If you went to your management and said, we can handle 34 pages per second, you might get a sideways look and be asked to explain.</p>
 
 <p>It may be more helpful to aggregate into minutes and even further translate that to users or sessions per minute. As you fuzz your numbers it may help make the overall point. Regardless of how fast the end user is there is a finite maximum number of pages that can be delivered in a finite amount of time.</p>
 
@@ -129,11 +145,11 @@ application/octet-stream: 86,289
 
 <h3>Deep Estimation</h3>
 
-<p>Once you have done your naive estimation, you need to follow up and employ due diligence. Try and flow through the heaviest use cases and do the same math. If there aren&#39;t any cases yet, make it up! Remember that what ever your QA team can&#39;t find a user will find the first time.</p>
+<p>Once you have done your naive estimation, you need to follow up and employ due diligence. Try and flow through the heaviest use cases and do the same math. If there aren&rsquo;t any cases yet, make it up! Remember that what ever your QA team can&rsquo;t find a user will find the first time.</p>
 
 <p>I believe that you have the same abilities. You, dear reader, can behave just like a user. Because, lets face it, you are a user deep in your soul. You order from Amazon, you poke around Ebay, you Google things wrong from time to time. Use this power. Embrace it. Go.</p>
 
-<p>Once you identify the pages, the transfer times, and estimated mixtures you can stop right? No. You need to go a step further and start estimating your return users and how that will affect caching. You are caching aren&#39;t you?</p>
+<p>Once you identify the pages, the transfer times, and estimated mixtures you can stop right? No. You need to go a step further and start estimating your return users and how that will affect caching. You are caching aren&rsquo;t you?</p>
 
 <h3>Caching Estimation</h3>
 
@@ -167,7 +183,7 @@ application/x-javascript: 2,978
          text/javascript: 401
                image/gif: 86
 </code></pre></div>
-<p>In the real world you won&#39;t have that many return visitors. Depending on the type of requests you have (dynamic v. static) and what your business model is like (information or sales) you could be more in the camp of 30% to 50% return. You know your data best. I could offer some foolhardy estimates based on experience, but it would do you a disservice. Explore your data and know your numbers.</p>
+<p>In the real world you won&rsquo;t have that many return visitors. Depending on the type of requests you have (dynamic v. static) and what your business model is like (information or sales) you could be more in the camp of 30% to 50% return. You know your data best. I could offer some foolhardy estimates based on experience, but it would do you a disservice. Explore your data and know your numbers.</p>
 
 <p>Now, lets take this data and apply some fuzz to it and see what our effective rate at load would be.</p>
 <div class="highlight"><pre><code class="language-text" data-lang="text">New users:
@@ -232,13 +248,13 @@ Fuzzed number (80%):
 </ul></li>
 </ul>
 
-<p>This test load simulated production traffic with less users than were reported on the site.  By sacrificing &quot;actual&quot; user load you can save some additional overhead of extraneous virtual users. This will come in handy later when you get to the bottom of the page.</p>
+<p>This test load simulated production traffic with less users than were reported on the site.  By sacrificing &ldquo;actual&rdquo; user load you can save some additional overhead of extraneous virtual users. This will come in handy later when you get to the bottom of the page.</p>
 
 <h3>Caution</h3>
 
 <p>We now have a page goal, and our possible load pattern. I urge you to exercise caution here. If you were keeping up and doing the math yourself you probably noticed were doing somewhere around 2,600 requests per second. Even at 260 requests/sec per server your looking at 10 servers serving this web site. Is that too many, is it not enough? </p>
 
-<p>Don&#39;t get caught up in the theoretical maximums. It is in everyone&#39;s best interest to test as often as you can. Especially when you suggest a change, no matter how small. When in doubt, look at my previous blog post <a href="/2014/09/16/always-performance-test/">Always Performance Test!</a></p>
+<p>Don&rsquo;t get caught up in the theoretical maximums. It is in everyone&rsquo;s best interest to test as often as you can. Especially when you suggest a change, no matter how small. When in doubt, look at my previous blog post <a href="/2014/09/16/always-performance-test/">Always Performance Test!</a></p>
 
 <h3>Sanity Check</h3>
 
@@ -271,7 +287,7 @@ Fuzzed number (80%):
 <li>Minification
 
 <ul>
-<li>If you can&#39;t bundle, you should minify</li>
+<li>If you can&rsquo;t bundle, you should minify</li>
 </ul></li>
 <li>Compression
 
@@ -282,7 +298,7 @@ Fuzzed number (80%):
 
 <ul>
 <li>If all else fails, seriously consider this</li>
-<li>Some common libraries are CDN&#39;d for free, like jQuery on Google for instance</li>
+<li>Some common libraries are CDN&rsquo;d for free, like jQuery on Google for instance</li>
 </ul></li>
 </ul>
 
@@ -290,7 +306,7 @@ Fuzzed number (80%):
 
 <p>Yes. Go ahead and start putting together a plan to test from the outside. </p>
 
-<p>It&#39;s no secret that when you use a Microsoft product it will cost you. But, in this case, you can easily map out the amount of money you need to spend. I haven&#39;t used any other services that integrate so well with a tool set I&#39;m familiar with. VSO, provided a great platform to test on. I was even able to bring that data back into my local load test database. No I&#39;m not some shill recommending random products. It was genuinely a pleasant experience and I highly recommend it.</p>
+<p>It&rsquo;s no secret that when you use a Microsoft product it will cost you. But, in this case, you can easily map out the amount of money you need to spend. I haven&rsquo;t used any other services that integrate so well with a tool set I&rsquo;m familiar with. VSO, provided a great platform to test on. I was even able to bring that data back into my local load test database. No I&rsquo;m not some shill recommending random products. It was genuinely a pleasant experience and I highly recommend it.</p>
 
 <p>Knowing my goal allowed me to save a lot of money. The going rate for testing in the cloud at the time of this writing is $0.002 per user minute. For example:</p>
 <div class="highlight"><pre><code class="language-text" data-lang="text">1000 virtual users x 30 minutes = 30,000 virtual user minutes * $0.002 = $60
@@ -305,15 +321,40 @@ Fuzzed number (80%):
 
 <p>We all know bandwidth costs money. But you can really save yourself a ton of <strong>actual</strong> dollars, and you can greatly enhance your user experience. Some of the glamor in performance testing, if there is such a thing, is finding that critical bit of code that would have taken down the site. But, we should not neglect this very fundamental test metric.</p>
 
-<p>This wasn&#39;t really meant as a tutorial but an overview of a process that may be skirted from time to time. It&#39;s easy to forgo certain tests and skip over goals. Here are a few more links that will help out <a href="https://developers.google.com/web/fundamentals/">Web Fundamentals</a>, <a href="https://developers.google.com/speed/docs/insights/rules">PageSpeed Insights</a>, <a href="https://developer.yahoo.com/performance/rules.html">Yahoo Best Practices</a>(a bit older but useful).</p>
+<p>This wasn&rsquo;t really meant as a tutorial but an overview of a process that may be skirted from time to time. It&rsquo;s easy to forgo certain tests and skip over goals. Here are a few more links that will help out <a href="https://developers.google.com/web/fundamentals/">Web Fundamentals</a>, <a href="https://developers.google.com/speed/docs/insights/rules">PageSpeed Insights</a>, <a href="https://developer.yahoo.com/performance/rules.html">Yahoo Best Practices</a>(a bit older but useful).</p>
 
 </div>
 
+ <div id="disqus_thread"></div>
+    <script type="text/javascript">
+        /* * * CONFIGURATION VARIABLES: EDIT BEFORE PASTING INTO YOUR WEBPAGE * * */
+        var disqus_shortname = 'debugthings'; // required: replace example with your forum shortname
+        var disqus_url = 'http://www.debugthings.com/2014/09/23/bandwidth/';
+        var disqus_identifier = '/2014/09/23/bandwidth';
 
+
+        /* * * DON'T EDIT BELOW THIS LINE * * */
+        (function() {
+            var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
+            dsq.src = '//' + disqus_shortname + '.disqus.com/embed.js';
+            (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+        })();
+    </script>
+    <noscript>Please enable JavaScript to view the <a href="http://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
+    
 
 <div class="related">
   <h2>Related Posts</h2>
   <ul class="related-posts">
+    
+    <li>
+      <h3>
+        <a href="/2014/11/11/extending-mysql-server-part0/">
+          MySQL .NET Hosting Extension - Part 0
+          <small>11 Nov 2014</small>
+        </a>
+      </h3>
+    </li>
     
     <li>
       <h3>
@@ -333,25 +374,36 @@ Fuzzed number (80%):
       </h3>
     </li>
     
-    <li>
-      <h3>
-        <a href="/2014/10/21/hostprotectionexception-ssrs/">
-          Debugging - HostProtectionException in SSRS
-          <small>21 Oct 2014</small>
-        </a>
-      </h3>
-    </li>
-    
   </ul>
 </div>
 
+      <div class="footer">
+        <p>
+          &copy; 2014. All rights reserved.
+        </p>
+      </div>
+    </div>
+    <div class="col-md-3 col-md-offset-1 hidden-xs hidden-sm" >
+      <div class="well">
+        <h3>About</h3>
+        <p>
+          This blog is dedicated to a number of topics. Honestly it's what ever I feel like talking about on any given day. Topics will most always be tech related some how. Major themes will be low level debugging, .NET hacking, DevOps, and programming.
+        </p>
+        <p>
+          All thoughts and opinions on this blog are my own.
+        </p>
+        <div style="display: flex; padding-top: 0.5em">
+          <a href="http://www.linkedin.com/in/debugthings/"><img src="https://dlc1-s.licdn.com/sites/default/files/InBug-60px-R.png" class="linked" /></a>
+          <a href="http://www.twitter.com/debugthings"><div class="twitbox"><img src="https://g.twimg.com/Twitter_logo_white.png" /></div><span>@debugthings</span></a>
+        </div>  
+      </div>
+      <div>
 
-    <div class="footer">
-      <p>
-        &copy; 2014. All rights reserved.
-      </p>
+      </div>
     </div>
   </div>
+</div>
+
 
 </body>
 </html>

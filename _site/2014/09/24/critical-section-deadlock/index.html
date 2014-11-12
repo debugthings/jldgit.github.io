@@ -13,10 +13,15 @@
     Debugging - Fixing a deadlock &middot; Debug Things
     
   </title>
+  <!--FONTS-->
+  <link href='http://fonts.googleapis.com/css?family=Lato&subset=latin,latin-ext' rel='stylesheet' type='text/css'>
+
 
   <!-- CSS -->
   <link rel="stylesheet" href="/public/css/monokai.css">
+  <link rel="stylesheet" href="/public/css/bootstrap.css">
   <link rel="stylesheet" href="/public/css/poole.css">
+
   
 
   <!-- Icons -->
@@ -41,30 +46,41 @@
 
 
 <body>
-  <div class="container content">
-    <div class="masthead">
-      <h3 class="masthead-title">
-        <a href="/" title="Home">Debug Things</a>
-      </h3>
-      <small>Debugging, performance testing, DevOps, and ranting.</small><br />
-      <div style="display: flex">
-      <a href="http://www.linkedin.com/in/debugthings/"><img src="https://dlc1-s.licdn.com/sites/default/files/InBug-60px-R.png" class="linked" /></a>
-      <a href="http://www.twitter.com/debugthings"><div class="twitbox"><img src="https://g.twimg.com/Twitter_logo_white.png" /></div>@debugthings</a>
+  <nav class="navbar navbar-inverse navbar-fixed-top" role="navigation">
+    <div class="container">
+      <div class="navbar-header">
+        <button type="button" class="navbar-toggle collapsed" data-toggle="collapse" data-target="#navbar" aria-expanded="false" aria-controls="navbar">
+          <span class="sr-only">Toggle navigation</span>
+          <span class="icon-bar"></span>
+          <span class="icon-bar"></span>
+          <span class="icon-bar"></span>
+        </button>
+        <a href="/" class="navbar-brand" title="Home">Debug Things</a>
       </div>
+      <div id="navbar" class="navbar-collapse collapse">
+        <ul class="nav navbar-nav">
+          <li><a href="/about/">About</a></li>
+          <li><a href="/projects">Projects</a></li>
+          <li><a href="/owasp/">OWASP Tampa</a></li>
+        </ul>
+      </div><!--/.navbar-collapse -->
     </div>
-
-    <div class="post">
+  </nav>
+  <div class="container containerbg">
+   <div class="row rowoffset">
+    <div class="col-md-8">
+      <div class="post">
   <h1 class="post-title">Debugging - Fixing a deadlock</h1>
   <span class="post-date">24 Sep 2014</span>
   <a href="https://twitter.com/share" class="twitter-share-button" data-via="debugthings" data-size="large">Tweet</a>
   <script>!function(d,s,id){var js,fjs=d.getElementsByTagName(s)[0],p=/^http:/.test(d.location)?'http':'https';if(!d.getElementById(id)){js=d.createElement(s);js.id=id;js.src=p+'://platform.twitter.com/widgets.js';fjs.parentNode.insertBefore(js,fjs);}}(document, 'script', 'twitter-wjs');</script>
   <p>More often than not I do postmortem debugging. That is to say, I get a dump file long after the machine has experienced an issue. But, on occasion I get pulled in to take a look at problems that need to be run through the debugger. This article will show you some commands you can use to locate and fix code using WinDbg.</p>
 
-<p>While I don&#39;t recommend what I am doing for an application you are delivering to production, sometimes you have to be creative when debugging. However, your hands may be tied and this set of solutions could help.</p>
+<p>While I don&rsquo;t recommend what I am doing for an application you are delivering to production, sometimes you have to be creative when debugging. However, your hands may be tied and this set of solutions could help.</p>
 
 <p>For this article I am making an assumption you have a working knowledge of WinDbg. As well I suspect you should have working knowledge of C or C++. And also, of Win32. Do I even need to mention the stack?</p>
 
-<p>If you don&#39;t know them I&#39;d check out the following links.</p>
+<p>If you don&rsquo;t know them I&rsquo;d check out the following links.</p>
 
 <ul>
 <li><a href="http://msdn.microsoft.com/en-us/library/windows/hardware/hh406283(v=vs.85).aspx">Debugging Using WinDbg</a></li>
@@ -133,9 +149,9 @@
 
 <p>In this example the problem is simply the locks are out of order. The fix is simple if you have the source code.  Have the locks fire in order and your problems will go away.</p>
 
-<p>But, what if you don&#39;t have the code? What do you do then? What if the code is critical and just started doing this because of a change in load or a change in the operating system, or ... the list goes on and on.</p>
+<p>But, what if you don&rsquo;t have the code? What do you do then? What if the code is critical and just started doing this because of a change in load or a change in the operating system, or &hellip; the list goes on and on.</p>
 
-<p>It&#39;s not often you will encounter this, but you just might.</p>
+<p>It&rsquo;s not often you will encounter this, but you just might.</p>
 
 <h2>The Solution Overview</h2>
 
@@ -156,11 +172,11 @@
 
 <h2>The Solution Details</h2>
 
-<p>From here on out I will make some assumptions about your familiarity with the tool and concepts. I may simply state: &quot;Open the executable in WinDbg,&quot; and expect you to know what I mean.</p>
+<p>From here on out I will make some assumptions about your familiarity with the tool and concepts. I may simply state: &ldquo;Open the executable in WinDbg,&rdquo; and expect you to know what I mean.</p>
 
 <h3>Step 1 - Start the application</h3>
 
-<p>Open the CriticalSectionDeadlock executable in WinDbg... </p>
+<p>Open the CriticalSectionDeadlock executable in WinDbg&hellip; </p>
 
 <h3>Step 2 - Let it load</h3>
 
@@ -217,7 +233,7 @@ ChildEBP RetAddr
 
 06 006df8e4 00000000 011610c0 00000000 00000000 ntdll!_RtlUserThreadStart+0x1b
 </code></pre></div>
-<p>If you look at frame 02, you can see that we are entering a critical section. Let&#39;s see if there is anything else going on. We will take a look at <strong>Thread 2</strong> this time.</p>
+<p>If you look at frame 02, you can see that we are entering a critical section. Let&rsquo;s see if there is anything else going on. We will take a look at <strong>Thread 2</strong> this time.</p>
 <div class="highlight"><pre><code class="language-text" data-lang="text">0:002&gt; ~2kbn
  # ChildEBP RetAddr  Args to Child              
 00 00b3f970 77de8e44 00000040 00000000 00000000 ntdll!ZwWaitForSingleObject+0x15
@@ -238,18 +254,18 @@ ChildEBP RetAddr
 <p><strong>TIP</strong> Use the shortcut command <code>~2kbn</code> which executes the <code>kbn</code> command without switching to thread 2.</p>
 </blockquote>
 
-<p>If we look at this thread stack we can see that we also are entering a critical section. At the very top of the stack we can see the <code>ZwWaitForSingleObject()</code> method, this tells me that we&#39;re blocked waiting for this particular CS. Lets take a look at the data behind the CS and find out why.</p>
+<p>If we look at this thread stack we can see that we also are entering a critical section. At the very top of the stack we can see the <code>ZwWaitForSingleObject()</code> method, this tells me that we&rsquo;re blocked waiting for this particular CS. Lets take a look at the data behind the CS and find out why.</p>
 
 <h3>Step 4 - Inspect CRITICAL_SECTION(s)</h3>
 
 <p>In the previous step we looked at the call stacks of the deadlocked threads. Judging from those call stacks we know that we are entering a critical section and we are waiting on something. But what are we waiting on?</p>
 
-<p>In order to synchronize the critical sections Windows needs to be able to signal to other threads when it becomes available. In order to do this it uses a reset event. Let&#39;s take a look at the <code>ZwWaitForSingleObject()</code> parameters on <strong>Thread 2</strong></p>
+<p>In order to synchronize the critical sections Windows needs to be able to signal to other threads when it becomes available. In order to do this it uses a reset event. Let&rsquo;s take a look at the <code>ZwWaitForSingleObject()</code> parameters on <strong>Thread 2</strong></p>
 <div class="highlight"><pre><code class="language-text" data-lang="text">0:001&gt; ~2kbn 1
  # ChildEBP RetAddr  Args to Child              
 00 00b3f970 77de8e44 00000040 00000000 00000000 ntdll!ZwWaitForSingleObject+0x15
 </code></pre></div>
-<p>This method is waiting on a handle (<code>40</code>). Let&#39;s take a look at the handle in the parameter by using the <code>!handle</code> command.</p>
+<p>This method is waiting on a handle (<code>40</code>). Let&rsquo;s take a look at the handle in the parameter by using the <code>!handle</code> command.</p>
 <div class="highlight"><pre><code class="language-text" data-lang="text">0:001&gt; !handle 40
 Handle 40
   Type          Event
@@ -268,7 +284,7 @@ Handle 40
     Event Type Auto Reset
     Event is Waiting
 </code></pre></div>
-<p>We can see that this handle is an auto reset event, but for what? We know that we are waiting on a critical section, let&#39;s confirm it&#39;s relationship. Let&#39;s inspect the critical section using the <code>!cs</code> command, with the parameter from the <code>RtlEnterCriticalSection()</code> function in frame 02 (<code>01164438</code>).</p>
+<p>We can see that this handle is an auto reset event, but for what? We know that we are waiting on a critical section, let&rsquo;s confirm it&rsquo;s relationship. Let&rsquo;s inspect the critical section using the <code>!cs</code> command, with the parameter from the <code>RtlEnterCriticalSection()</code> function in frame 02 (<code>01164438</code>).</p>
 <div class="highlight"><pre><code class="language-text" data-lang="text">0:002&gt; !cs 01164438 
 -----------------------------------------
 Critical section   = 0x01164438 (CriticalSectionDeadlock!cs2+0x0)
@@ -281,19 +297,19 @@ RecursionCount     = 0x1
 LockSemaphore      = 0x40
 SpinCount          = 0x00000000
 </code></pre></div>
-<p>We can see that we are indeed waiting on this critical section&#39;s lock semaphore (auto reset event). But, if the other thread is trying to enter a different critical section, why are we blocked? This is because this critical section is already LOCKED, as indicated by the <code>!cs</code> command.</p>
+<p>We can see that we are indeed waiting on this critical section&rsquo;s lock semaphore (auto reset event). But, if the other thread is trying to enter a different critical section, why are we blocked? This is because this critical section is already LOCKED, as indicated by the <code>!cs</code> command.</p>
 
-<p>In fact, it is locked by thread <code>0x18fc</code>, let&#39;s find out who that is. Use the <code>~~[TID]</code> command for this.</p>
+<p>In fact, it is locked by thread <code>0x18fc</code>, let&rsquo;s find out who that is. Use the <code>~~[TID]</code> command for this.</p>
 <div class="highlight"><pre><code class="language-text" data-lang="text">0:001&gt; ~~[0x18fc]
 .  1  Id: 1618.18fc Suspend: 1 Teb: 7efda000 Unfrozen
       Start: CriticalSectionDeadlock!Thread1 (011610c0)
       Priority: 0  Priority class: 32  Affinity: ff
 </code></pre></div>
-<p>Look at that. It is <strong>Thread 1</strong>. But, we don&#39;t see the call to that critical section in the call stack.  We can only assume that the call has came and went. Let&#39;s find out how these calls are made inside of the <code>Thread1()</code> and <code>Thread2()</code> functions. We will need to take a look at the disassembly of the <code>Thread2()</code> function located at stack frame 03 for <strong>Thread 2</strong>.</p>
+<p>Look at that. It is <strong>Thread 1</strong>. But, we don&rsquo;t see the call to that critical section in the call stack.  We can only assume that the call has came and went. Let&rsquo;s find out how these calls are made inside of the <code>Thread1()</code> and <code>Thread2()</code> functions. We will need to take a look at the disassembly of the <code>Thread2()</code> function located at stack frame 03 for <strong>Thread 2</strong>.</p>
 
 <h3>Step 5 - Inspect the code</h3>
 
-<p>Now that we&#39;re certain we have a blocked thread we need to take a look at the functions that are part of this executable. In order to do that we will use the un-assemble <code>u</code> command, and use the <code>uf</code> variant to un-assemble a function. I added line breaks to make some lines easier to read.</p>
+<p>Now that we&rsquo;re certain we have a blocked thread we need to take a look at the functions that are part of this executable. In order to do that we will use the un-assemble <code>u</code> command, and use the <code>uf</code> variant to un-assemble a function. I added line breaks to make some lines easier to read.</p>
 <div class="highlight"><pre><code class="language-asm" data-lang="asm"><span class="c"># CriticalSectionDeadlock!Thread2:</span>
 <span class="nf">mov</span>     <span class="no">ebp</span><span class="p">,</span><span class="no">esp</span>
 <span class="nf">and</span>     <span class="no">esp</span><span class="p">,</span><span class="mi">0</span><span class="no">FFFFFFF8h</span>
@@ -336,7 +352,7 @@ SpinCount          = 0x00000000
 <span class="nf">call</span>    <span class="no">dword</span> <span class="no">ptr</span> <span class="err">[</span><span class="no">CriticalSectionDeadlock</span><span class="err">!</span><span class="no">_imp__LeaveCriticalSection</span> <span class="p">(</span><span class="mi">0116301</span><span class="no">c</span><span class="p">)</span><span class="err">]</span>
 <span class="nf">jmp</span>     <span class="no">CriticalSectionDeadlock</span><span class="err">!</span><span class="no">Thread2</span><span class="err">+</span><span class="mi">0x18</span> <span class="p">(</span><span class="mi">01161168</span><span class="p">)</span>
 </code></pre></div>
-<p>I won&#39;t walk this code line by line, but I will point out some interesting parts.</p>
+<p>I won&rsquo;t walk this code line by line, but I will point out some interesting parts.</p>
 
 <p><strong>Storing the EnterCriticalSection function pointer in $edi</strong></p>
 <div class="highlight"><pre><code class="language-asm" data-lang="asm"><span class="nf">mov</span>     <span class="no">edi</span><span class="p">,</span><span class="no">dword</span> <span class="no">ptr</span> <span class="err">[</span><span class="no">CriticalSectionDeadlock</span><span class="err">!</span><span class="no">_imp__EnterCriticalSection</span> <span class="p">(</span><span class="mi">01163010</span><span class="p">)</span><span class="err">]</span>
@@ -361,7 +377,7 @@ SpinCount          = 0x00000000
 
 <p>So, 0XDEAD would be represented in memory as it is show, but would be 0xADDE when passed to the instruction.</p>
 
-<p>Let&#39;s look at the instruction at address <code>0x01161168</code> in the <code>Thread2()</code> function. We will use the display memory <code>d</code> command to do so.</p>
+<p>Let&rsquo;s look at the instruction at address <code>0x01161168</code> in the <code>Thread2()</code> function. We will use the display memory <code>d</code> command to do so.</p>
 <div class="highlight"><pre><code class="language-text" data-lang="text">Size of Pointers
 0:002&gt; dp 0x01161168 L 4
 01161168  16445068 6ad7ff01 68d3ff05 01164438
@@ -379,16 +395,16 @@ Size of Bytes
 <p>The <code>push</code> instruction on x86 is represented by one byte (<code>0x68</code>) plus four bytes for the address (<code>0x01164450</code>). </p>
 
 <blockquote>
-<p><strong>NOTE</strong> Notice how the bytes aren&#39;t really in an order you expect to see them? The reason for this is they a normal address is a double word and would have to be aligned on a word boundary to be displayed properly.</p>
+<p><strong>NOTE</strong> Notice how the bytes aren&rsquo;t really in an order you expect to see them? The reason for this is they a normal address is a double word and would have to be aligned on a word boundary to be displayed properly.</p>
 
 <p>Since instructions can (and usually are) odd sizes the code ends up misaligned. This is okay because the real issue is getting a code segment to fit into a cache line to be run by the processor. In most cases your entire function code block is aligned on a proper boundary.</p>
 </blockquote>
 
-<p>Since our main code defined the two critical sections directly next to each other the compiler gave them sequential addresses (plus the size of the object).  In reality it doesn&#39;t always behave this way, but this sample application happens to.</p>
+<p>Since our main code defined the two critical sections directly next to each other the compiler gave them sequential addresses (plus the size of the object).  In reality it doesn&rsquo;t always behave this way, but this sample application happens to.</p>
 
 <p>Now all we need to do is edit the proper byte in the function instruction to swap the order of the calling sequence. We can do this by using the edit memory <code>e</code> command.</p>
 
-<p>The instruction addresses I&#39;m concerned with are the following:</p>
+<p>The instruction addresses I&rsquo;m concerned with are the following:</p>
 <div class="highlight"><pre><code class="language-text" data-lang="text">EnterCriticalSection order:
 01161168 6850441601      push    offset CriticalSectionDeadlock!cs1 (01164450)
 01161173 6838441601      push    offset CriticalSectionDeadlock!cs2 (01164438)
@@ -411,7 +427,7 @@ After:
 <p><strong>TIP</strong> Do not edit more than you need to. In the previous example the instructions only differed by 1 byte.</p>
 </blockquote>
 
-<p>Here is the resulting assembly.  Look for the code at the addresses we&#39;ve changed and you will see the order of the locks has changed.</p>
+<p>Here is the resulting assembly.  Look for the code at the addresses we&rsquo;ve changed and you will see the order of the locks has changed.</p>
 <div class="highlight"><pre><code class="language-asm" data-lang="asm"><span class="nf">CriticalSectionDeadlock</span><span class="err">!</span><span class="no">Thread2</span><span class="p">:</span>
 <span class="nf">push</span>    <span class="no">ebp</span>
 <span class="nf">mov</span>     <span class="no">ebp</span><span class="p">,</span><span class="no">esp</span>
@@ -458,9 +474,9 @@ After:
 
 <p>Go on, hit g. Let your code run! GO ON.</p>
 
-<p>Did you do it? Why isn&#39;t it running?</p>
+<p>Did you do it? Why isn&rsquo;t it running?</p>
 
-<p>Don&#39;t forget, you&#39;re still in a wait state. We have to clear that. But, how?</p>
+<p>Don&rsquo;t forget, you&rsquo;re still in a wait state. We have to clear that. But, how?</p>
 
 <p>Before the application makes the first call into the thread functions you can over write them and test to see if the fix works. There is not much you need to do here.</p>
 
@@ -480,7 +496,7 @@ After:
 
 <p>This step is not for the faint of heart, but I will describe it anyway.</p>
 
-<p>So, you can&#39;t just dump an executable from memory. By the time it is loaded Windows has fixed up your imports and exports, translated all of your RVAs and loaded the file into properly aligned memory sections.</p>
+<p>So, you can&rsquo;t just dump an executable from memory. By the time it is loaded Windows has fixed up your imports and exports, translated all of your RVAs and loaded the file into properly aligned memory sections.</p>
 
 <p>The result is code that will execute if loaded into a process at the exact same address as you dumped it. Not likely. In fact, if you attempted to dump the file with the same exact length you will get a partial file.</p>
 
@@ -490,9 +506,9 @@ After:
 
 <h3>Step 8.1 - Finding the RVA and file location</h3>
 
-<p>I&#39;d say the first real step is finding the location of the function inside of the actual executable file. In order to do this I will use <code>DUMPBIN</code> which can be found in the Visual Studio Tools package.</p>
+<p>I&rsquo;d say the first real step is finding the location of the function inside of the actual executable file. In order to do this I will use <code>DUMPBIN</code> which can be found in the Visual Studio Tools package.</p>
 
-<p><em>You will also want to get the RVA of the critical sections.  We won&#39;t be dumping any information about them, but it will help in step 7.2.</em></p>
+<p><em>You will also want to get the RVA of the critical sections.  We won&rsquo;t be dumping any information about them, but it will help in step 7.2.</em></p>
 
 <p>To locate the RVA of <strong>Thread2</strong> run the following, the output is below:</p>
 <div class="highlight"><pre><code class="language-text" data-lang="text">dumpbin /relocations CriticalSectionDeadlock.exe | findstr /i Thread2
@@ -600,7 +616,7 @@ Location in file:       00000550
 
 <p>Now that we have the file offset, we need to load it into WinDbg to alter the code. The assembly will look a bit different but you will get it once you see it.</p>
 
-<p>In order to load the file into WinDbg you need to allocate space with <code>.dvalloc</code> and then you need to read the file into memory using <code>.readmem</code>. Once it&#39;s loaded you can use <code>uf</code> to inspect the function.</p>
+<p>In order to load the file into WinDbg you need to allocate space with <code>.dvalloc</code> and then you need to read the file into memory using <code>.readmem</code>. Once it&rsquo;s loaded you can use <code>uf</code> to inspect the function.</p>
 
 <p>Please note the address returned by <code>.dvalloc</code> can be different depending on a few factors. Mind the address that is returned by this command. Also note that the radix for these commands is 16, so all of the numbers are in hex.</p>
 <div class="highlight"><pre><code class="language-text" data-lang="text">0:000&gt; .dvalloc 0n13000
@@ -650,13 +666,13 @@ Reading 3200 bytes.......
 000f05ca ff151c304000    call    dword ptr ds:[40301Ch]
 000f05d0 eb96            jmp     000f0568
 </code></pre></div>
-<p>You will notice this disassembly looks close to the disassembly in previous steps. However, none of the symbols are resolved. That&#39;s because this file isn&#39;t actually loaded, it is just resident in memory.</p>
+<p>You will notice this disassembly looks close to the disassembly in previous steps. However, none of the symbols are resolved. That&rsquo;s because this file isn&rsquo;t actually loaded, it is just resident in memory.</p>
 
 <p><strong>Using Steps 5, 6 and 7 you can write the proper bytes to the function as you did before while debugging it.</strong></p>
 
 <h3>Step 8.3 - Writing the file to disk</h3>
 
-<p>We&#39;re in the home stretch. If you&#39;ve made it this far, you&#39;re an animal. After we&#39;ve deduced all of the information we need to about the file and corrected the bug, we need to save the file.</p>
+<p>We&rsquo;re in the home stretch. If you&rsquo;ve made it this far, you&rsquo;re an animal. After we&rsquo;ve deduced all of the information we need to about the file and corrected the bug, we need to save the file.</p>
 
 <p>To do this we will use the <code>.witemem</code> command.</p>
 <div class="highlight"><pre><code class="language-text" data-lang="text">0:000&gt; .writemem c:\temp\fixedfile.exe 0xf0000 L 0n12800
@@ -668,15 +684,40 @@ Writing 3200 bytes.......
 
 <p>This article series showed us how to work with the debugger, fix a bug, and then patch an executable all without using the source code or Visual Studio.</p>
 
-<p>As I said before WinDbg is a powerful tool with a steep learning curve. But, once you get inside and poke around, it&#39;s not so bad. I hope you found this article helpful. Leave me a tweet <a href="https://twitter.com/debugthings">@debugthings</a></p>
+<p>As I said before WinDbg is a powerful tool with a steep learning curve. But, once you get inside and poke around, it&rsquo;s not so bad. I hope you found this article helpful. Leave me a tweet <a href="https://twitter.com/debugthings">@debugthings</a></p>
 
 </div>
 
+ <div id="disqus_thread"></div>
+    <script type="text/javascript">
+        /* * * CONFIGURATION VARIABLES: EDIT BEFORE PASTING INTO YOUR WEBPAGE * * */
+        var disqus_shortname = 'debugthings'; // required: replace example with your forum shortname
+        var disqus_url = 'http://www.debugthings.com/2014/09/24/critical-section-deadlock/';
+        var disqus_identifier = '/2014/09/24/critical-section-deadlock';
 
+
+        /* * * DON'T EDIT BELOW THIS LINE * * */
+        (function() {
+            var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
+            dsq.src = '//' + disqus_shortname + '.disqus.com/embed.js';
+            (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+        })();
+    </script>
+    <noscript>Please enable JavaScript to view the <a href="http://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
+    
 
 <div class="related">
   <h2>Related Posts</h2>
   <ul class="related-posts">
+    
+    <li>
+      <h3>
+        <a href="/2014/11/11/extending-mysql-server-part0/">
+          MySQL .NET Hosting Extension - Part 0
+          <small>11 Nov 2014</small>
+        </a>
+      </h3>
+    </li>
     
     <li>
       <h3>
@@ -696,25 +737,36 @@ Writing 3200 bytes.......
       </h3>
     </li>
     
-    <li>
-      <h3>
-        <a href="/2014/10/21/hostprotectionexception-ssrs/">
-          Debugging - HostProtectionException in SSRS
-          <small>21 Oct 2014</small>
-        </a>
-      </h3>
-    </li>
-    
   </ul>
 </div>
 
+      <div class="footer">
+        <p>
+          &copy; 2014. All rights reserved.
+        </p>
+      </div>
+    </div>
+    <div class="col-md-3 col-md-offset-1 hidden-xs hidden-sm" >
+      <div class="well">
+        <h3>About</h3>
+        <p>
+          This blog is dedicated to a number of topics. Honestly it's what ever I feel like talking about on any given day. Topics will most always be tech related some how. Major themes will be low level debugging, .NET hacking, DevOps, and programming.
+        </p>
+        <p>
+          All thoughts and opinions on this blog are my own.
+        </p>
+        <div style="display: flex; padding-top: 0.5em">
+          <a href="http://www.linkedin.com/in/debugthings/"><img src="https://dlc1-s.licdn.com/sites/default/files/InBug-60px-R.png" class="linked" /></a>
+          <a href="http://www.twitter.com/debugthings"><div class="twitbox"><img src="https://g.twimg.com/Twitter_logo_white.png" /></div><span>@debugthings</span></a>
+        </div>  
+      </div>
+      <div>
 
-    <div class="footer">
-      <p>
-        &copy; 2014. All rights reserved.
-      </p>
+      </div>
     </div>
   </div>
+</div>
+
 
 </body>
 </html>

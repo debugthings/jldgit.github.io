@@ -1,9 +1,7 @@
 ---
 layout: post
 title: Always Performance Test!
-excerpt: While thumbing through Twitter I ran across an article written by @grabnerandi about a company not being able to load test a change for dependency injection. I can't tell you how many times in my job that performance testing has been brushed over for speed to market.
 ---
-
 While thumbing through Twitter I ran across an [article][cmpblog] written by [@grabnerandi][grabtwit] about a company not being able to load test a change for dependency injection. I can't tell you how many times in my job that performance testing has been brushed over for speed to market.
 
 Look, I get it. **Money**. There, I said it. Most of the time the driving factor for not doing something you should be disciplined about is the bottom line. While I get it I don't like it. I have had to inject myself into a release process to be the harbinger of doom. I try not to get all "the sky is falling," but in reality it could.

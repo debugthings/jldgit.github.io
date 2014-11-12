@@ -2,17 +2,6 @@
 layout: default
 title: debugthings.com
 ---
-<div class="posts">
-  <div class="post">
-    <h1 class="post-title">
-      <a href="/owasp">
-        OWASP Tampa Days 2014
-      </a>
-    </h1>
-    <span class="post-date">06 Nov 2014</span>
-    <p>Look here for the slides and the code repository for the OWASP Tampa Day 2014 talk about MVC. If there are any addendums or other changes to the slides they will be posted here.</p>
-  </div>
-</div>
 
 <div class="posts">
   {% for post in paginator.posts %}
@@ -29,20 +18,28 @@ title: debugthings.com
   </div>
   {% endfor %}
 </div>
- 
-<div class="pagination">
-  {% if paginator.next_page %}
-    <a class="pagination-item older" href="{{ site.baseurl }}page{{paginator.next_page}}">Older</a>
-  {% else %}
-    <span class="pagination-item older">Older</span>
-  {% endif %}
-  {% if paginator.previous_page %}
-    {% if paginator.page == 2 %}
-      <a class="pagination-item newer" href="{{ site.baseurl }}">Newer</a>
+
+<!-- <nav>
+  <ul class="pager">
+    <li class="previous"><a href="#">&larr; Older</a></li>
+    <li class="next"><a href="#">Newer &rarr;</a></li>
+  </ul>
+</nav> -->
+<nav>
+  <ul class="pager">
+    {% if paginator.next_page %}
+    <li class="previous"><a  href="{{ site.baseurl }}page{{paginator.next_page}}">Previous Posts</a></li>
     {% else %}
-      <a class="pagination-item newer" href="{{ site.baseurl }}page{{paginator.previous_page}}">Newer</a>
+    <li class="previous disabled"><a href="#">Previous Posts</a></li>
     {% endif %}
-  {% else %}
-    <span class="pagination-item newer">Newer</span>
-  {% endif %}
-</div>
+    {% if paginator.previous_page %}
+    {% if paginator.page == 2 %}
+    <li class="next"><a href="{{ site.baseurl }}">Newer Posts</a></li>
+    {% else %}
+    <li class="next"><a href="{{ site.baseurl }}page{{paginator.previous_page}}">Newer Posts</a></li>
+    {% endif %}
+    {% else %}
+    <li class="next disabled"><a  href="#">Newer Posts</a></li>
+    {% endif %}
+  </ul>
+</nav>

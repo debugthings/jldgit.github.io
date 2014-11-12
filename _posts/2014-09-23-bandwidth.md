@@ -1,10 +1,8 @@
 ---
 layout: post
 title: Bandwidth. It's not free...
-excerpt: Usually when I performance test my applications I don't consider bandwidth unless I know we're doing something irrational like transferring multi gigabyte files all the time. And even then I only consider it if we're crossing a WAN or some other "slow" link between sites. But, every now and then there is a project that runs over the internet and it is very data intensive. And, a lot of that data is out of the control of the developers (images, 3rd party libraries, fonts). 
 ---
-
-Usually when I performance test internal applications I don't consider bandwidth unless I know we're doing something irrational like transferring multi gigabyte files all the time. And even then I only consider it if we're crossing a WAN or some other "slow" link between sites. But, every now and then there is a project that runs over the Internet and it is very data intensive. And, a lot of that data is out of the control of the developers (images, 3rd party libraries, fonts). 
+Usually when I performance test internal applications I don't consider bandwidth unless I know we're doing something irrational like transferring multi gigabyte files all the time. And even then I only consider it if we're crossing a WAN or some other "slow" link between sites. But, every now and then there is a project that runs over the Internet and it is very data intensive. And, a lot of that data is out of the control of the developers (images, 3rd party libraries, fonts).
 
 It's a given that it will cost you money, but how much? A dedicated link can run anywhere from $100 a month on a broadband backbone, all the way up to $50,000 for Gbit Level3 Fiber. How much money you want to spend on your connection depends on the amount of content you need to control.
 

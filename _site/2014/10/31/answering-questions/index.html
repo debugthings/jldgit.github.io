@@ -13,10 +13,15 @@
     Contributing to a Forum for 10 Days Straight &middot; Debug Things
     
   </title>
+  <!--FONTS-->
+  <link href='http://fonts.googleapis.com/css?family=Lato&subset=latin,latin-ext' rel='stylesheet' type='text/css'>
+
 
   <!-- CSS -->
   <link rel="stylesheet" href="/public/css/monokai.css">
+  <link rel="stylesheet" href="/public/css/bootstrap.css">
   <link rel="stylesheet" href="/public/css/poole.css">
+
   
 
   <!-- Icons -->
@@ -41,40 +46,51 @@
 
 
 <body>
-  <div class="container content">
-    <div class="masthead">
-      <h3 class="masthead-title">
-        <a href="/" title="Home">Debug Things</a>
-      </h3>
-      <small>Debugging, performance testing, DevOps, and ranting.</small><br />
-      <div style="display: flex">
-      <a href="http://www.linkedin.com/in/debugthings/"><img src="https://dlc1-s.licdn.com/sites/default/files/InBug-60px-R.png" class="linked" /></a>
-      <a href="http://www.twitter.com/debugthings"><div class="twitbox"><img src="https://g.twimg.com/Twitter_logo_white.png" /></div>@debugthings</a>
+  <nav class="navbar navbar-inverse navbar-fixed-top" role="navigation">
+    <div class="container">
+      <div class="navbar-header">
+        <button type="button" class="navbar-toggle collapsed" data-toggle="collapse" data-target="#navbar" aria-expanded="false" aria-controls="navbar">
+          <span class="sr-only">Toggle navigation</span>
+          <span class="icon-bar"></span>
+          <span class="icon-bar"></span>
+          <span class="icon-bar"></span>
+        </button>
+        <a href="/" class="navbar-brand" title="Home">Debug Things</a>
       </div>
+      <div id="navbar" class="navbar-collapse collapse">
+        <ul class="nav navbar-nav">
+          <li><a href="/about/">About</a></li>
+          <li><a href="/projects">Projects</a></li>
+          <li><a href="/owasp/">OWASP Tampa</a></li>
+        </ul>
+      </div><!--/.navbar-collapse -->
     </div>
-
-    <div class="post">
+  </nav>
+  <div class="container containerbg">
+   <div class="row rowoffset">
+    <div class="col-md-8">
+      <div class="post">
   <h1 class="post-title">Contributing to a Forum for 10 Days Straight</h1>
   <span class="post-date">31 Oct 2014</span>
   <a href="https://twitter.com/share" class="twitter-share-button" data-via="debugthings" data-size="large">Tweet</a>
   <script>!function(d,s,id){var js,fjs=d.getElementsByTagName(s)[0],p=/^http:/.test(d.location)?'http':'https';if(!d.getElementById(id)){js=d.createElement(s);js.id=id;js.src=p+'://platform.twitter.com/widgets.js';fjs.parentNode.insertBefore(js,fjs);}}(document, 'script', 'twitter-wjs');</script>
-  <p>Back in early October my company sent me to <a href="http://http://compuwareperform.com/">Perform 2014</a>. While there, I met with some great people and found out that I&#39;m not alone. It was also very humbling. I liked that. But, with all of the meeting I found that there were a lot of people who didn&#39;t know where to turn to for help. Turns out there is a very active user community. I wanted to get involved.
-&lt;!--more--&gt;
-I have always been in and out of the forums and spent most of my time seeking answers as well. Most of the answers were hard to find, or if we called support weren&#39;t very easy to implement. And, sometimes, we were actually told to search there to see if someone else had seen or done what we were asking. I noticed that a lot of the questions being asked I knew the answer to. It was time to give back.</p>
+  <p>Back in early October my company sent me to <a href="http://http://compuwareperform.com/">Perform 2014</a>. While there, I met with some great people and found out that I&rsquo;m not alone. It was also very humbling. I liked that. But, with all of the meeting I found that there were a lot of people who didn&rsquo;t know where to turn to for help. Turns out there is a very active user community. I wanted to get involved.</p>
 
-<p>So, I decided to turn on notifications for the <a href="http://www.dynatrace.com/en/index.html">dynatrace</a> forum and started watching. Within the first two days I saw a topic I wanted to jump on. It was exciting and unnerving because I felt uneasy typing my response. I was anxious because I rarely share knowledge with people that I haven&#39;t established myself with. I thought, honestly, I was going to fail.</p>
+<p>I have always been in and out of the forums and spent most of my time seeking answers as well. Most of the answers were hard to find, or if we called support weren&rsquo;t very easy to implement. And, sometimes, we were actually told to search there to see if someone else had seen or done what we were asking. I noticed that a lot of the questions being asked I knew the answer to. It was time to give back.</p>
 
-<p>While I can&#39;t say that all of my answers were correct, I did feel that I was helping. I felt a rejuvenation of the tool that I have been using the past 4 years. If anything I was moving the needle a bit for some people who may be stuck. Even if the person said, &quot;Man, WTF is that guy talking about?&quot; and was able to move on I </p>
+<p>So, I decided to turn on notifications for the <a href="http://www.dynatrace.com/en/index.html">dynatrace</a> forum and started watching. Within the first two days I saw a topic I wanted to jump on. It was exciting and unnerving because I felt uneasy typing my response. I was anxious because I rarely share knowledge with people that I haven&rsquo;t established myself with. I thought, honestly, I was going to fail.</p>
 
-<p>There were puzzles to be solved that I have never tried, but I knew could be done. I don&#39;t have any specific examples but I can say that just trying to find the most succinct solution is very satisfying. It is also, understandably, a lot of work. This work translates into knowledge, so the return is tremendous</p>
+<p>While I can&rsquo;t say that all of my answers were correct, I did feel that I was helping. I felt a rejuvenation of the tool that I have been using the past 4 years. If anything I was moving the needle a bit for some people who may be stuck. Even if the person said, &ldquo;Man, WTF is that guy talking about?&rdquo; and was able to move on I </p>
+
+<p>There were puzzles to be solved that I have never tried, but I knew could be done. I don&rsquo;t have any specific examples but I can say that just trying to find the most succinct solution is very satisfying. It is also, understandably, a lot of work. This work translates into knowledge, so the return is tremendous</p>
 
 <p>So. What have I learned?</p>
 
 <ul>
 <li>There are some people out there doing some very complex things with a very complex tool.</li>
-<li>Contrary to my personal delusions, I don&#39;t know the answer to everything. </li>
+<li>Contrary to my personal delusions, I don&rsquo;t know the answer to everything. </li>
 <li>People need help.</li>
-<li>A lot of people don&#39;t know what they need. But one idea takes them miles.</li>
+<li>A lot of people don&rsquo;t know what they need. But one idea takes them miles.</li>
 <li>Only a few people respond back.</li>
 <li>Time between questions and answers can be a year (or more).</li>
 <li>Beware of the technical black hole. Not everyone knows the internals.</li>
@@ -86,11 +102,36 @@ I have always been in and out of the forums and spent most of my time seeking an
 
 </div>
 
+ <div id="disqus_thread"></div>
+    <script type="text/javascript">
+        /* * * CONFIGURATION VARIABLES: EDIT BEFORE PASTING INTO YOUR WEBPAGE * * */
+        var disqus_shortname = 'debugthings'; // required: replace example with your forum shortname
+        var disqus_url = 'http://www.debugthings.com/2014/10/31/answering-questions/';
+        var disqus_identifier = '/2014/10/31/answering-questions';
 
+
+        /* * * DON'T EDIT BELOW THIS LINE * * */
+        (function() {
+            var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
+            dsq.src = '//' + disqus_shortname + '.disqus.com/embed.js';
+            (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+        })();
+    </script>
+    <noscript>Please enable JavaScript to view the <a href="http://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
+    
 
 <div class="related">
   <h2>Related Posts</h2>
   <ul class="related-posts">
+    
+    <li>
+      <h3>
+        <a href="/2014/11/11/extending-mysql-server-part0/">
+          MySQL .NET Hosting Extension - Part 0
+          <small>11 Nov 2014</small>
+        </a>
+      </h3>
+    </li>
     
     <li>
       <h3>
@@ -110,25 +151,36 @@ I have always been in and out of the forums and spent most of my time seeking an
       </h3>
     </li>
     
-    <li>
-      <h3>
-        <a href="/2014/09/24/critical-section-deadlock/">
-          Debugging - Fixing a deadlock
-          <small>24 Sep 2014</small>
-        </a>
-      </h3>
-    </li>
-    
   </ul>
 </div>
 
+      <div class="footer">
+        <p>
+          &copy; 2014. All rights reserved.
+        </p>
+      </div>
+    </div>
+    <div class="col-md-3 col-md-offset-1 hidden-xs hidden-sm" >
+      <div class="well">
+        <h3>About</h3>
+        <p>
+          This blog is dedicated to a number of topics. Honestly it's what ever I feel like talking about on any given day. Topics will most always be tech related some how. Major themes will be low level debugging, .NET hacking, DevOps, and programming.
+        </p>
+        <p>
+          All thoughts and opinions on this blog are my own.
+        </p>
+        <div style="display: flex; padding-top: 0.5em">
+          <a href="http://www.linkedin.com/in/debugthings/"><img src="https://dlc1-s.licdn.com/sites/default/files/InBug-60px-R.png" class="linked" /></a>
+          <a href="http://www.twitter.com/debugthings"><div class="twitbox"><img src="https://g.twimg.com/Twitter_logo_white.png" /></div><span>@debugthings</span></a>
+        </div>  
+      </div>
+      <div>
 
-    <div class="footer">
-      <p>
-        &copy; 2014. All rights reserved.
-      </p>
+      </div>
     </div>
   </div>
+</div>
+
 
 </body>
 </html>

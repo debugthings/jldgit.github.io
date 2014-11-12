@@ -1,9 +1,8 @@
 ---
 layout: post
 title: Debugging - Fixing a deadlock
-excerpt: More often than not I do postmortem debugging. That is to say, I get a dump file long after the machine has experienced an issue. But, on occasion I get pulled in to take a look at problems that need to be run through the debugger. This article will show you some commands you can use to locate and fix code using WinDbg.
----
 
+---
 More often than not I do postmortem debugging. That is to say, I get a dump file long after the machine has experienced an issue. But, on occasion I get pulled in to take a look at problems that need to be run through the debugger. This article will show you some commands you can use to locate and fix code using WinDbg.
 
 While I don't recommend what I am doing for an application you are delivering to production, sometimes you have to be creative when debugging. However, your hands may be tied and this set of solutions could help.

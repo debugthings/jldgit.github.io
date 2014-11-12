@@ -3,7 +3,7 @@ layout: post
 title: Contributing to a Forum for 10 Days Straight
 ---
 Back in early October my company sent me to [Perform 2014][perf]. While there, I met with some great people and found out that I'm not alone. It was also very humbling. I liked that. But, with all of the meeting I found that there were a lot of people who didn't know where to turn to for help. Turns out there is a very active user community. I wanted to get involved.
-<!--more-->
+
 I have always been in and out of the forums and spent most of my time seeking answers as well. Most of the answers were hard to find, or if we called support weren't very easy to implement. And, sometimes, we were actually told to search there to see if someone else had seen or done what we were asking. I noticed that a lot of the questions being asked I knew the answer to. It was time to give back.
 
 So, I decided to turn on notifications for the [dynatrace][dt] forum and started watching. Within the first two days I saw a topic I wanted to jump on. It was exciting and unnerving because I felt uneasy typing my response. I was anxious because I rarely share knowledge with people that I haven't established myself with. I thought, honestly, I was going to fail.

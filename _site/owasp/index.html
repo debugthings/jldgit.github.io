@@ -13,10 +13,15 @@
     OWASP Slides and Site &middot; Debug Things
     
   </title>
+  <!--FONTS-->
+  <link href='http://fonts.googleapis.com/css?family=Lato&subset=latin,latin-ext' rel='stylesheet' type='text/css'>
+
 
   <!-- CSS -->
   <link rel="stylesheet" href="/public/css/monokai.css">
+  <link rel="stylesheet" href="/public/css/bootstrap.css">
   <link rel="stylesheet" href="/public/css/poole.css">
+
   
 
   <!-- Icons -->
@@ -41,42 +46,72 @@
 
 
 <body>
-  <div class="container content">
-    <div class="masthead">
-      <h3 class="masthead-title">
-        <a href="/" title="Home">Debug Things</a>
-      </h3>
-      <small>Debugging, performance testing, DevOps, and ranting.</small><br />
-      <div style="display: flex">
-      <a href="http://www.linkedin.com/in/debugthings/"><img src="https://dlc1-s.licdn.com/sites/default/files/InBug-60px-R.png" class="linked" /></a>
-      <a href="http://www.twitter.com/debugthings"><div class="twitbox"><img src="https://g.twimg.com/Twitter_logo_white.png" /></div>@debugthings</a>
+  <nav class="navbar navbar-inverse navbar-fixed-top" role="navigation">
+    <div class="container">
+      <div class="navbar-header">
+        <button type="button" class="navbar-toggle collapsed" data-toggle="collapse" data-target="#navbar" aria-expanded="false" aria-controls="navbar">
+          <span class="sr-only">Toggle navigation</span>
+          <span class="icon-bar"></span>
+          <span class="icon-bar"></span>
+          <span class="icon-bar"></span>
+        </button>
+        <a href="/" class="navbar-brand" title="Home">Debug Things</a>
+      </div>
+      <div id="navbar" class="navbar-collapse collapse">
+        <ul class="nav navbar-nav">
+          <li><a href="/about/">About</a></li>
+          <li><a href="/projects">Projects</a></li>
+          <li><a href="/owasp/">OWASP Tampa</a></li>
+        </ul>
+      </div><!--/.navbar-collapse -->
+    </div>
+  </nav>
+  <div class="container containerbg">
+   <div class="row rowoffset">
+    <div class="col-md-8">
+      <h2>OWASP Slides and Code</h2>
+
+<p>First of all thanks for coming out! I enjoyed learning from all of the speakers and making a few new connections. If you&rsquo;d like to know more, or you want to connect use the buttons on the right side of the page to find me on Twitter or LinkedIn. I am always happy to connect and help.</p>
+
+<p>Please use the following links to find the slides and the demo site. All code is free to use. If you would like the raw presentation in PowerPoint format, let me know and I&rsquo;ll be happy to send them out.</p>
+
+<h3><a href="OWASPTop10forMVC.pdf">OWASP Top 10 for MVC Slides</a></h3>
+
+<h3><a href="https://github.com/jldgit/OWASPTop10Tampa">OWASP Top 10 for MVC GitHub Repository</a></h3>
+
+<p>Please read the instructions for building and running the site. If you have any questions, my contact information is in the slides. The best way is to try Twitter. I&rsquo;m always around.</p>
+
+<h3><a href="https://www.owasp.org/index.php/Tampa">OWASP Tampa</a></h3>
+
+<h3><a href="https://www.owasp.org/index.php/Orlando">OWASP Orlando</a></h3>
+
+      <div class="footer">
+        <p>
+          &copy; 2014. All rights reserved.
+        </p>
       </div>
     </div>
+    <div class="col-md-3 col-md-offset-1 hidden-xs hidden-sm" >
+      <div class="well">
+        <h3>About</h3>
+        <p>
+          This blog is dedicated to a number of topics. Honestly it's what ever I feel like talking about on any given day. Topics will most always be tech related some how. Major themes will be low level debugging, .NET hacking, DevOps, and programming.
+        </p>
+        <p>
+          All thoughts and opinions on this blog are my own.
+        </p>
+        <div style="display: flex; padding-top: 0.5em">
+          <a href="http://www.linkedin.com/in/debugthings/"><img src="https://dlc1-s.licdn.com/sites/default/files/InBug-60px-R.png" class="linked" /></a>
+          <a href="http://www.twitter.com/debugthings"><div class="twitbox"><img src="https://g.twimg.com/Twitter_logo_white.png" /></div><span>@debugthings</span></a>
+        </div>  
+      </div>
+      <div>
 
-    <h4><a href="/">Back Home</a></h4>
-<br/>
-<p>If you're looking for the slides for the presentation they can be found at the link below.
-  <h3><a href="OWASPTop10forMVC.pdf">OWASP Top 10 for MVC Slides</a></h3>
-</p>
-
-<p>If you're looking for the repo for the presentation it can be found at the link below.
-  <h3><a href="https://github.com/jldgit/OWASPTop10Tampa">OWASP Top 10 for MVC GitHub Repository</a></h3>
-</p>
-
-<p>Please read the instructions for building and running the site. If you have any questions, my contact information is in the slides. The best way is to try Twitter. I'm always around.
-</p>
-
-<p>
-  <h3><a href="https://www.owasp.org/index.php/Tampa">OWASP Tampa</a></h3>
-  <h3><a href="https://www.owasp.org/index.php/Orlando">OWASP Orlando</a></h3>
-</p>
-
-    <div class="footer">
-      <p>
-        &copy; 2014. All rights reserved.
-      </p>
+      </div>
     </div>
   </div>
+</div>
+
 
 </body>
 </html>

@@ -10,7 +10,7 @@ In this case I was working with an in-house developed bit of custom code that ha
 
 Sometime between SSRS install, v1, and vNow of this custom DLL there were numerous changes before during, and after deployment. Most of these changes are just code deployment for SSRS. But, some are a bit more insidious. There are OS level changes, patches, security updates and the like.
 
-So, it's probably fair to say that the code we once had is not the code we have now. Knowing that simple--but useful--fact,  we can get right down to business.
+So, it's probably fair to say that the code we once had is not the code we have now. Knowing that simple---but useful---fact,  we can get right down to business.
 
 ##Steps##
 The first thing I always do when trying to debug a "we've been working on it for weeks," scenario is try to figure out who has been doing what. In this case we had a very skilled senior engineer working on the issue. So, I was able to forgo a ton of leg work and get down to the meat of the problem. The engineer had already compared config files, checked parameters, run numerous tests, and even added some compensating configuration changes but to no avail.

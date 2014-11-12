@@ -10,13 +10,18 @@
 
   <title>
     
-    OWASP Slides and Site &middot; Debug Things
+    debugthings.com &middot; Debug Things
     
   </title>
+  <!--FONTS-->
+  <link href='http://fonts.googleapis.com/css?family=Lato&subset=latin,latin-ext' rel='stylesheet' type='text/css'>
+
 
   <!-- CSS -->
   <link rel="stylesheet" href="/public/css/monokai.css">
+  <link rel="stylesheet" href="/public/css/bootstrap.css">
   <link rel="stylesheet" href="/public/css/poole.css">
+
   
 
   <!-- Icons -->
@@ -41,31 +46,43 @@
 
 
 <body>
-  <div class="container content">
-    <div class="masthead">
-      <h3 class="masthead-title">
-        <a href="/" title="Home">Debug Things</a>
-      </h3>
-      <small>Debugging, performance testing, DevOps, and ranting.</small><br />
-      <div style="display: flex">
-      <a href="http://www.linkedin.com/in/debugthings/"><img src="https://dlc1-s.licdn.com/sites/default/files/InBug-60px-R.png" class="linked" /></a>
-      <a href="http://www.twitter.com/debugthings"><div class="twitbox"><img src="https://g.twimg.com/Twitter_logo_white.png" /></div>@debugthings</a>
+  <nav class="navbar navbar-inverse navbar-fixed-top" role="navigation">
+    <div class="container">
+      <div class="navbar-header">
+        <button type="button" class="navbar-toggle collapsed" data-toggle="collapse" data-target="#navbar" aria-expanded="false" aria-controls="navbar">
+          <span class="sr-only">Toggle navigation</span>
+          <span class="icon-bar"></span>
+          <span class="icon-bar"></span>
+          <span class="icon-bar"></span>
+        </button>
+        <a href="/" class="navbar-brand" title="Home">Debug Things</a>
       </div>
+      <div id="navbar" class="navbar-collapse collapse">
+        <ul class="nav navbar-nav">
+          <li><a href="/about/">About</a></li>
+          <li><a href="/projects">Projects</a></li>
+          <li><a href="/owasp/">OWASP Tampa</a></li>
+        </ul>
+      </div><!--/.navbar-collapse -->
     </div>
-
-    <div class="posts">
+  </nav>
+  <div class="container containerbg">
+   <div class="row rowoffset">
+    <div class="col-md-8">
+      <div class="posts">
+  
   <div class="post">
     <h1 class="post-title">
-      <a href="/owasp">
-        OWASP Tampa Days 2014
+      <a href="/2014/09/23/bandwidth/">
+        Bandwidth. It's not free...
       </a>
     </h1>
-    <span class="post-date">06 Nov 2014</span>
-    <p>Look here for the slides and the code repository for the OWASP Tampa Day 2014 talk about MVC. If there are any addendums or other changes to the slides they will be posted here.</p>
-  </div>
-</div>
 
-<div class="posts">
+    <span class="post-date">23 Sep 2014</span>
+
+    Usually when I performance test internal applications I don&rsquo;t consider bandwidth unless I know we&rsquo;re doing something irrational like transferring multi gigabyte files all the time. And even then I only consider it if we&rsquo;re crossing a WAN or some other &ldquo;slow&rdquo; link between sites. But, every now and then there is a project that runs over the Internet and it is very data intensive. And, a lot of that data is out of the control of the developers (images, 3rd party libraries, fonts).
+
+  </div>
   
   <div class="post">
     <h1 class="post-title">
@@ -76,7 +93,8 @@
 
     <span class="post-date">16 Sep 2014</span>
 
-    While thumbing through Twitter I ran across an article written by @grabnerandi about a company not being able to load test a change for dependency injection. I can't tell you how many times in my job that performance testing has been brushed over for speed to market.
+    While thumbing through Twitter I ran across an <a href="http://apmblog.compuware.com/2014/09/16/detecting-bad-deployments-resource-impact-response-time-hotspot-garbage-collection/">article</a> written by <a href="https://twitter.com/grabnerandi">@grabnerandi</a> about a company not being able to load test a change for dependency injection. I can&rsquo;t tell you how many times in my job that performance testing has been brushed over for speed to market.
+
   </div>
   
   <div class="post">
@@ -88,29 +106,58 @@
 
     <span class="post-date">06 Sep 2014</span>
 
-    Every now and then a balance needs to be struck from the every day coding of an application. While personal life is usually the topic for these types of posts, today that is not the case.
+    Every now and then a balance needs to be struck from the every day coding of an application. While personal life is usually the topic for these types of posts, today that is not the case. Sometimes you have to write code in order to write code. This is somewhat of an extended rant from my previous post.
+
   </div>
   
 </div>
- 
-<div class="pagination">
-  
-    <span class="pagination-item older">Older</span>
-  
-  
-    
-      <a class="pagination-item newer" href="/">Newer</a>
-    
-  
-</div>
 
+<!-- <nav>
+  <ul class="pager">
+    <li class="previous"><a href="#">&larr; Older</a></li>
+    <li class="next"><a href="#">Newer &rarr;</a></li>
+  </ul>
+</nav> -->
+<nav>
+  <ul class="pager">
+    
+    <li class="previous disabled"><a href="#">Previous Posts</a></li>
+    
+    
+    
+    <li class="next"><a href="/">Newer Posts</a></li>
+    
+    
+  </ul>
+</nav>
 
-    <div class="footer">
-      <p>
-        &copy; 2014. All rights reserved.
-      </p>
+      <div class="footer">
+        <p>
+          &copy; 2014. All rights reserved.
+        </p>
+      </div>
+    </div>
+    <div class="col-md-3 col-md-offset-1 hidden-xs hidden-sm" >
+      <div class="well">
+        <h3>About</h3>
+        <p>
+          This blog is dedicated to a number of topics. Honestly it's what ever I feel like talking about on any given day. Topics will most always be tech related some how. Major themes will be low level debugging, .NET hacking, DevOps, and programming.
+        </p>
+        <p>
+          All thoughts and opinions on this blog are my own.
+        </p>
+        <div style="display: flex; padding-top: 0.5em">
+          <a href="http://www.linkedin.com/in/debugthings/"><img src="https://dlc1-s.licdn.com/sites/default/files/InBug-60px-R.png" class="linked" /></a>
+          <a href="http://www.twitter.com/debugthings"><div class="twitbox"><img src="https://g.twimg.com/Twitter_logo_white.png" /></div><span>@debugthings</span></a>
+        </div>  
+      </div>
+      <div>
+
+      </div>
     </div>
   </div>
+</div>
+
 
 </body>
 </html>

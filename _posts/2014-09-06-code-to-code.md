@@ -1,9 +1,7 @@
 ---
 layout: post
 title: Writing code to write code
-excerpt: Every now and then a balance needs to be struck from the every day coding of an application. While personal life is usually the topic for these types of posts, today that is not the case.
 ---
-
 Every now and then a balance needs to be struck from the every day coding of an application. While personal life is usually the topic for these types of posts, today that is not the case. Sometimes you have to write code in order to write code. This is somewhat of an extended rant from my previous post.
 
 While developing the core components of my [ChainsAPM](http://www.github.com/chainsapm) solution I felt the need to write down thoughts and musings of what I'm trying to do as well as explain some details of the implementation. Plus, I have other things to talk about aside from that project. At the same time I need to keep myself organized; so I needed to make a separate space.

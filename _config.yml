@@ -1,7 +1,8 @@
 # Dependencies
 markdown:         redcarpet
 highlighter:      pygments
-
+redcarpet:
+  extensions: [smart]
 # Permalinks
 permalink:        pretty
 
@@ -11,7 +12,6 @@ tagline:          Debugging, performance testing, DevOps, and ranting.
 url:              
 paginate:         5
 baseurl:          /
-excerpt_separator: <!--more-->
 author:
   name:           James Davis
   url:            https://twitter.com/debugthings
@@ -23,3 +23,6 @@ github:
   repo:           https://www.github.com/jldgit
 post:
   twitembed:      BLANK
+lessc: 			  /usr/bin/lessc
+less_files: ["/_bootstrap/bootstrap.less"]
+less_output:      "/public/css/"
