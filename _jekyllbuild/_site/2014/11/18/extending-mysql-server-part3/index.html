@@ -1,0 +1,493 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en-us">
+
+<head>
+  <link href="http://gmpg.org/xfn/11" rel="profile">
+  <meta http-equiv="content-type" content="text/html; charset=utf-8">
+
+  <!-- Enable responsiveness on mobile devices-->
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1">
+
+  <title>
+    
+    MySQL .NET Hosting Extension - Part 3 - Adding in the .NET Hosting API &middot; Debug Things
+    
+  </title>
+  <!--FONTS-->
+  <link href='http://fonts.googleapis.com/css?family=Lato&subset=latin,latin-ext' rel='stylesheet' type='text/css'>
+
+
+  <!-- CSS -->
+  <link rel="stylesheet" href="/public/css/monokai.css">
+  <link rel="stylesheet" href="/public/css/bootstrap.css">
+  <link rel="stylesheet" href="/public/css/poole.css">
+
+  
+
+  <!-- Icons -->
+  <link rel="apple-touch-icon-precomposed" sizes="144x144" href="/public/apple-touch-icon-precomposed.png">
+  <link rel="shortcut icon" href="/public/favicon.ico">
+
+  <!-- RSS -->
+  <link rel="alternate" type="application/rss+xml" title="RSS" href="/atom.xml">
+
+  <script>
+  (function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){
+  (i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),
+  m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)
+  })(window,document,'script','//www.google-analytics.com/analytics.js','ga');
+
+  ga('create', 'UA-56527114-1', 'auto');
+  ga('send', 'pageview');
+
+</script>
+
+</head>
+
+
+<body>
+  <nav class="navbar navbar-inverse navbar-fixed-top" role="navigation">
+  <div class="container">
+    <div class="navbar-header">
+      <button type="button" class="navbar-toggle collapsed" data-toggle="collapse" data-target="#navbar" aria-expanded="false" aria-controls="navbar">
+        <span class="sr-only">Toggle navigation</span>
+        <span class="icon-bar"></span>
+        <span class="icon-bar"></span>
+        <span class="icon-bar"></span>
+      </button>
+      <a href="/" class="navbar-brand" title="Home">DEBUG THINGS</a>
+    </div>
+    <div id="navbar" class="navbar-collapse collapse">
+      <ul class="nav navbar-nav">
+        <li><a href="/about/">About</a></li>
+        <li><a href="/projects">Projects</a></li>
+        <li><a href="/owasp/">OWASP Tampa</a></li>
+      </ul>
+    </div><!--/.navbar-collapse -->
+  </div>
+</nav>
+  <div class="container containerbg">
+   <div class="row rowoffset">
+    <div class="col-md-12">
+      <div class="post">
+  <h1 class="post-title">MySQL .NET Hosting Extension - Part 3 - Adding in the .NET Hosting API</h1>
+  <span class="post-date">18 Nov 2014</span>
+  <a href="https://twitter.com/share" class="twitter-share-button" data-via="debugthings" data-size="large">Tweet</a>
+  <script>!function(d,s,id){var js,fjs=d.getElementsByTagName(s)[0],p=/^http:/.test(d.location)?'http':'https';if(!d.getElementById(id)){js=d.createElement(s);js.id=id;js.src=p+'://platform.twitter.com/widgets.js';fjs.parentNode.insertBefore(js,fjs);}}(document, 'script', 'twitter-wjs');</script>
+  <p>Now that we’ve walked through the basics of a UDF, let’s start bolting on an AppDomain Manager. As I mentioned before in <a href="(/2014/11/16/extending-mysql-server-part2/)">part 2</a> my example is based off of the <a href="http://www.microsoft.com/en-us/download/details.aspx?id=7325">ADMHost</a> sample provided by Microsoft. The code is used as a jump off point, but we will be extending it as these posts progress. This part of the series will focus on the insertion points rather than the actual code. That will be in the next part. For some extra information on the hosting API check out <a href="http://www.amazon.com/gp/product/0735619883/">Customizing the Microsoft® .NET Framework</a> by <a href="http://blogs.msdn.com/b/stevenpr/">Steven Pratschner</a>. Also check out <a href="http://msdn.microsoft.com/en-us/library/ms404385(v=vs.110).aspx">MSDN</a> for update information on the APIs.</p>
+
+<h2 id="foreword">Foreword</h2>
+<p>In order to host the CLR we must first start it. And to start it we must bind to it. In the newer versions of the CLR you can bind to both v2.0 and v4.0 at the same time. This means you need to be able to support both versions of the code.</p>
+
+<p>This presents some challenges as it requires you to write and maintain two AppDomain Managers, as well as understand the security polices of both versions. I will touch on these as we move forward. But, for now, we’re going to accept (most of) the defaults and not worry about the nuances.</p>
+
+<h2 id="execution-flow">Execution Flow</h2>
+<p>The execution flow is pretty straight forward, but if you don’t have a background in Application Domains or the hosting process it can seem a bit convoluted. Here is a quick rundown of methods and execution for both the first run and subsequent runs.</p>
+
+<h3 id="first-run-on-server-start">First Run on Server Start</h3>
+<ol>
+  <li>MySQLd starts</li>
+  <li>mysqldotnet Plug-In is loaded</li>
+  <li>First call to <code>mysqldotnet_xxx()</code> executes <code>mysqldotnet_xxx_init()</code></li>
+  <li><code>mysqldotnet_xxx_init()</code> loads the hosting API via <code>CClrHost::BindToRuntime()</code></li>
+  <li><code>CClrHost::BindToRuntime()</code> spins up both CLRs side-by-side
+    <ul>
+      <li>This is configurable </li>
+    </ul>
+  </li>
+  <li><code>CClrHost::BindToRuntime()</code> saves a pointer to <code>ICLRRuntimeInfo</code> per CLR </li>
+  <li><code>mysqldotnet_xxx_init()</code> starts the CLR via <code>IUnmanagedHost::Start()</code></li>
+  <li><code>IUnmanagedHost::Start()</code> internally calls <code>IUnmanagedHost::raw_Start()</code></li>
+  <li><code>IUnmanagedHost::raw_Start()</code> configures each CLR, it repeats the following steps
+    <ol>
+      <li>The CLR is given a pointer to the <code>CClrHost</code> instance to implement <code>IHostManager</code></li>
+      <li>The CLR is given a proper AppDomain Manager using <code>ICLRControl::SetAppDomainManagerType()</code> </li>
+      <li>Internally <code>ICLRControl::SetAppDomainManagerType()</code> calls the overridden method <code>AppDomainManager::InitializeNewDomain()</code> which sets the <code>RegisterWithHost</code> flag</li>
+      <li>This registration calls <code>IHostManager::SetAppDomainManager()</code> which is implemented by <code>CClrHost::SetAppDomainManager()</code></li>
+      <li><code>CClrHost::SetAppDomainManager()</code> stores a copy of the <strong>DEFAULT</strong> domain that was created in our std::map</li>
+    </ol>
+  </li>
+  <li>Control is then returned to <code>mysqldotnet_xxx_init()</code> which determines the outcome</li>
+  <li>MySQL executes <code>mysqldotnet_xxx()</code></li>
+  <li><code>mysqldotnet_xxx()</code> calls the “Run()” command on the AppDomain Manager for the query</li>
+  <li>The custom assembly executes its internal “Run()” command to return the result</li>
+</ol>
+
+<h3 id="additional-runs">Additional Runs</h3>
+<ol>
+  <li>A call to <code>mysqldotnet_xxx()</code> executes <code>mysqldotnet_xxx_init()</code></li>
+  <li><code>mysqldotnet_xxx_init</code> checks to see if we have a pointer to our <code>IHostManager</code>
+    <ul>
+      <li>If one is not loaded it will load it like the First Run</li>
+    </ul>
+  </li>
+  <li>MySQL executes mysqldotnet_xxx</li>
+  <li>mysqldotnet_xxx calls the “Run()” command on the AppDomain Manager for the assembly</li>
+  <li>The custom assembly executes its internal “Run()” command to return the result</li>
+</ol>
+
+<h2 id="initialization">Initialization</h2>
+<p>MySQL executes <code>mysqldotnet_xxx_init()</code> which in turn calls <code>CClrHost::BindToRuntime()</code>. This method creates a COM instance of our <code>CClrHost</code> class. This is an ATL helper that allows you to instantiate abstract classes, it is akin to a singleton, but slightly different as it is based on CoCreateInstance.</p>
+
+<p>The <code>CComObject&lt;Base&gt;::CreateInstance()</code> method has some internal checks and methods it calls. One of the methods we override is <code>CComObjectRootEx::FinalConstruct()</code>. This method is called once we’ve completed a some bounds checking. This is where we actually start the CLR. See <a href="http://msdn.microsoft.com/en-us/library/9e31say1.aspx">MSDN</a> for more information.</p>
+
+<p>In order to initialize the proper CLR we first must loop through all of the installed CLRs on the system. We call the <code>CLRCreateInstance()</code> method to query for the <code>IID_ICLRMetaHost</code>. Once we have a pointer to the MetaHost we can Enumerate all of the installed versions of the CLR. <code>ICLRMetaHost::GetInterface()</code> returns a pointer to the runtime host. We can then store the pointer to the CLR Runtime Host in our <code>std::map</code>.</p>
+
+<blockquote>
+  <p><strong>NOTE</strong> There are numerous versions of the CLR for the same base version. For example the build can differ between two machines. So, if you were to add in any logic to look for a specific CLR you should limit to Major.Minor.Revision and not Major.Minor.Revision.Build.</p>
+</blockquote>
+
+<div class="highlight"><pre><code class="language-Cpp"><div class="highlight"><pre><span id="line-1"><span class="c1">//Global parameter (I know, shame on me)</span>
+</span><span id="line-2"><span class="n">IUnmanagedHostPtr</span> <span class="n">pClrHost</span> <span class="o">=</span> <span class="nb">NULL</span><span class="p">;</span>
+</span><span id="line-3">
+</span><span id="line-4"><span class="n">my_bool</span> <span class="nf">mysqldotnet_int_init</span><span class="p">(</span><span class="n">UDF_INIT</span> <span class="o">*</span><span class="n">initid</span><span class="p">,</span> <span class="n">UDF_ARGS</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="kt">char</span> <span class="o">*</span><span class="n">message</span><span class="p">)</span>
+</span><span id="line-5"><span class="p">{</span>
+</span><span id="line-6">  <span class="kt">int</span> <span class="n">returnCode</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>
+</span><span id="line-7">  <span class="n">HRESULT</span> <span class="n">hrCoInit</span> <span class="o">=</span> <span class="n">CoInitializeEx</span><span class="p">(</span><span class="nb">NULL</span><span class="p">,</span> <span class="n">COINIT_APARTMENTTHREADED</span><span class="p">);</span>
+</span><span id="line-8">
+</span><span id="line-9">  <span class="n">try</span>
+</span><span id="line-10">  <span class="p">{</span>
+</span><span id="line-11">    <span class="k">if</span> <span class="p">(</span><span class="n">pClrHost</span> <span class="o">==</span> <span class="nb">NULL</span><span class="p">)</span>
+</span><span id="line-12">    <span class="p">{</span>
+</span><span id="line-13">      <span class="n">HRESULT</span> <span class="n">hrBind</span> <span class="o">=</span> 
+</span><span id="line-14">        <span class="n">CClrHost</span><span class="o">::</span><span class="n">BindToRuntime</span><span class="p">(</span><span class="o">&amp;</span><span class="n">pClrHost</span><span class="p">.</span><span class="n">GetInterfacePtr</span><span class="p">());</span>
+</span><span id="line-15">
+</span><span id="line-16">      <span class="k">if</span> <span class="p">(</span><span class="n">FAILED</span><span class="p">(</span><span class="n">hrBind</span><span class="p">))</span>
+</span><span id="line-17">        <span class="n">_com_raise_error</span><span class="p">(</span><span class="n">hrBind</span><span class="p">);</span>
+</span><span id="line-18">      <span class="c1">// start it up</span>
+</span><span id="line-19">      <span class="n">pClrHost</span><span class="o">-&gt;</span><span class="n">Start</span><span class="p">();</span>
+</span><span id="line-20">    <span class="p">}</span>
+</span><span id="line-21">
+</span><span id="line-22">  <span class="p">}</span>
+</span><span id="line-23">  <span class="k">catch</span> <span class="p">(</span><span class="k">const</span> <span class="n">_com_error</span> <span class="o">&amp;</span><span class="n">e</span><span class="p">)</span>
+</span><span id="line-24">  <span class="p">{</span>
+</span><span id="line-25">    <span class="k">const</span> <span class="kt">wchar_t</span> <span class="o">*</span><span class="n">message</span> <span class="o">=</span> <span class="p">(</span><span class="kt">wchar_t</span> <span class="o">*</span><span class="p">)</span><span class="n">e</span><span class="p">.</span><span class="n">Description</span><span class="p">()</span> <span class="o">==</span> <span class="nb">NULL</span> <span class="o">?</span>
+</span><span id="line-26">      <span class="s">L&quot;&quot;</span> <span class="o">:</span>
+</span><span id="line-27">      <span class="p">(</span><span class="kt">wchar_t</span> <span class="o">*</span><span class="p">)</span><span class="n">e</span><span class="p">.</span><span class="n">Description</span><span class="p">();</span>
+</span><span id="line-28">    <span class="n">std</span><span class="o">::</span><span class="n">wcerr</span> <span class="o">&lt;&lt;</span> <span class="s">L&quot;Error 0x&quot;</span> <span class="o">&lt;&lt;</span> <span class="n">std</span><span class="o">::</span><span class="n">hex</span> <span class="o">&lt;&lt;</span> <span class="n">e</span><span class="p">.</span><span class="n">Error</span><span class="p">()</span> 
+</span><span id="line-29">      <span class="o">&lt;&lt;</span> <span class="s">L&quot;) : &quot;</span> <span class="o">&lt;&lt;</span> <span class="n">message</span> <span class="o">&lt;&lt;</span> <span class="n">std</span><span class="o">::</span><span class="n">endl</span><span class="p">;</span>
+</span><span id="line-30">
+</span><span id="line-31">    <span class="n">returnCode</span> <span class="o">=</span> <span class="n">e</span><span class="p">.</span><span class="n">Error</span><span class="p">();</span>
+</span><span id="line-32">  <span class="p">}</span>
+</span><span id="line-33">  <span class="k">return</span> <span class="mi">0</span><span class="p">;</span>
+</span><span id="line-34"><span class="p">}</span>
+</span></pre></div></code></pre></div>
+
+<div class="highlight"><pre><code class="language-Cpp"><div class="highlight"><pre><span id="line-1"><span class="n">HRESULT</span> <span class="n">CClrHost</span><span class="o">::</span><span class="n">BindToRuntime</span><span class="p">(</span><span class="n">__deref_in</span> <span class="n">IUnmanagedHost</span> <span class="o">**</span><span class="n">pHost</span><span class="p">)</span>
+</span><span id="line-2"><span class="p">{</span>
+</span><span id="line-3">  <span class="n">_ASSERTE</span><span class="p">(</span><span class="n">pHost</span> <span class="o">!=</span> <span class="nb">NULL</span><span class="p">);</span>
+</span><span id="line-4">  <span class="o">*</span><span class="n">pHost</span> <span class="o">=</span> <span class="nb">NULL</span><span class="p">;</span>
+</span><span id="line-5">
+</span><span id="line-6">  <span class="n">CComObject</span><span class="o">&lt;</span><span class="n">CClrHost</span><span class="o">&gt;</span> <span class="o">*</span><span class="n">pClrHost</span> <span class="o">=</span> <span class="nb">NULL</span><span class="p">;</span>
+</span><span id="line-7">  <span class="n">HRESULT</span> <span class="n">hrCreate</span> <span class="o">=</span> <span class="n">CComObject</span><span class="o">&lt;</span><span class="n">CClrHost</span><span class="o">&gt;::</span><span class="n">CreateInstance</span><span class="p">(</span><span class="o">&amp;</span><span class="n">pClrHost</span><span class="p">);</span>
+</span><span id="line-8">
+</span><span id="line-9">  <span class="k">if</span> <span class="p">(</span><span class="n">SUCCEEDED</span><span class="p">(</span><span class="n">hrCreate</span><span class="p">))</span>
+</span><span id="line-10">  <span class="p">{</span>
+</span><span id="line-11">    <span class="n">pClrHost</span><span class="o">-&gt;</span><span class="n">AddRef</span><span class="p">();</span>
+</span><span id="line-12">    <span class="o">*</span><span class="n">pHost</span> <span class="o">=</span> <span class="k">static_cast</span><span class="o">&lt;</span><span class="n">IUnmanagedHost</span> <span class="o">*&gt;</span><span class="p">(</span><span class="n">pClrHost</span><span class="p">);</span>
+</span><span id="line-13">  <span class="p">}</span>
+</span><span id="line-14">
+</span><span id="line-15">  <span class="k">return</span> <span class="n">hrCreate</span><span class="p">;</span>
+</span><span id="line-16"><span class="p">}</span>
+</span></pre></div></code></pre></div>
+
+<div class="highlight"><pre><code class="language-cpp"><div class="highlight"><pre><span id="line-1"><span class="n">HRESULT</span> <span class="n">CClrHost</span><span class="o">::</span><span class="n">FinalConstruct</span><span class="p">()</span>
+</span><span id="line-2"><span class="p">{</span>
+</span><span id="line-3">  <span class="n">ICLRMetaHost</span>       <span class="o">*</span><span class="n">pMetaHost</span> <span class="o">=</span> <span class="nb">NULL</span><span class="p">;</span>
+</span><span id="line-4">  <span class="n">HRESULT</span> <span class="n">hr</span><span class="p">;</span>
+</span><span id="line-5">  <span class="n">hr</span> <span class="o">=</span> <span class="n">CLRCreateInstance</span><span class="p">(</span><span class="n">CLSID_CLRMetaHost</span><span class="p">,</span> <span class="n">IID_ICLRMetaHost</span><span class="p">,</span>
+</span><span id="line-6">    <span class="p">(</span><span class="n">LPVOID</span><span class="o">*</span><span class="p">)</span><span class="o">&amp;</span><span class="n">pMetaHost</span><span class="p">);</span>
+</span><span id="line-7">
+</span><span id="line-8">  <span class="n">IEnumUnknown</span> <span class="o">*</span> <span class="n">pRtEnum</span> <span class="o">=</span> <span class="nb">NULL</span><span class="p">;</span>
+</span><span id="line-9">  <span class="n">ICLRRuntimeInfo</span> <span class="o">*</span><span class="n">info</span> <span class="o">=</span> <span class="nb">NULL</span><span class="p">;</span>
+</span><span id="line-10">  <span class="n">ULONG</span> <span class="n">fetched</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>
+</span><span id="line-11">  <span class="n">ICLRRuntimeHost</span> <span class="o">*</span><span class="n">m_pClr</span> <span class="o">=</span> <span class="nb">NULL</span><span class="p">;</span>
+</span><span id="line-12">  <span class="kt">bool</span> <span class="n">runtimesLoaded</span> <span class="o">=</span> <span class="nb">false</span><span class="p">;</span>
+</span><span id="line-13">  <span class="n">WCHAR</span> <span class="n">strName</span><span class="p">[</span><span class="mi">128</span><span class="p">];</span>
+</span><span id="line-14">  <span class="n">DWORD</span> <span class="n">len</span> <span class="o">=</span> <span class="mi">128</span><span class="p">;</span>
+</span><span id="line-15">
+</span><span id="line-16">  <span class="n">pMetaHost</span><span class="o">-&gt;</span><span class="n">EnumerateInstalledRuntimes</span><span class="p">(</span><span class="o">&amp;</span><span class="n">pRtEnum</span><span class="p">);</span>
+</span><span id="line-17">  <span class="k">while</span> <span class="p">((</span><span class="n">hr</span> <span class="o">=</span> <span class="n">pRtEnum</span><span class="o">-&gt;</span><span class="n">Next</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="p">(</span><span class="n">IUnknown</span> <span class="o">**</span><span class="p">)</span><span class="o">&amp;</span><span class="n">info</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">fetched</span><span class="p">))</span> 
+</span><span id="line-18">    <span class="o">==</span> <span class="n">S_OK</span> <span class="o">&amp;&amp;</span> <span class="n">fetched</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">)</span>
+</span><span id="line-19">  <span class="p">{</span>
+</span><span id="line-20">    <span class="n">ZeroMemory</span><span class="p">(</span><span class="n">strName</span><span class="p">,</span> <span class="k">sizeof</span><span class="p">(</span><span class="n">strName</span><span class="p">));</span>
+</span><span id="line-21">    <span class="n">info</span><span class="o">-&gt;</span><span class="n">GetVersionString</span><span class="p">(</span><span class="n">strName</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">len</span><span class="p">);</span>
+</span><span id="line-22">    <span class="n">hr</span> <span class="o">=</span> <span class="n">info</span><span class="o">-&gt;</span><span class="n">GetInterface</span><span class="p">(</span><span class="n">CLSID_CLRRuntimeHost</span><span class="p">,</span>
+</span><span id="line-23">      <span class="n">IID_ICLRRuntimeHost</span><span class="p">,</span>
+</span><span id="line-24">      <span class="k">reinterpret_cast</span><span class="o">&lt;</span><span class="n">LPVOID</span> <span class="o">*&gt;</span><span class="p">(</span><span class="o">&amp;</span><span class="n">m_pClr</span><span class="p">));</span>
+</span><span id="line-25">    <span class="k">if</span> <span class="p">(</span><span class="o">!</span><span class="n">SUCCEEDED</span><span class="p">(</span><span class="n">hr</span><span class="p">))</span>
+</span><span id="line-26">      <span class="n">printf</span><span class="p">(</span><span class="s">&quot;hr failed....&quot;</span><span class="p">);</span>
+</span><span id="line-27">    <span class="n">m_CLRRuntimeMap</span><span class="p">[</span><span class="n">std</span><span class="o">::</span><span class="n">wstring</span><span class="p">(</span><span class="n">strName</span><span class="p">)]</span> <span class="o">=</span> <span class="n">m_pClr</span><span class="p">;</span>
+</span><span id="line-28">    <span class="k">this</span><span class="o">-&gt;</span><span class="n">m_lastCLR</span><span class="p">.</span><span class="n">assign</span><span class="p">(</span><span class="n">strName</span><span class="p">);</span>
+</span><span id="line-29">  <span class="p">}</span>
+</span><span id="line-30">  <span class="n">pRtEnum</span><span class="o">-&gt;</span><span class="n">Release</span><span class="p">();</span>
+</span><span id="line-31">  <span class="n">pRtEnum</span> <span class="o">=</span> <span class="nb">NULL</span><span class="p">;</span>
+</span><span id="line-32">  <span class="n">pMetaHost</span><span class="o">-&gt;</span><span class="n">Release</span><span class="p">();</span>
+</span><span id="line-33">
+</span><span id="line-34">  <span class="k">return</span> <span class="n">S_OK</span><span class="p">;</span>
+</span><span id="line-35"><span class="p">}</span>
+</span></pre></div></code></pre></div>
+
+<h2 id="start">Start</h2>
+<p>Once we’ve found and loaded all of the CLRs we want, we need to start them. But before we do, we need to set our options. If you were to call <code>IUnmanagedHost::Start()</code> without setting any of the additional interfaces you will get a standard CLR to execute your .NET code in.</p>
+
+<p>That is good. But we need to customize our CLR a bit so we can spin up new application domains when a query is started and unload them when it is finished. <strong>This functionality is not implemented in these examples but will be in later posts.</strong></p>
+
+<p>In the example below you can see that we are looping through the <code>m_CLRRuntimeMap</code> that was populated in the Initialization step above. This allows us to set our main <code>CClrHost</code> object as the implementation of IHostControl. We also set our AppDomainManager type with the two strings provided.</p>
+
+<p>Once we’re done we call <code>ICLRRuntimeHost::Start()</code>. This kicks off a new application domain and calls the <code>AppDomainManager::InitializeNewDomain()</code> method. This sets the flag <code>RegisterWithHost</code>.
+This flag tells the AppDomain to call into the <code>IHostManager::SetAppDomainManager()</code> method.</p>
+
+<p>Inside of the <code>IHostManager::SetAppDomainManager()</code> we are given the AppDomain integer Id as well as a pointer to the AppDomain Manager. We check to see if it implements our <code>IManagedHost</code> interface. If it does we call a method we created called <code>IManagedHost::GetCLR()</code> this returns a text representation of the current version. This is used to add to the AppDomainManager std::map; this std::map holds the DEFAULT AppDomains.</p>
+
+<p>After this method returns we have officially started our CLR.</p>
+
+<blockquote>
+  <p><strong>NOTE</strong> As before, this code will run for BOTH v2.0 and v4.0. It would also run for any OTHER CLRs that are allowed to be loaded side by side.</p>
+</blockquote>
+
+<div class="highlight"><pre><code class="language-Cpp"><div class="highlight"><pre><span id="line-1"><span class="k">const</span> <span class="kt">wchar_t</span> <span class="o">*</span><span class="n">CClrHost</span><span class="o">::</span><span class="n">AppDomainManagerAssembly</span> 
+</span><span id="line-2">  <span class="o">=</span> <span class="s">L&quot;mysql_managed_interface, Version=1.0.0.0, PublicKeyToken=71c4a5d4270bd29c&quot;</span><span class="p">;</span>
+</span><span id="line-3"><span class="k">const</span> <span class="kt">wchar_t</span> <span class="o">*</span><span class="n">CClrHost</span><span class="o">::</span><span class="n">AppDomainManagerType</span> 
+</span><span id="line-4">  <span class="o">=</span> <span class="s">L&quot;mysql_managed_interface.MySQLHostManager&quot;</span><span class="p">;</span>
+</span><span id="line-5">
+</span><span id="line-6"><span class="n">STDMETHODIMP</span> <span class="n">CClrHost</span><span class="o">::</span><span class="n">raw_Start</span><span class="p">()</span>
+</span><span id="line-7"><span class="p">{</span>
+</span><span id="line-8">  <span class="c1">// we should have bound to the runtime, but not yet started it upon entry</span>
+</span><span id="line-9">  <span class="k">if</span> <span class="p">(</span><span class="o">!</span><span class="n">m_started</span><span class="p">)</span>
+</span><span id="line-10">  <span class="p">{</span>
+</span><span id="line-11">    <span class="n">_ASSERTE</span><span class="p">(</span><span class="o">!</span><span class="n">m_started</span><span class="p">);</span>
+</span><span id="line-12">    <span class="k">for</span> <span class="p">(</span><span class="k">auto</span> <span class="o">&amp;</span><span class="nl">x</span> <span class="p">:</span> <span class="n">m_CLRRuntimeMap</span><span class="p">)</span>
+</span><span id="line-13">    <span class="p">{</span>
+</span><span id="line-14">      <span class="n">ICLRRuntimeHost</span> <span class="o">*</span><span class="n">m_pClr</span> <span class="o">=</span> <span class="n">x</span><span class="p">.</span><span class="n">second</span><span class="p">;</span>
+</span><span id="line-15">      <span class="c1">// get the CLR control object</span>
+</span><span id="line-16">      <span class="n">HRESULT</span> <span class="n">hrClrControl</span> <span class="o">=</span> <span class="n">m_pClr</span><span class="o">-&gt;</span><span class="n">GetCLRControl</span><span class="p">(</span><span class="o">&amp;</span><span class="n">m_pClrControl</span><span class="p">);</span>
+</span><span id="line-17">      <span class="k">if</span> <span class="p">(</span><span class="n">FAILED</span><span class="p">(</span><span class="n">hrClrControl</span><span class="p">))</span>
+</span><span id="line-18">        <span class="k">return</span> <span class="n">hrClrControl</span><span class="p">;</span>
+</span><span id="line-19">
+</span><span id="line-20">      <span class="c1">// set ourselves up as the host control</span>
+</span><span id="line-21">      <span class="n">HRESULT</span> <span class="n">hrHostControl</span> <span class="o">=</span> 
+</span><span id="line-22">      <span class="n">m_pClr</span><span class="o">-&gt;</span><span class="n">SetHostControl</span><span class="p">(</span><span class="k">static_cast</span><span class="o">&lt;</span><span class="n">IHostControl</span> <span class="o">*&gt;</span><span class="p">(</span><span class="k">this</span><span class="p">));</span>
+</span><span id="line-23">
+</span><span id="line-24">      <span class="c1">// setup the AppDomainManager</span>
+</span><span id="line-25">      <span class="n">HRESULT</span> <span class="n">hrSetAdm</span> <span class="o">=</span> 
+</span><span id="line-26">      <span class="n">m_pClrControl</span><span class="o">-&gt;</span><span class="n">SetAppDomainManagerType</span><span class="p">(</span>
+</span><span id="line-27">        <span class="n">AppDomainManagerAssembly</span><span class="p">,</span> 
+</span><span id="line-28">        <span class="n">AppDomainManagerType</span><span class="p">);</span>
+</span><span id="line-29">
+</span><span id="line-30">      <span class="k">if</span> <span class="p">(</span><span class="n">FAILED</span><span class="p">(</span><span class="n">hrSetAdm</span><span class="p">))</span>
+</span><span id="line-31">        <span class="k">return</span> <span class="n">hrSetAdm</span><span class="p">;</span>
+</span><span id="line-32">
+</span><span id="line-33">      <span class="c1">// finally, start the runtime</span>
+</span><span id="line-34">      <span class="n">HRESULT</span> <span class="n">hrStart</span> <span class="o">=</span> <span class="n">m_pClr</span><span class="o">-&gt;</span><span class="n">Start</span><span class="p">();</span>
+</span><span id="line-35">      <span class="k">if</span> <span class="p">(</span><span class="n">FAILED</span><span class="p">(</span><span class="n">hrStart</span><span class="p">))</span>
+</span><span id="line-36">        <span class="k">return</span> <span class="n">hrStart</span><span class="p">;</span>
+</span><span id="line-37">    <span class="p">}</span>
+</span><span id="line-38">
+</span><span id="line-39">    <span class="c1">// mark as started</span>
+</span><span id="line-40">    <span class="n">m_started</span> <span class="o">=</span> <span class="nb">true</span><span class="p">;</span>
+</span><span id="line-41">  <span class="p">}</span>
+</span><span id="line-42">  <span class="k">return</span> <span class="n">S_OK</span><span class="p">;</span>
+</span><span id="line-43"><span class="p">}</span>
+</span></pre></div></code></pre></div>
+
+<div class="highlight"><pre><code class="language-Csharp"><div class="highlight"><pre><span id="line-1"> <span class="k">public</span> <span class="k">override</span> <span class="k">void</span> <span class="nf">InitializeNewDomain</span><span class="p">(</span><span class="n">AppDomainSetup</span> <span class="n">appDomainInfo</span><span class="p">)</span>
+</span><span id="line-2"><span class="p">{</span>
+</span><span id="line-3">  <span class="c1">// let the unmanaged host know about us</span>
+</span><span id="line-4">  <span class="n">InitializationFlags</span> <span class="p">=</span> <span class="n">AppDomainManagerInitializationOptions</span><span class="p">.</span><span class="n">RegisterWithHost</span><span class="p">;</span>
+</span><span id="line-5">  <span class="k">return</span><span class="p">;</span>
+</span><span id="line-6"><span class="p">}</span>
+</span></pre></div></code></pre></div>
+
+<div class="highlight"><pre><code class="language-Cpp"><div class="highlight"><pre><span id="line-1"><span class="n">STDMETHODIMP</span> <span class="n">CClrHost</span><span class="o">::</span><span class="n">SetAppDomainManager</span><span class="p">(</span><span class="n">DWORD</span> <span class="n">dwAppDomainId</span><span class="p">,</span> 
+</span><span id="line-2">  <span class="n">__in</span> <span class="n">IUnknown</span> <span class="o">*</span><span class="n">pUnkAppDomainManager</span><span class="p">)</span>
+</span><span id="line-3"><span class="p">{</span>
+</span><span id="line-4">  <span class="c1">// get the managed host interface</span>
+</span><span id="line-5">  <span class="n">IManagedHost</span> <span class="o">*</span><span class="n">pAppDomainManager</span> <span class="o">=</span> <span class="nb">NULL</span><span class="p">;</span>
+</span><span id="line-6">  <span class="k">if</span> <span class="p">(</span><span class="n">FAILED</span><span class="p">(</span><span class="n">pUnkAppDomainManager</span><span class="o">-&gt;</span><span class="n">QueryInterface</span><span class="p">(</span>
+</span><span id="line-7">    <span class="n">__uuidof</span><span class="p">(</span><span class="n">IManagedHost</span><span class="p">),</span> 
+</span><span id="line-8">    <span class="k">reinterpret_cast</span><span class="o">&lt;</span><span class="kt">void</span> <span class="o">**&gt;</span><span class="p">(</span><span class="o">&amp;</span><span class="n">pAppDomainManager</span><span class="p">))))</span>
+</span><span id="line-9">  <span class="p">{</span>
+</span><span id="line-10">    <span class="n">_ASSERTE</span><span class="p">(</span><span class="o">!</span><span class="s">&quot;AppDomainManager does not implement IManagedHost&quot;</span><span class="p">);</span>
+</span><span id="line-11">    <span class="k">return</span> <span class="n">E_NOINTERFACE</span><span class="p">;</span>
+</span><span id="line-12">  <span class="p">}</span>
+</span><span id="line-13">  <span class="c1">// register ourselves as the unmanaged host</span>
+</span><span id="line-14">  <span class="n">HRESULT</span> <span class="n">hrSetUnmanagedHost</span> <span class="o">=</span> 
+</span><span id="line-15">    <span class="n">pAppDomainManager</span><span class="o">-&gt;</span><span class="n">raw_SetUnmanagedHost</span><span class="p">(</span>
+</span><span id="line-16">      <span class="k">static_cast</span><span class="o">&lt;</span><span class="n">IUnmanagedHost</span> <span class="o">*&gt;</span><span class="p">(</span><span class="k">this</span><span class="p">));</span>
+</span><span id="line-17">
+</span><span id="line-18">  <span class="k">if</span> <span class="p">(</span><span class="n">FAILED</span><span class="p">(</span><span class="n">hrSetUnmanagedHost</span><span class="p">))</span>
+</span><span id="line-19">    <span class="k">return</span> <span class="n">hrSetUnmanagedHost</span><span class="p">;</span>
+</span><span id="line-20">
+</span><span id="line-21">  <span class="k">auto</span> <span class="n">clr</span> <span class="o">=</span> <span class="n">std</span><span class="o">::</span><span class="n">wstring</span><span class="p">(</span><span class="n">pAppDomainManager</span><span class="o">-&gt;</span><span class="n">GetCLR</span><span class="p">());</span>
+</span><span id="line-22">  <span class="c1">// save a copy</span>
+</span><span id="line-23">  <span class="n">m_appDomainManagers</span><span class="p">[</span><span class="n">clr</span><span class="p">]</span> <span class="o">=</span> <span class="n">pAppDomainManager</span><span class="p">;</span>
+</span><span id="line-24">  <span class="k">return</span> <span class="n">S_OK</span><span class="p">;</span>
+</span><span id="line-25"><span class="p">}</span>
+</span></pre></div></code></pre></div>
+
+<h2 id="running-our-method">Running Our Method</h2>
+
+<p>Now that we have our default AppDomain spun up it is time to execute code. After MySQL finishes with the <code>_init()</code> method, it calls the core function. In this case <code>mysqldotnet_int()</code>. This is where we will actually execute our custom method and return the data to MySQL.</p>
+
+<p>For now, we’re not actually going to spin up a new AppDomain to load an assembly. What we are going to do is use our default application domain manager to execute our simple <code>Run()</code> method.</p>
+
+<p>The <code>RunApplication()</code> method gets the default managed host and calls the <code>Run()</code> method with the parameter. Remember that in our <code>CComObjectRootEx::FinalConstruct()</code> method we set the member <code>m_lastCLR</code> to what ever the last thing to fall out of the enumeration was. <em>In my case it was the v4.0 CLR.</em></p>
+
+<p>We use this default host when we go to execute our <code>Run()</code> method we implemented. Our AppDomain manager exposes <code>Run()</code> via a COM visible interface. The implementation is simple right now, but we will expand it to run a custom assembly in later posts.</p>
+
+<blockquote>
+  <p><strong>NOTE</strong> I should go ahead and say I’m breaking one of those cardinal rules of when to use globals. Since our UDFs have the ability for us to pass items between methods I should use that construct. However, we need to make sure we keep our references to our std::maps or they will be deleted when the object goes out of scope. I trust that this is an okay use, but requires some extra protection around it dealing with multi threaded calls. That being said I can be a bit lazy sometimes.</p>
+</blockquote>
+
+<div class="highlight"><pre><code class="language-Cpp"><div class="highlight"><pre><span id="line-1"><span class="c1">// MySQL UDF core implementation</span>
+</span><span id="line-2">
+</span><span id="line-3"><span class="kt">long</span> <span class="kt">long</span> <span class="nf">mysqldotnet_int</span><span class="p">(</span><span class="n">UDF_INIT</span> <span class="o">*</span><span class="n">initid</span><span class="p">,</span> <span class="n">UDF_ARGS</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> 
+</span><span id="line-4">  <span class="kt">char</span> <span class="o">*</span><span class="n">is_null</span><span class="p">,</span> <span class="kt">char</span> <span class="o">*</span><span class="n">error</span><span class="p">)</span>
+</span><span id="line-5"><span class="p">{</span>
+</span><span id="line-6">  <span class="kt">int</span> <span class="n">returnCode</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>
+</span><span id="line-7">  <span class="n">try</span>
+</span><span id="line-8">  <span class="p">{</span>
+</span><span id="line-9">    <span class="n">longlong</span> <span class="n">val</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>
+</span><span id="line-10">    <span class="n">uint</span> <span class="n">i</span><span class="p">;</span>
+</span><span id="line-11">    <span class="k">for</span> <span class="p">(</span><span class="n">i</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span> <span class="n">i</span> <span class="o">&lt;</span> <span class="n">args</span><span class="o">-&gt;</span><span class="n">arg_count</span><span class="p">;</span> <span class="n">i</span><span class="o">++</span><span class="p">)</span>
+</span><span id="line-12">    <span class="p">{</span>
+</span><span id="line-13">      <span class="k">if</span> <span class="p">(</span><span class="n">args</span><span class="o">-&gt;</span><span class="n">args</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">==</span> <span class="nb">NULL</span><span class="p">)</span>
+</span><span id="line-14">        <span class="k">continue</span><span class="p">;</span>
+</span><span id="line-15">      <span class="k">switch</span> <span class="p">(</span><span class="n">args</span><span class="o">-&gt;</span><span class="n">arg_type</span><span class="p">[</span><span class="n">i</span><span class="p">])</span> <span class="p">{</span>
+</span><span id="line-16">      <span class="k">case</span> <span class="nl">STRING_RESULT</span><span class="p">:</span>    <span class="cm">/* Add string lengths */</span>
+</span><span id="line-17">        <span class="n">val</span> <span class="o">+=</span> <span class="n">args</span><span class="o">-&gt;</span><span class="n">lengths</span><span class="p">[</span><span class="n">i</span><span class="p">];</span>
+</span><span id="line-18">        <span class="k">break</span><span class="p">;</span>
+</span><span id="line-19">      <span class="k">case</span> <span class="nl">INT_RESULT</span><span class="p">:</span>    <span class="cm">/* Add numbers */</span>
+</span><span id="line-20">        <span class="n">val</span> <span class="o">+=</span> <span class="n">RunApplication</span><span class="p">(</span><span class="n">pClrHost</span><span class="p">,</span> 
+</span><span id="line-21">          <span class="o">*</span><span class="p">((</span><span class="n">longlong</span><span class="o">*</span><span class="p">)</span><span class="n">args</span><span class="o">-&gt;</span><span class="n">args</span><span class="p">[</span><span class="n">i</span><span class="p">]));</span>
+</span><span id="line-22">        <span class="k">break</span><span class="p">;</span>
+</span><span id="line-23">      <span class="k">case</span> <span class="nl">REAL_RESULT</span><span class="p">:</span>    <span class="cm">/* Add numers as longlong */</span>
+</span><span id="line-24">        <span class="n">val</span> <span class="o">+=</span> <span class="p">(</span><span class="n">longlong</span><span class="p">)((</span><span class="kt">double</span><span class="p">)</span><span class="n">RunApplication</span><span class="p">(</span><span class="n">pClrHost</span><span class="p">,</span> 
+</span><span id="line-25">          <span class="o">*</span><span class="p">((</span><span class="n">longlong</span><span class="o">*</span><span class="p">)</span><span class="n">args</span><span class="o">-&gt;</span><span class="n">args</span><span class="p">[</span><span class="n">i</span><span class="p">])));</span>
+</span><span id="line-26">        <span class="k">break</span><span class="p">;</span>
+</span><span id="line-27">      <span class="k">default</span><span class="o">:</span>
+</span><span id="line-28">        <span class="k">break</span><span class="p">;</span>
+</span><span id="line-29">      <span class="p">}</span>
+</span><span id="line-30">    <span class="p">}</span>
+</span><span id="line-31">    <span class="k">return</span> <span class="n">val</span><span class="p">;</span>
+</span><span id="line-32">    <span class="c1">// run the application</span>
+</span><span id="line-33">  <span class="p">}</span>
+</span><span id="line-34">  <span class="k">catch</span> <span class="p">(</span><span class="k">const</span> <span class="n">_com_error</span> <span class="o">&amp;</span><span class="n">e</span><span class="p">)</span>
+</span><span id="line-35">  <span class="p">{</span>
+</span><span id="line-36">    <span class="k">const</span> <span class="kt">wchar_t</span> <span class="o">*</span><span class="n">message</span> <span class="o">=</span> <span class="p">(</span><span class="kt">wchar_t</span> <span class="o">*</span><span class="p">)</span><span class="n">e</span><span class="p">.</span><span class="n">Description</span><span class="p">()</span> <span class="o">==</span> <span class="nb">NULL</span> <span class="o">?</span>
+</span><span id="line-37">      <span class="s">L&quot;&quot;</span> <span class="o">:</span>
+</span><span id="line-38">      <span class="p">(</span><span class="kt">wchar_t</span> <span class="o">*</span><span class="p">)</span><span class="n">e</span><span class="p">.</span><span class="n">Description</span><span class="p">();</span>
+</span><span id="line-39">    <span class="n">std</span><span class="o">::</span><span class="n">wcerr</span> <span class="o">&lt;&lt;</span> <span class="s">L&quot;Error 0x&quot;</span> <span class="o">&lt;&lt;</span> <span class="n">std</span><span class="o">::</span><span class="n">hex</span> <span class="o">&lt;&lt;</span> <span class="n">e</span><span class="p">.</span><span class="n">Error</span><span class="p">()</span> <span class="o">&lt;&lt;</span> <span class="s">L&quot;) : &quot;</span> <span class="o">&lt;&lt;</span> <span class="n">message</span> <span class="o">&lt;&lt;</span> <span class="n">std</span><span class="o">::</span><span class="n">endl</span><span class="p">;</span>
+</span><span id="line-40">
+</span><span id="line-41">    <span class="n">returnCode</span> <span class="o">=</span> <span class="n">e</span><span class="p">.</span><span class="n">Error</span><span class="p">();</span>
+</span><span id="line-42">  <span class="p">}</span>
+</span><span id="line-43">  <span class="k">return</span> <span class="mi">0</span><span class="p">;</span>
+</span><span id="line-44"><span class="p">}</span>
+</span></pre></div></code></pre></div>
+
+<div class="highlight"><pre><code class="language-Cpp"><div class="highlight"><pre><span id="line-1"><span class="c1">// Global method called by our UDF</span>
+</span><span id="line-2">
+</span><span id="line-3"><span class="kt">long</span> <span class="kt">long</span> <span class="nf">RunApplication</span><span class="p">(</span><span class="n">IUnmanagedHostPtr</span> <span class="o">&amp;</span><span class="n">pClr</span><span class="p">,</span> <span class="kt">long</span> <span class="kt">long</span> <span class="n">input</span><span class="p">)</span>
+</span><span id="line-4"><span class="p">{</span>
+</span><span id="line-5">  <span class="c1">// Get the default managed host</span>
+</span><span id="line-6">  <span class="n">IManagedHostPtr</span> <span class="n">pManagedHost</span> <span class="o">=</span> <span class="n">pClr</span><span class="o">-&gt;</span><span class="n">DefaultManagedHost</span><span class="p">;</span>
+</span><span id="line-7">  <span class="k">return</span> <span class="n">pManagedHost</span><span class="o">-&gt;</span><span class="n">Run</span><span class="p">(</span><span class="n">input</span><span class="p">);</span>
+</span><span id="line-8"><span class="p">}</span>
+</span></pre></div></code></pre></div>
+
+<div class="highlight"><pre><code class="language-Cpp"><div class="highlight"><pre><span id="line-1"><span class="c1">// IUnmanagedHost::DefaultManagedHost property calls this internally</span>
+</span><span id="line-2">
+</span><span id="line-3"><span class="n">STDMETHODIMP</span> <span class="n">CClrHost</span><span class="o">::</span><span class="n">get_DefaultManagedHost</span><span class="p">(</span><span class="n">__out</span> <span class="n">IManagedHost</span> <span class="o">**</span><span class="n">ppHost</span><span class="p">)</span>
+</span><span id="line-4"><span class="p">{</span>
+</span><span id="line-5">  <span class="c1">// just get the AppDomainManager for the default AppDomain</span>
+</span><span id="line-6">  <span class="k">return</span> <span class="n">raw_GetManagedHost</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">BSTR</span><span class="p">(</span><span class="n">m_lastCLR</span><span class="p">.</span><span class="n">c_str</span><span class="p">()),</span> <span class="n">ppHost</span><span class="p">);</span>
+</span><span id="line-7"><span class="p">}</span>
+</span></pre></div></code></pre></div>
+
+<div class="highlight"><pre><code class="language-Csharp"><div class="highlight"><pre><span id="line-1"><span class="c1">// Our actual .NET code (cute isn&#39;t it?)</span>
+</span><span id="line-2"><span class="k">public</span> <span class="n">Int64</span> <span class="nf">Run</span><span class="p">(</span><span class="n">Int64</span> <span class="n">path</span><span class="p">)</span>
+</span><span id="line-3"><span class="p">{</span>
+</span><span id="line-4">  <span class="k">return</span> <span class="p">(</span><span class="n">path</span> <span class="p">*</span> <span class="m">3</span><span class="p">);</span>
+</span><span id="line-5"><span class="p">}</span>
+</span></pre></div></code></pre></div>
+
+<h2 id="subsequent-runs">Subsequent Runs</h2>
+<p>The same steps are taken when we actually run the core function. However, the only real difference is when the <code>*_init()</code> method is called we check the pointer to see if it is null. Check the first code example for this code path.</p>
+
+<p>During testing I found if I assigned a pointer to the ptr field in UDF_INIT, a delete was called by MySQL somewhere in the execution chain. The CLR wasn’t unloaded but it cleared out my maps and other state members.</p>
+
+<h2 id="wrapping-up">Wrapping Up</h2>
+<p>This quick walk through was to show where the code is injected into the MySQL plugin. At this point in the posting we are still adding on features as we go. From here on out I plan to have specific commits that will expose the code examples at the proper points in time.</p>
+
+<p>The next section will go into how we can isolate code execution by spinning up unique application domains per query. This will be one of the core features that makes this solution robust as we can prevent any external code from destroying the integrity of the MySQL environment.</p>
+
+<p>If you have any questions, feel free to leave a comment or contact me on Twitter.</p>
+
+
+</div>
+
+ <div id="disqus_thread"></div>
+    <script type="text/javascript">
+        /* * * CONFIGURATION VARIABLES: EDIT BEFORE PASTING INTO YOUR WEBPAGE * * */
+        var disqus_shortname = 'debugthings'; // required: replace example with your forum shortname
+        var disqus_url = 'http://www.debugthings.com/2014/11/18/extending-mysql-server-part3/';
+        var disqus_identifier = '/2014/11/18/extending-mysql-server-part3';
+
+
+        /* * * DON'T EDIT BELOW THIS LINE * * */
+        (function() {
+            var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
+            dsq.src = '//' + disqus_shortname + '.disqus.com/embed.js';
+            (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+        })();
+    </script>
+    <noscript>Please enable JavaScript to view the <a href="http://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
+    
+
+<div class="related">
+  <h2>Related Posts</h2>
+  <ul class="related-posts">
+    
+    <li>
+      <h3>
+        <a href="/2014/11/16/extending-mysql-server-part2/">
+          MySQL .NET Hosting Extension - Part 2 - UDF Deep Dive
+          <small>16 Nov 2014</small>
+        </a>
+      </h3>
+    </li>
+    
+    <li>
+      <h3>
+        <a href="/2014/11/11/extending-mysql-server-part1/">
+          MySQL .NET Hosting Extension - Part 1 - Compile Sample UDF
+          <small>11 Nov 2014</small>
+        </a>
+      </h3>
+    </li>
+    
+    <li>
+      <h3>
+        <a href="/2014/11/11/extending-mysql-server-part0/">
+          MySQL .NET Hosting Extension - Part 0
+          <small>11 Nov 2014</small>
+        </a>
+      </h3>
+    </li>
+    
+  </ul>
+</div>
+
+      <div class="footer">
+        <p>
+          &copy; 2014. All rights reserved.
+        </p>
+      </div>
+    </div>
+  </div>
+</div>
+
+
+</body>
+</html>

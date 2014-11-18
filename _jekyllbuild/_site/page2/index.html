@@ -73,70 +73,68 @@
   
   <div class="post">
     <h1 class="post-title">
-      <a href="/2014/11/18/extending-mysql-server-part3/">
-        MySQL .NET Hosting Extension - Part 3 - Adding in the .NET Hosting API
+      <a href="/2014/10/31/answering-questions/">
+        Contributing to a Forum for 10 Days Straight
       </a>
     </h1>
 
-    <span class="post-date">18 Nov 2014</span>
+    <span class="post-date">31 Oct 2014</span>
 
-    Now that we’ve walked through the basics of a UDF, let’s start bolting on an AppDomain Manager. As I mentioned before in <a href="(/2014/11/16/extending-mysql-server-part2/)">part 2</a> my example is based off of the <a href="http://www.microsoft.com/en-us/download/details.aspx?id=7325">ADMHost</a> sample provided by Microsoft. The code is used as a jump off point, but we will be extending it as these posts progress. This part of the series will focus on the insertion points rather than the actual code. That will be in the next part. For some extra information on the hosting API check out <a href="http://www.amazon.com/gp/product/0735619883/">Customizing the Microsoft® .NET Framework</a> by <a href="http://blogs.msdn.com/b/stevenpr/">Steven Pratschner</a>. Also check out <a href="http://msdn.microsoft.com/en-us/library/ms404385(v=vs.110).aspx">MSDN</a> for update information on the APIs.
+    Back in early October my company sent me to <a href="http://http://compuwareperform.com/">Perform 2014</a>. While there, I met with some great people and found out that I&#8217;m not alone. It was also very humbling. I liked that. But, with all of the meeting I found that there were a lot of people who didn&#8217;t know where to turn to for help. Turns out there is a very active user community. I wanted to get involved.
 
 
   </div>
   
   <div class="post">
     <h1 class="post-title">
-      <a href="/2014/11/16/extending-mysql-server-part2/">
-        MySQL .NET Hosting Extension - Part 2 - UDF Deep Dive
+      <a href="/2014/10/21/hostprotectionexception-ssrs/">
+        Debugging - HostProtectionException in SSRS
       </a>
     </h1>
 
-    <span class="post-date">16 Nov 2014</span>
+    <span class="post-date">21 Oct 2014</span>
 
-    After I worked through compiling the sources, the next step was to get .NET hosting working at a basic level. I used source from another project called <a href="http://www.microsoft.com/en-us/download/details.aspx?id=7325">ADMHost</a> (App Domain Manager) to base my code on. This code allows you to specify and create a managed AppDomain manager and use it to manage and run your .NET assemblies.
+    Our BI team is currently going through an uplift from Win2k3 to Win2012. It is quite a massive undertaking of course. But, beyond the amount of work that has to be done there is another dangerous killer out there.  Undocumented changes. In this article I describe the System.Security.HostProtectionException in relation to SSRS and custom code.
+  </div>
+  
+  <div class="post">
+    <h1 class="post-title">
+      <a href="/2014/09/24/critical-section-deadlock/">
+        Debugging - Fixing a deadlock
+      </a>
+    </h1>
+
+    <span class="post-date">24 Sep 2014</span>
+
+    More often than not I do postmortem debugging. That is to say, I get a dump file long after the machine has experienced an issue. But, on occasion I get pulled in to take a look at problems that need to be run through the debugger. This article will show you some commands you can use to locate and fix code using WinDbg.
 
 
   </div>
   
   <div class="post">
     <h1 class="post-title">
-      <a href="/2014/11/11/extending-mysql-server-part1/">
-        MySQL .NET Hosting Extension - Part 1 - Compile Sample UDF
+      <a href="/2014/09/23/bandwidth/">
+        Bandwidth. It's not free...
       </a>
     </h1>
 
-    <span class="post-date">11 Nov 2014</span>
+    <span class="post-date">23 Sep 2014</span>
 
-    So, the first thing I had to do was compile the MySQL sample UDF which is included in the source tree. While it seems like a simple thing to do with CMake and all of the proper tools installed, there are a few things not documented. The steps to compile <a href="http://dev.mysql.com/doc/refman/5.5/en/udf-compiling.html">can be found here</a>. The steps are really straight forward, but there is a catch. In order to build on Windows there are a few steps you will need to do in order to fully get the example working.
+    Usually when I performance test internal applications I don&#8217;t consider bandwidth unless I know we&#8217;re doing something irrational like transferring multi gigabyte files all the time. And even then I only consider it if we&#8217;re crossing a WAN or some other &#8220;slow&#8221; link between sites. But, every now and then there is a project that runs over the Internet and it is very data intensive. And, a lot of that data is out of the control of the developers (images, 3rd party libraries, fonts).
 
 
   </div>
   
   <div class="post">
     <h1 class="post-title">
-      <a href="/2014/11/11/extending-mysql-server-part0/">
-        MySQL .NET Hosting Extension - Part 0
+      <a href="/2014/09/16/always-performance-test/">
+        Always Performance Test!
       </a>
     </h1>
 
-    <span class="post-date">11 Nov 2014</span>
+    <span class="post-date">16 Sep 2014</span>
 
-    For some reason I feel compelled to write an extension for <a href="http://www.mysql.com/">MySQL</a> that allows use of .NET classes for functions. It&#8217;s really a purely academic exercise&#8212;even though I&#8217;m not in school&#8212;that I&#8217;m using to explore the use of the <a href="http://msdn.microsoft.com/en-us/library/dd380850(v=vs.110).aspx">.NET Hosting APIs</a>. I will use my blog as a way to keep myself focused and accountable. But more over it&#8217;s so I don&#8217;t forget what I wanted to do. I will line out a few milestones.
-
-
-  </div>
-  
-  <div class="post">
-    <h1 class="post-title">
-      <a href="/2014/11/06/owasp-top-10-mvc-tampa-day-talk/">
-        First Time Speaking at OWASP Tampa
-      </a>
-    </h1>
-
-    <span class="post-date">06 Nov 2014</span>
-
-    A few weeks ago I submitted a talk for <a href="https://www.owasp.org/index.php/Tampa">OWASP Tampa Days 2014</a> and I was selected.  The topic I picked to demonstrate was how MVC for .NET can solve some of the problems listed in the <a href="https://www.owasp.org/index.php/Top_10_2013-Top_10">OWASP Top 10</a>. Let me be the first to say that I was truly unprepared for what I was about to get into. This was truly an exercise in conciseness. <a href="/owasp/">Get the slides here</a>
+    While thumbing through Twitter I ran across an <a href="http://apmblog.compuware.com/2014/09/16/detecting-bad-deployments-resource-impact-response-time-hotspot-garbage-collection/">article</a> written by <a href="https://twitter.com/grabnerandi">@grabnerandi</a> about a company not being able to load test a change for dependency injection. I can&#8217;t tell you how many times in my job that performance testing has been brushed over for speed to market.
 
 
   </div>
@@ -152,10 +150,12 @@
 <nav>
   <ul class="pager">
     
-    <li class="previous"><a  href="/page2">Previous Posts</a></li>
+    <li class="previous"><a  href="/page3">Previous Posts</a></li>
     
     
-    <li class="next disabled"><a  href="#">Newer Posts</a></li>
+    
+    <li class="next"><a href="/">Newer Posts</a></li>
+    
     
   </ul>
 </nav>
