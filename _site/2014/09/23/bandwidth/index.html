@@ -47,67 +47,66 @@
 
 <body>
   <nav class="navbar navbar-inverse navbar-fixed-top" role="navigation">
-    <div class="container">
-      <div class="navbar-header">
-        <button type="button" class="navbar-toggle collapsed" data-toggle="collapse" data-target="#navbar" aria-expanded="false" aria-controls="navbar">
-          <span class="sr-only">Toggle navigation</span>
-          <span class="icon-bar"></span>
-          <span class="icon-bar"></span>
-          <span class="icon-bar"></span>
-        </button>
-        <a href="/" class="navbar-brand" title="Home">DEBUG THINGS</a>
-      </div>
-      <div id="navbar" class="navbar-collapse collapse">
-        <ul class="nav navbar-nav">
-          <li><a href="/about/">About</a></li>
-          <li><a href="/projects">Projects</a></li>
-          <li><a href="/owasp/">OWASP Tampa</a></li>
-        </ul>
-      </div><!--/.navbar-collapse -->
+  <div class="container">
+    <div class="navbar-header">
+      <button type="button" class="navbar-toggle collapsed" data-toggle="collapse" data-target="#navbar" aria-expanded="false" aria-controls="navbar">
+        <span class="sr-only">Toggle navigation</span>
+        <span class="icon-bar"></span>
+        <span class="icon-bar"></span>
+        <span class="icon-bar"></span>
+      </button>
+      <a href="/" class="navbar-brand" title="Home">DEBUG THINGS</a>
     </div>
-  </nav>
+    <div id="navbar" class="navbar-collapse collapse">
+      <ul class="nav navbar-nav">
+        <li><a href="/about/">About</a></li>
+        <li><a href="/projects">Projects</a></li>
+        <li><a href="/owasp/">OWASP Tampa</a></li>
+      </ul>
+    </div><!--/.navbar-collapse -->
+  </div>
+</nav>
   <div class="container containerbg">
    <div class="row rowoffset">
-    <div class="col-md-8">
+    <div class="col-md-12">
       <div class="post">
   <h1 class="post-title">Bandwidth. It's not free...</h1>
   <span class="post-date">23 Sep 2014</span>
   <a href="https://twitter.com/share" class="twitter-share-button" data-via="debugthings" data-size="large">Tweet</a>
   <script>!function(d,s,id){var js,fjs=d.getElementsByTagName(s)[0],p=/^http:/.test(d.location)?'http':'https';if(!d.getElementById(id)){js=d.createElement(s);js.id=id;js.src=p+'://platform.twitter.com/widgets.js';fjs.parentNode.insertBefore(js,fjs);}}(document, 'script', 'twitter-wjs');</script>
-  <p>Usually when I performance test internal applications I don&rsquo;t consider bandwidth unless I know we&rsquo;re doing something irrational like transferring multi gigabyte files all the time. And even then I only consider it if we&rsquo;re crossing a WAN or some other &ldquo;slow&rdquo; link between sites. But, every now and then there is a project that runs over the Internet and it is very data intensive. And, a lot of that data is out of the control of the developers (images, 3rd party libraries, fonts).</p>
+  <p>Usually when I performance test internal applications I don’t consider bandwidth unless I know we’re doing something irrational like transferring multi gigabyte files all the time. And even then I only consider it if we’re crossing a WAN or some other “slow” link between sites. But, every now and then there is a project that runs over the Internet and it is very data intensive. And, a lot of that data is out of the control of the developers (images, 3rd party libraries, fonts).</p>
 
-<p>It&rsquo;s a given that it will cost you money, but how much? A dedicated link can run anywhere from $100 a month on a broadband backbone, all the way up to $50,000 for Gbit Level3 Fiber. How much money you want to spend on your connection depends on the amount of content you need to control.</p>
+<p>It’s a given that it will cost you money, but how much? A dedicated link can run anywhere from $100 a month on a broadband backbone, all the way up to $50,000 for Gbit Level3 Fiber. How much money you want to spend on your connection depends on the amount of content you need to control.</p>
 
 <p><strong>You may find that if you do some tuning on bandwidth you can save your self hundreds of thousands of dollars per year.</strong> You read that right, <strong>hundreds of thousands of dollars</strong>.</p>
 
-<h3>Background</h3>
-
-<p>Recently I was working on a launch of a new website and the main concern was hitting our requests per second target for daily use and what a holiday spike would look like. This is how things normally go. It&rsquo;s easy. You drive load into the system until it eventually cracks. You suggest a fix. It gets implemented. Repeat.</p>
+<h3 id="background">Background</h3>
+<p>Recently I was working on a launch of a new website and the main concern was hitting our requests per second target for daily use and what a holiday spike would look like. This is how things normally go. It’s easy. You drive load into the system until it eventually cracks. You suggest a fix. It gets implemented. Repeat.</p>
 
 <p>So, here we are about 3 weeks out from our go-live date. We spent months on tuning the system to run as lean as possible. We turned logging down. Compression on. SSL offloading. SQL tuning. Everything. We were ready.</p>
 
-<p>Yet, while doing all of this there wasn&rsquo;t much visual content on the site. It wasn&rsquo;t until this point in the project that &ldquo;real&rdquo; images and verbiage were coming in. When it did our bandwidth consumption jumped considerably. I don&rsquo;t mean 2 times; 10 times. <strong>TEN TIMES</strong>. We had to find out just how much data we were pushing, and we needed to know what it looked like from outside of the datacenter.</p>
+<p>Yet, while doing all of this there wasn’t much visual content on the site. It wasn’t until this point in the project that “real” images and verbiage were coming in. When it did our bandwidth consumption jumped considerably. I don’t mean 2 times; 10 times. <strong>TEN TIMES</strong>. We had to find out just how much data we were pushing, and we needed to know what it looked like from outside of the datacenter.</p>
 
-<h3>Bandwidth Estimation</h3>
-
+<h3 id="bandwidth-estimation">Bandwidth Estimation</h3>
 <p>Before we start running load tests willy nilly out on the open internet we need to do some math. Not hard math, but some fuzzy math to calculate our potential load. I will give some examples with a common website.</p>
 
-<p>For this I always use <a href="http://www.telerik.com/fiddler">Fiddler</a>. There are some great plugins that will help you determine impact of change as well. Here is an <a href="http://www.telerik.com/fiddler/web-app-performance-testing">overview</a> of what it can provide. These next few sections assume you&rsquo;re somewhat familiar with Fiddler. I will include a few small steps but nothing in-depth. This isn&rsquo;t a Fiddler tutorial.</p>
+<p>For this I always use <a href="http://www.telerik.com/fiddler">Fiddler</a>. There are some great plugins that will help you determine impact of change as well. Here is an <a href="http://www.telerik.com/fiddler/web-app-performance-testing">overview</a> of what it can provide. These next few sections assume you’re somewhat familiar with Fiddler. I will include a few small steps but nothing in-depth. This isn’t a Fiddler tutorial.</p>
 
 <p>When we first navigate to <a href="http://www.microsoft.com/">www.microsoft.com</a> we will see the total amount of requests that are sent over. We can see this by selecting all of the requests that make up a page. In this case the home page. I have trimmed off some extra data for brevity.</p>
-<div class="highlight"><pre><code class="language-text" data-lang="text">Request Count:   51
+
+<div class="highlight"><pre><code>Request Count:   51
 Unique Hosts:    14
-Bytes Sent:      36,471     (headers:36,471; body:0)
-Bytes Received:  884,345    (headers:27,698; body:856,647)
+Bytes Sent:      36,471		(headers:36,471; body:0)
+Bytes Received:  884,345	(headers:27,698; body:856,647)
 
 ACTUAL PERFORMANCE
 --------------
-Requests started at:        16:34:22.077
-Responses completed at:     16:34:25.057
-Sequence (clock) duration:  00:00:02.9801705
-Aggregate Session duration: 00:00:06.823
-DNS Lookup time:            1,295ms
-TCP/IP Connect duration:    1,181ms
+Requests started at:		16:34:22.077
+Responses completed at:		16:34:25.057
+Sequence (clock) duration:	00:00:02.9801705
+Aggregate Session duration:	00:00:06.823
+DNS Lookup time:			1,295ms
+TCP/IP Connect duration:	1,181ms
 
 .. response codes snipped ...
 
@@ -125,55 +124,59 @@ application/octet-stream: 86,289
 
 ... hosts and timing estimates removed ...
 </code></pre></div>
+
 <p>For my purposes a very important line was needed. In particular the amount of bytes. More over we need to convert this to bits.</p>
-<div class="highlight"><pre><code class="language-text" data-lang="text">Bytes Received:  884,345        (headers:27,698; body:856,647)
+
+<div class="highlight"><pre><code>Bytes Received:  884,345		(headers:27,698; body:856,647)
 </code></pre></div>
+
 <p>Armed with this information I could start calculating some of this fuzzy math. I knew that if we had 100Mbit of bandwidth and the majority of our users would get <strong>about</strong> the same speed then we can use this formula going forward. This generates a theoretical maximum.</p>
-<div class="highlight"><pre><code class="language-text" data-lang="text">((Bytes Received) * 8) / (Sequence (clock) duration) = effective bandwidth
+
+<div class="highlight"><pre><code>((Bytes Received) * 8) / (Sequence (clock) duration) = effective bandwidth
 
 (884,345B * 8b) / 2.98s = 2,374,080 = 2.4Mbit/sec
 
 100Mbit/sec / 2.4Mbit/sec = 42 THEORETICAL simultaneous NEW page transfers in 3 seconds (14/sec)
 </code></pre></div>
-<p>In reality we more than likely won&rsquo;t be able to hit 42. If we kind of squint our eyes and do some estimating we will need to reduce the number of actual page transfers. I always use the 80% rule. So really we could do about 34 new page loads at one time and be safe.</p>
 
-<p>Great. We have a number to shoot for. We&rsquo;re done right? Well, no. If you went to your management and said, we can handle 34 pages per second, you might get a sideways look and be asked to explain.</p>
+<p>In reality we more than likely won’t be able to hit 42. If we kind of squint our eyes and do some estimating we will need to reduce the number of actual page transfers. I always use the 80% rule. So really we could do about 34 new page loads at one time and be safe.</p>
+
+<p>Great. We have a number to shoot for. We’re done right? Well, no. If you went to your management and said, we can handle 34 pages per second, you might get a sideways look and be asked to explain.</p>
 
 <p>It may be more helpful to aggregate into minutes and even further translate that to users or sessions per minute. As you fuzz your numbers it may help make the overall point. Regardless of how fast the end user is there is a finite maximum number of pages that can be delivered in a finite amount of time.</p>
 
 <p>So, what do you do next? </p>
 
-<h3>Deep Estimation</h3>
-
-<p>Once you have done your naive estimation, you need to follow up and employ due diligence. Try and flow through the heaviest use cases and do the same math. If there aren&rsquo;t any cases yet, make it up! Remember that what ever your QA team can&rsquo;t find a user will find the first time.</p>
+<h3 id="deep-estimation">Deep Estimation</h3>
+<p>Once you have done your naive estimation, you need to follow up and employ due diligence. Try and flow through the heaviest use cases and do the same math. If there aren’t any cases yet, make it up! Remember that what ever your QA team can’t find a user will find the first time.</p>
 
 <p>I believe that you have the same abilities. You, dear reader, can behave just like a user. Because, lets face it, you are a user deep in your soul. You order from Amazon, you poke around Ebay, you Google things wrong from time to time. Use this power. Embrace it. Go.</p>
 
-<p>Once you identify the pages, the transfer times, and estimated mixtures you can stop right? No. You need to go a step further and start estimating your return users and how that will affect caching. You are caching aren&rsquo;t you?</p>
+<p>Once you identify the pages, the transfer times, and estimated mixtures you can stop right? No. You need to go a step further and start estimating your return users and how that will affect caching. You are caching aren’t you?</p>
 
-<h3>Caching Estimation</h3>
-
+<h3 id="caching-estimation">Caching Estimation</h3>
 <p>Ah, yes. If you forgot, most modern browsers will adhere to caching rules. You need to use this to your advantage. Especially if you have some idea of how many users will be return.</p>
 
 <p>If we visit the same page(s) as before we can capture the same Fiddler statistics to get an idea of our cached content. If you look at the data below it looks as as if we have 20 times LESS data than before. So, in the naive approach we can transfer about 20 times the amount of page views when we have 100% return visitors. Here is an <a href="http://msdn.microsoft.com/en-us/library/bb250442(v=vs.85).aspx">excellent MSDN article</a> on HTTP performance using Fiddler; read it.</p>
-<div class="highlight"><pre><code class="language-text" data-lang="text">Request Count:   17
+
+<div class="highlight"><pre><code>Request Count:   17
 Unique Hosts:    9
-Bytes Sent:      15,501     (headers:15,501; body:0)
-Bytes Received:  48,860     (headers:5,252; body:43,608)
+Bytes Sent:      15,501		(headers:15,501; body:0)
+Bytes Received:  48,860		(headers:5,252; body:43,608)
 
 ACTUAL PERFORMANCE
 --------------
-Requests started at:        17:03:17.465
-Responses completed at:     17:03:19.177
-Sequence (clock) duration:  00:00:01.7120980
-Aggregate Session duration: 00:00:02.368
-DNS Lookup time:            121ms
-TCP/IP Connect duration:    876ms
+Requests started at:		17:03:17.465
+Responses completed at:		17:03:19.177
+Sequence (clock) duration:	00:00:01.7120980
+Aggregate Session duration:	00:00:02.368
+DNS Lookup time:			121ms
+TCP/IP Connect duration:	876ms
 
 RESPONSE CODES
 --------------
-HTTP/200:   14
-HTTP/304:   3
+HTTP/200: 	14
+HTTP/304: 	3
 
 RESPONSE BYTES (by Content-Type)
 --------------
@@ -182,11 +185,14 @@ RESPONSE BYTES (by Content-Type)
 application/x-javascript: 2,978
          text/javascript: 401
                image/gif: 86
+
 </code></pre></div>
-<p>In the real world you won&rsquo;t have that many return visitors. Depending on the type of requests you have (dynamic v. static) and what your business model is like (information or sales) you could be more in the camp of 30% to 50% return. You know your data best. I could offer some foolhardy estimates based on experience, but it would do you a disservice. Explore your data and know your numbers.</p>
+
+<p>In the real world you won’t have that many return visitors. Depending on the type of requests you have (dynamic v. static) and what your business model is like (information or sales) you could be more in the camp of 30% to 50% return. You know your data best. I could offer some foolhardy estimates based on experience, but it would do you a disservice. Explore your data and know your numbers.</p>
 
 <p>Now, lets take this data and apply some fuzz to it and see what our effective rate at load would be.</p>
-<div class="highlight"><pre><code class="language-text" data-lang="text">New users:
+
+<div class="highlight"><pre><code>New users:
 14 pages/sec * 60sec = 840pages/minute * 50% = 420
 
 Return Users:
@@ -197,131 +203,101 @@ Total:
 
 Fuzzed number (80%):
 7056 pages per minute
+
 </code></pre></div>
+
 <p>Now, this number sounds more like a enterprise level application. But, it seems kind of high.</p>
 
-<h3>User Estimation</h3>
-
+<h3 id="user-estimation">User Estimation</h3>
 <p>Our goal is to find out if we have enough bandwidth to support our day one user base. Here is an example of our test case:</p>
 
 <p><strong>Actual Usage</strong></p>
 
 <ul>
-<li> Normal Scenario
-
-<ul>
-<li> 5,000 Users </li>
-<li> 2 - 3 pages per session</li>
-<li> 3,000 sessions per minute</li>
-<li> 6,000 pages per minute</li>
-</ul></li>
-<li> Mobile
-
-<ul>
-<li> 500 Users</li>
-<li> 4 - 5 pages per session</li>
-<li> 1,000 session per minute</li>
-<li> 5,000 pages per minute</li>
-</ul></li>
+  <li>Normal Scenario</li>
+  <li>5,000 Users </li>
+  <li>2 - 3 pages per session</li>
+  <li>3,000 sessions per minute</li>
+  <li>6,000 pages per minute</li>
+  <li>Mobile</li>
+  <li>500 Users</li>
+  <li>4 - 5 pages per session</li>
+  <li>1,000 session per minute</li>
+  <li>5,000 pages per minute</li>
 </ul>
 
 <p><strong>Virtual Usage</strong></p>
 
 <ul>
-<li> Normal Scenario
-
-<ul>
-<li> 1,000 virtual users</li>
-<li> 50% Return Visitors</li>
-<li> 3 - 5 pages per test</li>
-<li> 2,000 test per minute</li>
-<li> 6,000 pages per minute</li>
-</ul></li>
-<li> Mobile
-
-<ul>
-<li> 200 virtual users</li>
-<li> 40% Return Visitors</li>
-<li> 4 - 5 pages per test</li>
-<li> 1,000 tests per minute</li>
-<li> 4,000 pages per minute</li>
-</ul></li>
+  <li>Normal Scenario</li>
+  <li>1,000 virtual users</li>
+  <li>50% Return Visitors</li>
+  <li>3 - 5 pages per test</li>
+  <li>2,000 test per minute</li>
+  <li>6,000 pages per minute</li>
+  <li>Mobile</li>
+  <li>200 virtual users</li>
+  <li>40% Return Visitors</li>
+  <li>4 - 5 pages per test</li>
+  <li>1,000 tests per minute</li>
+  <li>4,000 pages per minute</li>
 </ul>
 
-<p>This test load simulated production traffic with less users than were reported on the site.  By sacrificing &ldquo;actual&rdquo; user load you can save some additional overhead of extraneous virtual users. This will come in handy later when you get to the bottom of the page.</p>
+<p>This test load simulated production traffic with less users than were reported on the site.  By sacrificing “actual” user load you can save some additional overhead of extraneous virtual users. This will come in handy later when you get to the bottom of the page.</p>
 
-<h3>Caution</h3>
-
+<h3 id="caution">Caution</h3>
 <p>We now have a page goal, and our possible load pattern. I urge you to exercise caution here. If you were keeping up and doing the math yourself you probably noticed were doing somewhere around 2,600 requests per second. Even at 260 requests/sec per server your looking at 10 servers serving this web site. Is that too many, is it not enough? </p>
 
-<p>Don&rsquo;t get caught up in the theoretical maximums. It is in everyone&rsquo;s best interest to test as often as you can. Especially when you suggest a change, no matter how small. When in doubt, look at my previous blog post <a href="/2014/09/16/always-performance-test/">Always Performance Test!</a></p>
+<p>Don’t get caught up in the theoretical maximums. It is in everyone’s best interest to test as often as you can. Especially when you suggest a change, no matter how small. When in doubt, look at my previous blog post <a href="/2014/09/16/always-performance-test/">Always Performance Test!</a></p>
 
-<h3>Sanity Check</h3>
-
+<h3 id="sanity-check">Sanity Check</h3>
 <p>Now is the time to apply some best practices before you test. Before you go all out on an external test, here are some low hanging fruit that will improve your bandwidth.</p>
 
 <ul>
-<li>Caching
-
-<ul>
-<li>Make use of the caching tab in Fiddler</li>
-</ul></li>
-<li>Static Resource Sizes
-
-<ul>
-<li>Images</li>
-<li>CSS</li>
-<li>JS</li>
-</ul></li>
-<li>Page Sizes
-
-<ul>
-<li>Static</li>
-<li>Dynamic</li>
-</ul></li>
-<li>Bundling
-
-<ul>
-<li>Most web frameworks have a package that will bundle and minify</li>
-</ul></li>
-<li>Minification
-
-<ul>
-<li>If you can&rsquo;t bundle, you should minify</li>
-</ul></li>
-<li>Compression
-
-<ul>
-<li>Above all else you should compress</li>
-</ul></li>
-<li>Content Delivery Network
-
-<ul>
-<li>If all else fails, seriously consider this</li>
-<li>Some common libraries are CDN&rsquo;d for free, like jQuery on Google for instance</li>
-</ul></li>
+  <li>Caching
+	- Make use of the caching tab in Fiddler</li>
+  <li>Static Resource Sizes
+	- Images
+	- CSS
+	- JS</li>
+  <li>Page Sizes
+	- Static
+	- Dynamic</li>
+  <li>Bundling
+	- Most web frameworks have a package that will bundle and minify</li>
+  <li>Minification
+    <ul>
+      <li>If you can’t bundle, you should minify</li>
+    </ul>
+  </li>
+  <li>Compression
+	- Above all else you should compress</li>
+  <li>Content Delivery Network
+	- If all else fails, seriously consider this
+	- Some common libraries are CDN’d for free, like jQuery on Google for instance</li>
 </ul>
 
-<h3>Can We Test Now?!</h3>
-
+<h3 id="can-we-test-now">Can We Test Now?!</h3>
 <p>Yes. Go ahead and start putting together a plan to test from the outside. </p>
 
-<p>It&rsquo;s no secret that when you use a Microsoft product it will cost you. But, in this case, you can easily map out the amount of money you need to spend. I haven&rsquo;t used any other services that integrate so well with a tool set I&rsquo;m familiar with. VSO, provided a great platform to test on. I was even able to bring that data back into my local load test database. No I&rsquo;m not some shill recommending random products. It was genuinely a pleasant experience and I highly recommend it.</p>
+<p>It’s no secret that when you use a Microsoft product it will cost you. But, in this case, you can easily map out the amount of money you need to spend. I haven’t used any other services that integrate so well with a tool set I’m familiar with. VSO, provided a great platform to test on. I was even able to bring that data back into my local load test database. No I’m not some shill recommending random products. It was genuinely a pleasant experience and I highly recommend it.</p>
 
 <p>Knowing my goal allowed me to save a lot of money. The going rate for testing in the cloud at the time of this writing is $0.002 per user minute. For example:</p>
-<div class="highlight"><pre><code class="language-text" data-lang="text">1000 virtual users x 30 minutes = 30,000 virtual user minutes * $0.002 = $60
+
+<div class="highlight"><pre><code>1000 virtual users x 30 minutes = 30,000 virtual user minutes * $0.002 = $60
 5000 virtual users x 30 minutes = 150,000 virtual user minutes * $0.002 = $300
 5000 virtual users x 60 minutes = 300,000 virtual user minutes * $0.002 = $600
 </code></pre></div>
+
 <p>If you can afford some bad response times at the beginning of your test you should attempt to shorten your ramp-up time. So, if your normal user load takes 2 hours to be at capacity you can try shortening that to 10 or 20 minutes on an internal load test and see how your system handles it. Once you confirm you can take that kind of hit you should alter your load test to match that. Next, if your test had normally run for a couple of hours, you should consider only running for 30 minutes. </p>
 
 <p>I know, I know. That is not a great amount of testing, but it all depends on what your goals are.  If you have tons of disposable cash then by all means crank up 10,000 users and have them sit idle for hours on end.</p>
 
-<h3>Conclusion</h3>
-
+<h3 id="conclusion">Conclusion</h3>
 <p>We all know bandwidth costs money. But you can really save yourself a ton of <strong>actual</strong> dollars, and you can greatly enhance your user experience. Some of the glamor in performance testing, if there is such a thing, is finding that critical bit of code that would have taken down the site. But, we should not neglect this very fundamental test metric.</p>
 
-<p>This wasn&rsquo;t really meant as a tutorial but an overview of a process that may be skirted from time to time. It&rsquo;s easy to forgo certain tests and skip over goals. Here are a few more links that will help out <a href="https://developers.google.com/web/fundamentals/">Web Fundamentals</a>, <a href="https://developers.google.com/speed/docs/insights/rules">PageSpeed Insights</a>, <a href="https://developer.yahoo.com/performance/rules.html">Yahoo Best Practices</a>(a bit older but useful).</p>
+<p>This wasn’t really meant as a tutorial but an overview of a process that may be skirted from time to time. It’s easy to forgo certain tests and skip over goals. Here are a few more links that will help out <a href="https://developers.google.com/web/fundamentals/">Web Fundamentals</a>, <a href="https://developers.google.com/speed/docs/insights/rules">PageSpeed Insights</a>, <a href="https://developer.yahoo.com/performance/rules.html">Yahoo Best Practices</a>(a bit older but useful).</p>
+
 
 </div>
 
@@ -349,6 +325,15 @@ Fuzzed number (80%):
     
     <li>
       <h3>
+        <a href="/2014/11/18/extending-mysql-server-part3/">
+          MySQL .NET Hosting Extension - Part 3 - Adding in the .NET Hosting API
+          <small>18 Nov 2014</small>
+        </a>
+      </h3>
+    </li>
+    
+    <li>
+      <h3>
         <a href="/2014/11/16/extending-mysql-server-part2/">
           MySQL .NET Hosting Extension - Part 2 - UDF Deep Dive
           <small>16 Nov 2014</small>
@@ -365,15 +350,6 @@ Fuzzed number (80%):
       </h3>
     </li>
     
-    <li>
-      <h3>
-        <a href="/2014/11/11/extending-mysql-server-part0/">
-          MySQL .NET Hosting Extension - Part 0
-          <small>11 Nov 2014</small>
-        </a>
-      </h3>
-    </li>
-    
   </ul>
 </div>
 
@@ -381,24 +357,6 @@ Fuzzed number (80%):
         <p>
           &copy; 2014. All rights reserved.
         </p>
-      </div>
-    </div>
-    <div class="col-md-3 col-md-offset-1 hidden-xs hidden-sm" >
-      <div class="well">
-        <h3>About</h3>
-        <p>
-          This blog is dedicated to a number of topics. Honestly it's what ever I feel like talking about on any given day. Topics will most always be tech related some how. Major themes will be low level debugging, .NET hacking, DevOps, and programming.
-        </p>
-        <p>
-          All thoughts and opinions on this blog are my own.
-        </p>
-        <div style="display: flex; padding-top: 0.5em">
-          <a href="http://www.linkedin.com/in/debugthings/"><img src="https://dlc1-s.licdn.com/sites/default/files/InBug-60px-R.png" class="linked" /></a>
-          <a href="http://www.twitter.com/debugthings"><div class="twitbox"><img src="https://g.twimg.com/Twitter_logo_white.png" /></div><span>@debugthings</span></a>
-        </div>  
-      </div>
-      <div>
-
       </div>
     </div>
   </div>

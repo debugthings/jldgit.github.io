@@ -46,30 +46,44 @@
 
 
 <body>
-  <nav class="navbar navbar-inverse navbar-fixed-top" role="navigation">
-    <div class="container">
-      <div class="navbar-header">
-        <button type="button" class="navbar-toggle collapsed" data-toggle="collapse" data-target="#navbar" aria-expanded="false" aria-controls="navbar">
-          <span class="sr-only">Toggle navigation</span>
-          <span class="icon-bar"></span>
-          <span class="icon-bar"></span>
-          <span class="icon-bar"></span>
-        </button>
-        <a href="/" class="navbar-brand" title="Home">DEBUG THINGS</a>
-      </div>
-      <div id="navbar" class="navbar-collapse collapse">
-        <ul class="nav navbar-nav">
-          <li><a href="/about/">About</a></li>
-          <li><a href="/projects">Projects</a></li>
-          <li><a href="/owasp/">OWASP Tampa</a></li>
-        </ul>
-      </div><!--/.navbar-collapse -->
+   <nav class="navbar navbar-inverse navbar-fixed-top" role="navigation">
+  <div class="container">
+    <div class="navbar-header">
+      <button type="button" class="navbar-toggle collapsed" data-toggle="collapse" data-target="#navbar" aria-expanded="false" aria-controls="navbar">
+        <span class="sr-only">Toggle navigation</span>
+        <span class="icon-bar"></span>
+        <span class="icon-bar"></span>
+        <span class="icon-bar"></span>
+      </button>
+      <a href="/" class="navbar-brand" title="Home">DEBUG THINGS</a>
     </div>
-  </nav>
+    <div id="navbar" class="navbar-collapse collapse">
+      <ul class="nav navbar-nav">
+        <li><a href="/about/">About</a></li>
+        <li><a href="/projects">Projects</a></li>
+        <li><a href="/owasp/">OWASP Tampa</a></li>
+      </ul>
+    </div><!--/.navbar-collapse -->
+  </div>
+</nav>
   <div class="container containerbg">
    <div class="row rowoffset">
-    <div class="col-md-8">
+    <div class="col-md-9">
       <div class="posts">
+  
+  <div class="post">
+    <h1 class="post-title">
+      <a href="/2014/10/31/answering-questions/">
+        Contributing to a Forum for 10 Days Straight
+      </a>
+    </h1>
+
+    <span class="post-date">31 Oct 2014</span>
+
+    Back in early October my company sent me to <a href="http://http://compuwareperform.com/">Perform 2014</a>. While there, I met with some great people and found out that I&#8217;m not alone. It was also very humbling. I liked that. But, with all of the meeting I found that there were a lot of people who didn&#8217;t know where to turn to for help. Turns out there is a very active user community. I wanted to get involved.
+
+
+  </div>
   
   <div class="post">
     <h1 class="post-title">
@@ -94,6 +108,7 @@
 
     More often than not I do postmortem debugging. That is to say, I get a dump file long after the machine has experienced an issue. But, on occasion I get pulled in to take a look at problems that need to be run through the debugger. This article will show you some commands you can use to locate and fix code using WinDbg.
 
+
   </div>
   
   <div class="post">
@@ -105,7 +120,8 @@
 
     <span class="post-date">23 Sep 2014</span>
 
-    Usually when I performance test internal applications I don&rsquo;t consider bandwidth unless I know we&rsquo;re doing something irrational like transferring multi gigabyte files all the time. And even then I only consider it if we&rsquo;re crossing a WAN or some other &ldquo;slow&rdquo; link between sites. But, every now and then there is a project that runs over the Internet and it is very data intensive. And, a lot of that data is out of the control of the developers (images, 3rd party libraries, fonts).
+    Usually when I performance test internal applications I don&#8217;t consider bandwidth unless I know we&#8217;re doing something irrational like transferring multi gigabyte files all the time. And even then I only consider it if we&#8217;re crossing a WAN or some other &#8220;slow&#8221; link between sites. But, every now and then there is a project that runs over the Internet and it is very data intensive. And, a lot of that data is out of the control of the developers (images, 3rd party libraries, fonts).
+
 
   </div>
   
@@ -118,20 +134,8 @@
 
     <span class="post-date">16 Sep 2014</span>
 
-    While thumbing through Twitter I ran across an <a href="http://apmblog.compuware.com/2014/09/16/detecting-bad-deployments-resource-impact-response-time-hotspot-garbage-collection/">article</a> written by <a href="https://twitter.com/grabnerandi">@grabnerandi</a> about a company not being able to load test a change for dependency injection. I can&rsquo;t tell you how many times in my job that performance testing has been brushed over for speed to market.
+    While thumbing through Twitter I ran across an <a href="http://apmblog.compuware.com/2014/09/16/detecting-bad-deployments-resource-impact-response-time-hotspot-garbage-collection/">article</a> written by <a href="https://twitter.com/grabnerandi">@grabnerandi</a> about a company not being able to load test a change for dependency injection. I can&#8217;t tell you how many times in my job that performance testing has been brushed over for speed to market.
 
-  </div>
-  
-  <div class="post">
-    <h1 class="post-title">
-      <a href="/2014/09/06/code-to-code/">
-        Writing code to write code
-      </a>
-    </h1>
-
-    <span class="post-date">06 Sep 2014</span>
-
-    Every now and then a balance needs to be struck from the every day coding of an application. While personal life is usually the topic for these types of posts, today that is not the case. Sometimes you have to write code in order to write code. This is somewhat of an extended rant from my previous post.
 
   </div>
   
@@ -146,7 +150,7 @@
 <nav>
   <ul class="pager">
     
-    <li class="previous disabled"><a href="#">Previous Posts</a></li>
+    <li class="previous"><a  href="/page3">Previous Posts</a></li>
     
     
     
@@ -162,8 +166,8 @@
         </p>
       </div>
     </div>
-    <div class="col-md-3 col-md-offset-1 hidden-xs hidden-sm" >
-      <div class="well">
+    <div class="col-md-3 hidden-xs hidden-sm" >
+      <div class="well about-font">
         <h3>About</h3>
         <p>
           This blog is dedicated to a number of topics. Honestly it's what ever I feel like talking about on any given day. Topics will most always be tech related some how. Major themes will be low level debugging, .NET hacking, DevOps, and programming.

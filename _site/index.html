@@ -46,30 +46,44 @@
 
 
 <body>
-  <nav class="navbar navbar-inverse navbar-fixed-top" role="navigation">
-    <div class="container">
-      <div class="navbar-header">
-        <button type="button" class="navbar-toggle collapsed" data-toggle="collapse" data-target="#navbar" aria-expanded="false" aria-controls="navbar">
-          <span class="sr-only">Toggle navigation</span>
-          <span class="icon-bar"></span>
-          <span class="icon-bar"></span>
-          <span class="icon-bar"></span>
-        </button>
-        <a href="/" class="navbar-brand" title="Home">DEBUG THINGS</a>
-      </div>
-      <div id="navbar" class="navbar-collapse collapse">
-        <ul class="nav navbar-nav">
-          <li><a href="/about/">About</a></li>
-          <li><a href="/projects">Projects</a></li>
-          <li><a href="/owasp/">OWASP Tampa</a></li>
-        </ul>
-      </div><!--/.navbar-collapse -->
+   <nav class="navbar navbar-inverse navbar-fixed-top" role="navigation">
+  <div class="container">
+    <div class="navbar-header">
+      <button type="button" class="navbar-toggle collapsed" data-toggle="collapse" data-target="#navbar" aria-expanded="false" aria-controls="navbar">
+        <span class="sr-only">Toggle navigation</span>
+        <span class="icon-bar"></span>
+        <span class="icon-bar"></span>
+        <span class="icon-bar"></span>
+      </button>
+      <a href="/" class="navbar-brand" title="Home">DEBUG THINGS</a>
     </div>
-  </nav>
+    <div id="navbar" class="navbar-collapse collapse">
+      <ul class="nav navbar-nav">
+        <li><a href="/about/">About</a></li>
+        <li><a href="/projects">Projects</a></li>
+        <li><a href="/owasp/">OWASP Tampa</a></li>
+      </ul>
+    </div><!--/.navbar-collapse -->
+  </div>
+</nav>
   <div class="container containerbg">
    <div class="row rowoffset">
-    <div class="col-md-8">
+    <div class="col-md-9">
       <div class="posts">
+  
+  <div class="post">
+    <h1 class="post-title">
+      <a href="/2014/11/18/extending-mysql-server-part3/">
+        MySQL .NET Hosting Extension - Part 3 - Adding in the .NET Hosting API
+      </a>
+    </h1>
+
+    <span class="post-date">18 Nov 2014</span>
+
+    Now that we’ve walked through the basics of a UDF, let’s start bolting on an AppDomain Manager. As I mentioned before in <a href="(/2014/11/16/extending-mysql-server-part2/)">part 2</a> my example is based off of the <a href="http://www.microsoft.com/en-us/download/details.aspx?id=7325">ADMHost</a> sample provided by Microsoft. The code is used as a jump off point, but we will be extending it as these posts progress. This part of the series will focus on the insertion points rather than the actual code. That will be in the next part. For some extra information on the hosting API check out <a href="http://www.amazon.com/gp/product/0735619883/">Customizing the Microsoft® .NET Framework</a> by <a href="http://blogs.msdn.com/b/stevenpr/">Steven Pratschner</a>. Also check out <a href="http://msdn.microsoft.com/en-us/library/ms404385(v=vs.110).aspx">MSDN</a> for update information on the APIs.
+
+
+  </div>
   
   <div class="post">
     <h1 class="post-title">
@@ -81,6 +95,7 @@
     <span class="post-date">16 Nov 2014</span>
 
     After I worked through compiling the sources, the next step was to get .NET hosting working at a basic level. I used source from another project called <a href="http://www.microsoft.com/en-us/download/details.aspx?id=7325">ADMHost</a> (App Domain Manager) to base my code on. This code allows you to specify and create a managed AppDomain manager and use it to manage and run your .NET assemblies.
+
 
   </div>
   
@@ -95,6 +110,7 @@
 
     So, the first thing I had to do was compile the MySQL sample UDF which is included in the source tree. While it seems like a simple thing to do with CMake and all of the proper tools installed, there are a few things not documented. The steps to compile <a href="http://dev.mysql.com/doc/refman/5.5/en/udf-compiling.html">can be found here</a>. The steps are really straight forward, but there is a catch. In order to build on Windows there are a few steps you will need to do in order to fully get the example working.
 
+
   </div>
   
   <div class="post">
@@ -106,7 +122,8 @@
 
     <span class="post-date">11 Nov 2014</span>
 
-    For some reason I feel compelled to write an extension for <a href="http://www.mysql.com/">MySQL</a> that allows use of .NET classes for functions. It&rsquo;s really a purely academic exercise&mdash;even though I&rsquo;m not in school&mdash;that I&rsquo;m using to explore the use of the <a href="http://msdn.microsoft.com/en-us/library/dd380850(v=vs.110).aspx">.NET Hosting APIs</a>. I will use my blog as a way to keep myself focused and accountable. But more over it&rsquo;s so I don&rsquo;t forget what I wanted to do. I will line out a few milestones.
+    For some reason I feel compelled to write an extension for <a href="http://www.mysql.com/">MySQL</a> that allows use of .NET classes for functions. It&#8217;s really a purely academic exercise&#8212;even though I&#8217;m not in school&#8212;that I&#8217;m using to explore the use of the <a href="http://msdn.microsoft.com/en-us/library/dd380850(v=vs.110).aspx">.NET Hosting APIs</a>. I will use my blog as a way to keep myself focused and accountable. But more over it&#8217;s so I don&#8217;t forget what I wanted to do. I will line out a few milestones.
+
 
   </div>
   
@@ -121,18 +138,6 @@
 
     A few weeks ago I submitted a talk for <a href="https://www.owasp.org/index.php/Tampa">OWASP Tampa Days 2014</a> and I was selected.  The topic I picked to demonstrate was how MVC for .NET can solve some of the problems listed in the <a href="https://www.owasp.org/index.php/Top_10_2013-Top_10">OWASP Top 10</a>. Let me be the first to say that I was truly unprepared for what I was about to get into. This was truly an exercise in conciseness. <a href="/owasp/">Get the slides here</a>
 
-  </div>
-  
-  <div class="post">
-    <h1 class="post-title">
-      <a href="/2014/10/31/answering-questions/">
-        Contributing to a Forum for 10 Days Straight
-      </a>
-    </h1>
-
-    <span class="post-date">31 Oct 2014</span>
-
-    Back in early October my company sent me to <a href="http://http://compuwareperform.com/">Perform 2014</a>. While there, I met with some great people and found out that I&rsquo;m not alone. It was also very humbling. I liked that. But, with all of the meeting I found that there were a lot of people who didn&rsquo;t know where to turn to for help. Turns out there is a very active user community. I wanted to get involved.
 
   </div>
   
@@ -161,8 +166,8 @@
         </p>
       </div>
     </div>
-    <div class="col-md-3 col-md-offset-1 hidden-xs hidden-sm" >
-      <div class="well">
+    <div class="col-md-3 hidden-xs hidden-sm" >
+      <div class="well about-font">
         <h3>About</h3>
         <p>
           This blog is dedicated to a number of topics. Honestly it's what ever I feel like talking about on any given day. Topics will most always be tech related some how. Major themes will be low level debugging, .NET hacking, DevOps, and programming.

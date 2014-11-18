@@ -4,29 +4,10 @@
 {% include head.html %}
 
 <body>
-  <nav class="navbar navbar-inverse navbar-fixed-top" role="navigation">
-    <div class="container">
-      <div class="navbar-header">
-        <button type="button" class="navbar-toggle collapsed" data-toggle="collapse" data-target="#navbar" aria-expanded="false" aria-controls="navbar">
-          <span class="sr-only">Toggle navigation</span>
-          <span class="icon-bar"></span>
-          <span class="icon-bar"></span>
-          <span class="icon-bar"></span>
-        </button>
-        <a href="{{ site.baseurl }}" class="navbar-brand" title="Home">{{ site.title | upcase }}</a>
-      </div>
-      <div id="navbar" class="navbar-collapse collapse">
-        <ul class="nav navbar-nav">
-          <li><a href="/about/">About</a></li>
-          <li><a href="/projects">Projects</a></li>
-          <li><a href="/owasp/">OWASP Tampa</a></li>
-        </ul>
-      </div><!--/.navbar-collapse -->
-    </div>
-  </nav>
+   {% include navbar.html %}
   <div class="container containerbg">
    <div class="row rowoffset">
-    <div class="col-md-8">
+    <div class="col-md-9">
       {{ content }}
       <div class="footer">
         <p>
@@ -34,8 +15,8 @@
         </p>
       </div>
     </div>
-    <div class="col-md-3 col-md-offset-1 hidden-xs hidden-sm" >
-      <div class="well">
+    <div class="col-md-3 hidden-xs hidden-sm" >
+      <div class="well about-font">
         <h3>About</h3>
         <p>
           This blog is dedicated to a number of topics. Honestly it's what ever I feel like talking about on any given day. Topics will most always be tech related some how. Major themes will be low level debugging, .NET hacking, DevOps, and programming.

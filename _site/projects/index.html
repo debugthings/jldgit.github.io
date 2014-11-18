@@ -46,39 +46,57 @@
 
 
 <body>
-  <nav class="navbar navbar-inverse navbar-fixed-top" role="navigation">
-    <div class="container">
-      <div class="navbar-header">
-        <button type="button" class="navbar-toggle collapsed" data-toggle="collapse" data-target="#navbar" aria-expanded="false" aria-controls="navbar">
-          <span class="sr-only">Toggle navigation</span>
-          <span class="icon-bar"></span>
-          <span class="icon-bar"></span>
-          <span class="icon-bar"></span>
-        </button>
-        <a href="/" class="navbar-brand" title="Home">DEBUG THINGS</a>
-      </div>
-      <div id="navbar" class="navbar-collapse collapse">
-        <ul class="nav navbar-nav">
-          <li><a href="/about/">About</a></li>
-          <li><a href="/projects">Projects</a></li>
-          <li><a href="/owasp/">OWASP Tampa</a></li>
-        </ul>
-      </div><!--/.navbar-collapse -->
+   <nav class="navbar navbar-inverse navbar-fixed-top" role="navigation">
+  <div class="container">
+    <div class="navbar-header">
+      <button type="button" class="navbar-toggle collapsed" data-toggle="collapse" data-target="#navbar" aria-expanded="false" aria-controls="navbar">
+        <span class="sr-only">Toggle navigation</span>
+        <span class="icon-bar"></span>
+        <span class="icon-bar"></span>
+        <span class="icon-bar"></span>
+      </button>
+      <a href="/" class="navbar-brand" title="Home">DEBUG THINGS</a>
     </div>
-  </nav>
+    <div id="navbar" class="navbar-collapse collapse">
+      <ul class="nav navbar-nav">
+        <li><a href="/about/">About</a></li>
+        <li><a href="/projects">Projects</a></li>
+        <li><a href="/owasp/">OWASP Tampa</a></li>
+      </ul>
+    </div><!--/.navbar-collapse -->
+  </div>
+</nav>
   <div class="container containerbg">
    <div class="row rowoffset">
-    <div class="col-md-8">
-      <h2>PROJECTS</h2>
+    <div class="col-md-9">
+      <h2 id="projects">PROJECTS</h2>
+<p>As I start, update, or contribute to projects—mine or otherwise—I will add references here.</p>
 
-<p>As I start, update, or contribute to projects&mdash;mine or otherwise&mdash;I will add references here.</p>
+<h1 id="chainsapmchains"><a href="https://github.com/chainsapm/chainsapm">ChainsAPM</a></h1>
+<blockquote>
+  <p>This is an open source APM solution that targets the .NET framework. It is in a constant state of development and will be available soon. Follow the repository for more info.</p>
+</blockquote>
 
-<ul>
-<li><a href="https://github.com/chainsapm/chainsapm">ChainsAPM</a></li>
-<li><a href="https://github.com/jldgit/OWASPTop10Tampa">OWASP MVC Site</a></li>
-<li><a href="https://github.com/jldgit/vsts-excel-plugin">Visual Studio Performance Test Plugin</a></li>
-<li><a href="https://github.com/jldgit/DebugThingsIntegratedCLRExample/tree/extended">Custom Hosting Demo (extended tree)</a></li>
-</ul>
+<h1 id="owasp-mvc-siteowasp"><a href="/owasp">OWASP MVC Site</a></h1>
+<blockquote>
+  <p>The GitHub repository for the code examples accompanying the OWASP Tampa Days 2014 talk. Visit [this][localowasp] page for the slides and other information.</p>
+</blockquote>
+
+<h1 id="visual-studio-performance-test-pluginvsts"><a href="https://github.com/jldgit/vsts-excel-plugin">Visual Studio Performance Test Plugin</a></h1>
+<blockquote>
+  <p>An Excel plugin that aides in running reports for web performance tests executed with Visual Studio.</p>
+</blockquote>
+
+<h1 id="custom-hosting-demo-extended-treeclree"><a href="https://github.com/jldgit/DebugThingsIntegratedCLRExample/tree/extended">Custom Hosting Demo (extended tree)</a></h1>
+<blockquote>
+  <p>Code example for the <a href="(/2014/10/21/hostprotectionexception-ssrs/)">Debugging - HostProtectionException in SSRS</a> blog post. Uses ADMHost to show how we can capture a HostProtectionException.</p>
+</blockquote>
+
+<h1 id="mysql-net-hosting-pluginmysqldotnet"><a href="https://github.com/jldgit/mysql_udf_dotnet">MySQL .NET Hosting Plugin</a></h1>
+<blockquote>
+  <p>A plugin that allow the user to write and deploy .NET functions to a MySQL server.</p>
+</blockquote>
+
 
       <div class="footer">
         <p>
@@ -86,8 +104,8 @@
         </p>
       </div>
     </div>
-    <div class="col-md-3 col-md-offset-1 hidden-xs hidden-sm" >
-      <div class="well">
+    <div class="col-md-3 hidden-xs hidden-sm" >
+      <div class="well about-font">
         <h3>About</h3>
         <p>
           This blog is dedicated to a number of topics. Honestly it's what ever I feel like talking about on any given day. Topics will most always be tech related some how. Major themes will be low level debugging, .NET hacking, DevOps, and programming.

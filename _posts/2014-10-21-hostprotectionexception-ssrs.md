@@ -27,7 +27,7 @@ I started by attaching to the `ReportingServices.exe` with WinDbg and continued 
 
 Once I was able to see there was an exception I needed to see what the exception was. So I loaded up PSSCOR2 and dumped all of the exceptions using `!dae`. With this I was able to see that there were 2 exceptions. This correlated to the number of times that I ran this particular report. An output example is below.  Note the first line of the output.
 
-```
+~~~ 
 0:000> !dae
 Going to dump the .NET Exceptions found in the heap.
 Loading the heap objects into our cache.
@@ -45,7 +45,7 @@ StackTrace (generated):
 StackTraceString: <none>
 HResult: 80131640
 -----------------
-```
+~~~ 
 
 After seeing that I was able to use `!StopOnException (!soe)` to pause the execution once we reached this particular exception. To ensure I was ready once the CLR was loaded. I did this by setting an exception(event) breakpoint by using `sxe ld mscorwks; g`. After that I loaded PSSCOR2 with `.load exts/psccor2`. Look at the following WinDbg log recreation below.
 
@@ -53,7 +53,7 @@ With the command `!soe -create System.Security.HostProtectionException 1` I crea
 
 >**NOTE** There are help files in WinDbg that briefly explain ADPlus. However, you can also use procdump.exe to create dump files on specific exceptions. ADPlus gives very, very, very granular control over taking a crash dump; there is a learning curve. Procdump.exe gives great power with one command line but does not allow for complex evaluations.
 
-```
+~~~ 
 0:000> sxe ld mscorwks; g
 ModLoad: 6bb20000 6c0ce000   C:\Windows\Microsoft.NET\Framework\v2.0.50727\mscorwks.dll
 eax=00000000 ebx=00000000 ecx=00000000 edx=00000000 esi=7efdd000 edi=003eeb3c
@@ -99,7 +99,7 @@ ESP       EIP
 003eec9c 005f0369 System.Diagnostics.TraceInternal.WriteLine(System.String)
 003eecd8 005f0306 System.Diagnostics.Trace.WriteLine(System.String)
 ...
-```
+~~~ 
 
 This stack trace shows us that when we call `Trace.WriteLine()` it invokes security checks. This is all fine and well, but my code is executing as FullTrust. Right?
 

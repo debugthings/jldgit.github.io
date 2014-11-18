@@ -47,68 +47,64 @@
 
 <body>
   <nav class="navbar navbar-inverse navbar-fixed-top" role="navigation">
-    <div class="container">
-      <div class="navbar-header">
-        <button type="button" class="navbar-toggle collapsed" data-toggle="collapse" data-target="#navbar" aria-expanded="false" aria-controls="navbar">
-          <span class="sr-only">Toggle navigation</span>
-          <span class="icon-bar"></span>
-          <span class="icon-bar"></span>
-          <span class="icon-bar"></span>
-        </button>
-        <a href="/" class="navbar-brand" title="Home">DEBUG THINGS</a>
-      </div>
-      <div id="navbar" class="navbar-collapse collapse">
-        <ul class="nav navbar-nav">
-          <li><a href="/about/">About</a></li>
-          <li><a href="/projects">Projects</a></li>
-          <li><a href="/owasp/">OWASP Tampa</a></li>
-        </ul>
-      </div><!--/.navbar-collapse -->
+  <div class="container">
+    <div class="navbar-header">
+      <button type="button" class="navbar-toggle collapsed" data-toggle="collapse" data-target="#navbar" aria-expanded="false" aria-controls="navbar">
+        <span class="sr-only">Toggle navigation</span>
+        <span class="icon-bar"></span>
+        <span class="icon-bar"></span>
+        <span class="icon-bar"></span>
+      </button>
+      <a href="/" class="navbar-brand" title="Home">DEBUG THINGS</a>
     </div>
-  </nav>
+    <div id="navbar" class="navbar-collapse collapse">
+      <ul class="nav navbar-nav">
+        <li><a href="/about/">About</a></li>
+        <li><a href="/projects">Projects</a></li>
+        <li><a href="/owasp/">OWASP Tampa</a></li>
+      </ul>
+    </div><!--/.navbar-collapse -->
+  </div>
+</nav>
   <div class="container containerbg">
    <div class="row rowoffset">
-    <div class="col-md-8">
+    <div class="col-md-12">
       <div class="post">
   <h1 class="post-title">MySQL .NET Hosting Extension - Part 0</h1>
   <span class="post-date">11 Nov 2014</span>
   <a href="https://twitter.com/share" class="twitter-share-button" data-via="debugthings" data-size="large">Tweet</a>
   <script>!function(d,s,id){var js,fjs=d.getElementsByTagName(s)[0],p=/^http:/.test(d.location)?'http':'https';if(!d.getElementById(id)){js=d.createElement(s);js.id=id;js.src=p+'://platform.twitter.com/widgets.js';fjs.parentNode.insertBefore(js,fjs);}}(document, 'script', 'twitter-wjs');</script>
-  <p>For some reason I feel compelled to write an extension for <a href="http://www.mysql.com/">MySQL</a> that allows use of .NET classes for functions. It&rsquo;s really a purely academic exercise&mdash;even though I&rsquo;m not in school&mdash;that I&rsquo;m using to explore the use of the <a href="http://msdn.microsoft.com/en-us/library/dd380850(v=vs.110).aspx">.NET Hosting APIs</a>. I will use my blog as a way to keep myself focused and accountable. But more over it&rsquo;s so I don&rsquo;t forget what I wanted to do. I will line out a few milestones.</p>
+  <p>For some reason I feel compelled to write an extension for <a href="http://www.mysql.com/">MySQL</a> that allows use of .NET classes for functions. It’s really a purely academic exercise—even though I’m not in school—that I’m using to explore the use of the <a href="http://msdn.microsoft.com/en-us/library/dd380850(v=vs.110).aspx">.NET Hosting APIs</a>. I will use my blog as a way to keep myself focused and accountable. But more over it’s so I don’t forget what I wanted to do. I will line out a few milestones.</p>
 
-<h2>Background</h2>
+<h2 id="background">Background</h2>
+<p>I started messing around with the Hosting API when I was researching a debugging issue surrounding Host Access Protection. I have a <a href="(/2014/10/21/hostprotectionexception-ssrs/)">blog post</a> that talks about it. This got me curious as to some areas it would be applicable. I wanted to make the extension useful and not just a way for me to load a .NET assembly into a “hello world!” application. Although, that’s where this all started.</p>
 
-<p>I started messing around with the Hosting API when I was researching a debugging issue surrounding Host Access Protection. I have a <a href="(/2014/10/21/hostprotectionexception-ssrs/)">blog post</a> that talks about it. This got me curious as to some areas it would be applicable. I wanted to make the extension useful and not just a way for me to load a .NET assembly into a &ldquo;hello world!&rdquo; application. Although, that&rsquo;s where this all started.</p>
+<h3 id="what-is-the-hosting-api">What is the Hosting API?</h3>
+<p>Quite simply, it is a way for you (the developer) to integrate <a href="http://msdn.microsoft.com/en-us/library/8bs2ecf4(v=vs.110).aspx">Microsoft’s CLR</a> implementation into your application. You can extend your application by allowing managed code execution in safe containers that can interact with the state of your application by predefined interfaces. Check out this <a href="http://msdn.microsoft.com/en-us/library/dd380850(v=vs.110).aspx">article</a> for more info. I also highly recommend reading <a href="https://www.microsoft.com/learning/en-us/book.aspx?ID=6895&amp;locale=en-us">Customizing the .NET Framework</a> by <a href="http://www.linkedin.com/pub/steven-pratschner/0/a92/8a4">Steven Pratschner</a>.</p>
 
-<h3>What is the Hosting API?</h3>
+<h3 id="why-mysql">Why MySQL?</h3>
+<p>Well, I have a soft spot in my heart for this particular database. It was the first real RDBMS that I developed with. I started back in 1999 using the good ‘ole LAMP stack. Also, MySQL is used on Windows occasionally and I thought it would be fun trying to extend something I’ve used for so long.</p>
 
-<p>Quite simply, it is a way for you (the developer) to integrate <a href="http://msdn.microsoft.com/en-us/library/8bs2ecf4(v=vs.110).aspx">Microsoft&rsquo;s CLR</a> implementation into your application. You can extend your application by allowing managed code execution in safe containers that can interact with the state of your application by predefined interfaces. Check out this <a href="http://msdn.microsoft.com/en-us/library/dd380850(v=vs.110).aspx">article</a> for more info. I also highly recommend reading <a href="https://www.microsoft.com/learning/en-us/book.aspx?ID=6895&amp;locale=en-us">Customizing the .NET Framework</a> by <a href="http://www.linkedin.com/pub/steven-pratschner/0/a92/8a4">Steven Pratschner</a>.</p>
+<h3 id="will-this-be-production-ready">Will this be production ready?</h3>
+<p>No, probably never. I think the idea is great, but its too niche to be of any use to a lot of people. I’d like to see it mentioned as examples of what (not) to do when extending MySQL or using the Hosting API.</p>
 
-<h3>Why MySQL?</h3>
-
-<p>Well, I have a soft spot in my heart for this particular database. It was the first real RDBMS that I developed with. I started back in 1999 using the good &lsquo;ole LAMP stack. Also, MySQL is used on Windows occasionally and I thought it would be fun trying to extend something I&rsquo;ve used for so long.</p>
-
-<h3>Will this be production ready?</h3>
-
-<p>No, probably never. I think the idea is great, but its too niche to be of any use to a lot of people. I&rsquo;d like to see it mentioned as examples of what (not) to do when extending MySQL or using the Hosting API.</p>
-
-<h2>Milestones</h2>
-
+<h2 id="milestones">Milestones</h2>
 <p>Like I said before in my opening, I wanted to use the blog as a way to hold myself accountable. The milestones are going to be lofty, changing and probably never fully realized. That being said, here is a short list of what I want to do in the coming weeks and months.</p>
 
 <ol>
-<li>Create a simple hello world application using the hosting API</li>
-<li>Create a simple <a href="http://dev.mysql.com/doc/refman/5.1/en/adding-udf.html">User Defined Function</a> (UDF) for MySQL</li>
-<li>Send and retrieve data from the UDF</li>
-<li>Extend the simple UDF to load the CLR</li>
-<li>Implement a custom interface to interact with the UDF</li>
-<li>Load an assembly from the file system</li>
-<li>Allow dynamic loading of UDF based on parameters</li>
-<li>Implement Host Access Protection to protect MySQL</li>
-<li>Extend MySQL to include a BLOB table to install assemblies</li>
-<li>Load assemblies from BLOB table</li>
-<li>Write the same for <a href="http://www.mono-project.com/">Mono</a>?</li>
+  <li>Create a simple hello world application using the hosting API</li>
+  <li>Create a simple <a href="http://dev.mysql.com/doc/refman/5.1/en/adding-udf.html">User Defined Function</a> (UDF) for MySQL</li>
+  <li>Send and retrieve data from the UDF</li>
+  <li>Extend the simple UDF to load the CLR</li>
+  <li>Implement a custom interface to interact with the UDF</li>
+  <li>Load an assembly from the file system</li>
+  <li>Allow dynamic loading of UDF based on parameters</li>
+  <li>Implement Host Access Protection to protect MySQL</li>
+  <li>Extend MySQL to include a BLOB table to install assemblies</li>
+  <li>Load assemblies from BLOB table</li>
+  <li>Write the same for <a href="http://www.mono-project.com/">Mono</a>?</li>
 </ol>
+
 
 </div>
 
@@ -136,6 +132,15 @@
     
     <li>
       <h3>
+        <a href="/2014/11/18/extending-mysql-server-part3/">
+          MySQL .NET Hosting Extension - Part 3 - Adding in the .NET Hosting API
+          <small>18 Nov 2014</small>
+        </a>
+      </h3>
+    </li>
+    
+    <li>
+      <h3>
         <a href="/2014/11/16/extending-mysql-server-part2/">
           MySQL .NET Hosting Extension - Part 2 - UDF Deep Dive
           <small>16 Nov 2014</small>
@@ -152,15 +157,6 @@
       </h3>
     </li>
     
-    <li>
-      <h3>
-        <a href="/2014/11/06/owasp-top-10-mvc-tampa-day-talk/">
-          First Time Speaking at OWASP Tampa
-          <small>06 Nov 2014</small>
-        </a>
-      </h3>
-    </li>
-    
   </ul>
 </div>
 
@@ -168,24 +164,6 @@
         <p>
           &copy; 2014. All rights reserved.
         </p>
-      </div>
-    </div>
-    <div class="col-md-3 col-md-offset-1 hidden-xs hidden-sm" >
-      <div class="well">
-        <h3>About</h3>
-        <p>
-          This blog is dedicated to a number of topics. Honestly it's what ever I feel like talking about on any given day. Topics will most always be tech related some how. Major themes will be low level debugging, .NET hacking, DevOps, and programming.
-        </p>
-        <p>
-          All thoughts and opinions on this blog are my own.
-        </p>
-        <div style="display: flex; padding-top: 0.5em">
-          <a href="http://www.linkedin.com/in/debugthings/"><img src="https://dlc1-s.licdn.com/sites/default/files/InBug-60px-R.png" class="linked" /></a>
-          <a href="http://www.twitter.com/debugthings"><div class="twitbox"><img src="https://g.twimg.com/Twitter_logo_white.png" /></div><span>@debugthings</span></a>
-        </div>  
-      </div>
-      <div>
-
       </div>
     </div>
   </div>

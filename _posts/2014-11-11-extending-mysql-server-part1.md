@@ -21,7 +21,7 @@ With the source tree downloaded I was able to get started. I unfortunately went 
 
 After the source is downloaded, follow the [UDF compile][compile] instructions. Now, try it. Did it work? Probably not. You can try and update the `CMakeLists.txt` file to include extra directories, because it seems like it would help.
 
-```
+~~~ 
 cmake_minimum_required(VERSION 3.1)
 PROJECT(udf_example)
 
@@ -34,7 +34,7 @@ ADD_DEFINITIONS("-DHAVE_DLOPEN")
 ADD_LIBRARY(udf_example MODULE udf_example.c udf_example.def)
 TARGET_LINK_LIBRARIES(udf_example wsock32)
 
-```
+~~~ 
 
 Try again. Nope?
 
@@ -44,7 +44,7 @@ What I found I had to do was do a [full compile][fullcomp] of the MySQL source t
 
 However, there is still a gotcha here. When compiling `mysqld.exe` you may get an error that looks like this `error LNK2001: unresolved external symbol _xmm@0000001100000010000000050000000f`. Apparently when you compile with debug symbols a few compiler intrinsics make it through the `create_def_file.js` CScript file. In order to fix this you can alter the `IsCompilerDefinedSymbol()` method in the CScript file to look like below. This removes any instance of XMM that is generated in the DEF file.
 
-```js
+~~~ js
 // returns true if the symbol is compiler defined
 function IsCompilerDefinedSymbol(symbol)
 {
@@ -59,7 +59,7 @@ function IsCompilerDefinedSymbol(symbol)
     (symbol.indexOf("_xmm") != -1)||           // Compiler XMM intrinsic
     (symbol.indexOf("__xmm") != -1));          // Compiler XMM intrinsic
 }
-```
+~~~ 
 
 After this change I was able to run the following command `devenv MySQL.sln /build RelWithDebInfo > output_build.txt` to generate all of the files I needed.
 
@@ -68,7 +68,7 @@ Once I had the binaries compiled and all of the headers I needed I attempted to 
 
 In order to fix this I made a quick change to a line of code in the `udf_example.c` file. The proper way would have been to include the strings library that was generated from the full compile but I didn't want to fuss with it completely.
 
-```C
+~~~ C
 // udf_example.c - Lines removed for brevity
 
 /* BEFORE */
@@ -82,14 +82,14 @@ In order to fix this I made a quick change to a line of code in the `udf_example
 #define strmov(a,b) strcpy(a,b)
 #define bzero(a,b) memset(a,0,b)
 #endif
-```
+~~~ 
 
 Now the application will compile! At least it did for me. If you want to check you can either install it using the instructions from the compile link above or just execute the `<root>\sql\RelWithDebInfo\mysqld.exe`.
 
 ##Results
 I compiled and renamed the UDF example to myudf.dll. I was able to load this hello world function into MySQL using the `CREATE FUNCTION` command.
 
-```
+~~~ 
 mysql> CREATE FUNCTION myfunc_double RETURNS REAL SONAME "myudf.dll";
 Query OK, 0 rows affected (0.01 sec)
 
@@ -134,7 +134,7 @@ mysql> SELECT myfunc_double(10000);
 1 row in set (0.00 sec)
 
 mysql>
-```
+~~~ 
 
 
 [compile]: http://dev.mysql.com/doc/refman/5.5/en/udf-compiling.html

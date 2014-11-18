@@ -106,13 +106,13 @@ The application should be in a failed state. We will break into the application 
 
 Next, type ``~`` to view the active threads. You should see a screen that resembles this:
 
-```
+~~~ 
 0:003> ~
    0  Id: 1618.1570 Suspend: 1 Teb: 7efdd000 Unfrozen
    1  Id: 1618.18fc Suspend: 1 Teb: 7efda000 Unfrozen
    2  Id: 1618.bc8 Suspend: 1 Teb: 7efd7000 Unfrozen
 .  3  Id: 1618.1bd0 Suspend: 1 Teb: 7efaf000 Unfrozen
-```
+~~~ 
 
 *The period(.) next to the Thread Number lets you know that this is the thread you are currently inspecting.*
 
@@ -120,7 +120,7 @@ Next, type ``~`` to view the active threads. You should see a screen that resemb
 
 Now that we can see we have three threads (and one debug thread) we should take a look at what each one is doing. First lest switch to **Thread 1**. The syntax of the command is ``~1s``. We can then inspect the call stack using ``k`` to output the methods only or ``kbn`` to display the frame numbers, method name, and the first three arguments. I added the line breaks to make it easier to read.
 
-```
+~~~ 
 0:001> ~1s
 eax=00000000 ebx=00000000 ecx=00000000 edx=00000000 esi=01164450 edi=00000000
 eip=77dcf8d1 esp=006df7d8 ebp=006df83c iopl=0         nv up ei pl zr na pe nc
@@ -153,11 +153,11 @@ ChildEBP RetAddr
 05 006df8cc 77de9f45 011610c0 00000000 00000000 ntdll!__RtlUserThreadStart+0x70
 
 06 006df8e4 00000000 011610c0 00000000 00000000 ntdll!_RtlUserThreadStart+0x1b
-```
+~~~ 
 
 If you look at frame 02, you can see that we are entering a critical section. Let's see if there is anything else going on. We will take a look at **Thread 2** this time.
 
-```
+~~~ 
 0:002> ~2kbn
  # ChildEBP RetAddr  Args to Child              
 00 00b3f970 77de8e44 00000040 00000000 00000000 ntdll!ZwWaitForSingleObject+0x15
@@ -174,7 +174,7 @@ If you look at frame 02, you can see that we are entering a critical section. Le
 
 06 00b3fa7c 00000000 01161150 00000000 00000000 ntdll!_RtlUserThreadStart+0x1b
 
-```
+~~~ 
 
 >**TIP** Use the shortcut command ``~2kbn`` which executes the ``kbn`` command without switching to thread 2.
 
@@ -185,16 +185,16 @@ In the previous step we looked at the call stacks of the deadlocked threads. Jud
 
 In order to synchronize the critical sections Windows needs to be able to signal to other threads when it becomes available. In order to do this it uses a reset event. Let's take a look at the `ZwWaitForSingleObject()` parameters on **Thread 2**
 
-```
+~~~ 
 0:001> ~2kbn 1
  # ChildEBP RetAddr  Args to Child              
 00 00b3f970 77de8e44 00000040 00000000 00000000 ntdll!ZwWaitForSingleObject+0x15
 
-```
+~~~ 
 
 This method is waiting on a handle (`40`). Let's take a look at the handle in the parameter by using the ``!handle`` command.
 
-```
+~~~ 
 0:001> !handle 40
 Handle 40
   Type          Event
@@ -212,11 +212,11 @@ Handle 40
   Object Specific Information
     Event Type Auto Reset
     Event is Waiting
-```
+~~~ 
 
 We can see that this handle is an auto reset event, but for what? We know that we are waiting on a critical section, let's confirm it's relationship. Let's inspect the critical section using the ``!cs`` command, with the parameter from the `RtlEnterCriticalSection()` function in frame 02 (`01164438`).
 
-```
+~~~ 
 0:002> !cs 01164438 
 -----------------------------------------
 Critical section   = 0x01164438 (CriticalSectionDeadlock!cs2+0x0)
@@ -228,25 +228,25 @@ OwningThread       = 0x000018fc
 RecursionCount     = 0x1
 LockSemaphore      = 0x40
 SpinCount          = 0x00000000
-```
+~~~ 
 
 We can see that we are indeed waiting on this critical section's lock semaphore (auto reset event). But, if the other thread is trying to enter a different critical section, why are we blocked? This is because this critical section is already LOCKED, as indicated by the ``!cs`` command.
 
 In fact, it is locked by thread `0x18fc`, let's find out who that is. Use the ``~~[TID]`` command for this.
 
-```
+~~~ 
 0:001> ~~[0x18fc]
 .  1  Id: 1618.18fc Suspend: 1 Teb: 7efda000 Unfrozen
       Start: CriticalSectionDeadlock!Thread1 (011610c0)
       Priority: 0  Priority class: 32  Affinity: ff
-```
+~~~ 
 
 Look at that. It is **Thread 1**. But, we don't see the call to that critical section in the call stack.  We can only assume that the call has came and went. Let's find out how these calls are made inside of the `Thread1()` and `Thread2()` functions. We will need to take a look at the disassembly of the `Thread2()` function located at stack frame 03 for **Thread 2**.
 
 ###Step 5 - Inspect the code
 Now that we're certain we have a blocked thread we need to take a look at the functions that are part of this executable. In order to do that we will use the un-assemble ``u`` command, and use the ``uf`` variant to un-assemble a function. I added line breaks to make some lines easier to read.
 
-```asm
+~~~ asm
 # CriticalSectionDeadlock!Thread2:
 mov     ebp,esp
 and     esp,0FFFFFFF8h
@@ -289,30 +289,30 @@ push    offset CriticalSectionDeadlock!cs2 (01164438)
 call    dword ptr [CriticalSectionDeadlock!_imp__LeaveCriticalSection (0116301c)]
 jmp     CriticalSectionDeadlock!Thread2+0x18 (01161168)
 
-```
+~~~ 
 
 I won't walk this code line by line, but I will point out some interesting parts.
 
 **Storing the EnterCriticalSection function pointer in $edi**
 
-```asm
+~~~ asm
 mov     edi,dword ptr [CriticalSectionDeadlock!_imp__EnterCriticalSection (01163010)]
-```
+~~~ 
 
 **Calls to $edi**
 
 We first `push` the critical section to the stack and then call the function located at $edi. The addresses to the left are important.
 
-```asm
+~~~ asm
 push    offset CriticalSectionDeadlock!cs1 (01164450)
 call    edi
-```
+~~~ 
 and
 
-```asm
+~~~ asm
 push    offset CriticalSectionDeadlock!cs2 (01164438)
 call    edi
-```
+~~~ 
 
 These two parts of the code are critical to understanding the code flow and how we will go about editing the application to get it to work.
 
@@ -325,7 +325,7 @@ So, 0XDEAD would be represented in memory as it is show, but would be 0xADDE whe
 
 Let's look at the instruction at address `0x01161168` in the `Thread2()` function. We will use the display memory ``d`` command to do so.
 
-```
+~~~ 
 Size of Pointers
 0:002> dp 0x01161168 L 4
 01161168  16445068 6ad7ff01 68d3ff05 01164438
@@ -338,7 +338,7 @@ Size of Bytes
 0:002> db 0x01161168 L 5
 01161168  68 50 44 16 01
 
-```
+~~~ 
 
 Notice that I specified length using L. Pay attention to the last command when I displayed the bytes and notice I specified the number 5. Why?
 
@@ -354,7 +354,7 @@ Now all we need to do is edit the proper byte in the function instruction to swa
 
 The instruction addresses I'm concerned with are the following:
 
-```
+~~~ 
 EnterCriticalSection order:
 01161168 6850441601      push    offset CriticalSectionDeadlock!cs1 (01164450)
 01161173 6838441601      push    offset CriticalSectionDeadlock!cs2 (01164438)
@@ -362,11 +362,11 @@ EnterCriticalSection order:
 LeaveCriticalSection order:
 011611ba 6850441601      push    offset CriticalSectionDeadlock!cs1 (01164450)
 011611c5 6838441601      push    offset CriticalSectionDeadlock!cs2 (01164438)
-```
+~~~ 
 
 The actual edit command. *I will repeat this for each of the addresses substituting the proper byte.*
 
-```
+~~~ 
 Before:
 0:002> db 0x01161168+0x1 L 1
 01161169  50 
@@ -375,13 +375,13 @@ After:
 0:002> eb 0x01161168+0x1 38
 0:002> db 0x01161168+0x1 L 1
 01161169  38  
-```
+~~~ 
 
 >**TIP** Do not edit more than you need to. In the previous example the instructions only differed by 1 byte.
 
 Here is the resulting assembly.  Look for the code at the addresses we've changed and you will see the order of the locks has changed.
 
-```asm
+~~~ asm
 CriticalSectionDeadlock!Thread2:
 push    ebp
 mov     ebp,esp
@@ -423,7 +423,7 @@ call    dword ptr [CriticalSectionDeadlock!_imp__LeaveCriticalSection (0116301c)
 push    offset CriticalSectionDeadlock!cs1 (01164450)
 call    dword ptr [CriticalSectionDeadlock!_imp__LeaveCriticalSection (0116301c)]
 jmp     CriticalSectionDeadlock!Thread2+0x18 (01161168)
-```
+~~~ 
 
 ###Step 7 - Run it!
 Go on, hit g. Let your code run! GO ON.
@@ -460,13 +460,13 @@ I'd say the first real step is finding the location of the function inside of th
 
 To locate the RVA of **Thread2** run the following, the output is below:
 
-```
+~~~ 
 dumpbin /relocations CriticalSectionDeadlock.exe | findstr /i Thread2
 
 
 87  HIGHLOW            00401150  ?Thread2@@YGKPAX@Z (unsigned long __stdcall Thread2(void *))
 
-```
+~~~ 
 
 Make note of the address 00401150. Your address **could** be different, but it is not likely because that is the standard base address for PE32 files. You can rebase your images if you want, but that is a different topic.
 
@@ -474,7 +474,7 @@ Make note of the address 00401150. Your address **could** be different, but it i
 
 To locate the RVA of the **critical sections** type the following, the output is below:
 
-```
+~~~ 
 dumpbin /relocations CriticalSectionDeadlock.exe | findstr /i cs.@
 
 
@@ -498,13 +498,13 @@ _RTL_CRITICAL_SECTION cs2)
 _RTL_CRITICAL_SECTION cs1)
      1C6  HIGHLOW            00404438  ?cs2@@3U_RTL_CRITICAL_SECTION@@A (struct
 _RTL_CRITICAL_SECTION cs2)
-```
+~~~ 
 
 Make note of the addresses 00404450 and 00404438. Your address **could** be different.
 
 Once you have your RVA location for the `Thread2()` function we can find the location it should be in the actual file. Run the following command to work it out.
 
-```
+~~~ 
 dumpbin CriticalSectionDeadlock.exe /headers
 
 Which outputs:
@@ -560,11 +560,11 @@ SECTION HEADER #1
          Execute Read
 
 ... removed for brevity ...
-```
+~~~ 
 
 This command outputs the RVA (virtual address) starting point and it also gives us the file pointer. We can use this to work out the actual location of the function inside of the file. This will be critical for the next step.
 
-```
+~~~ 
   RVA of function:      00401150
 - Image Base:           00400000
 - VA Starting Address:  00001000
@@ -572,7 +572,7 @@ This command outputs the RVA (virtual address) starting point and it also gives 
 --------------------------------
 Location in file:       00000550
 
-```
+~~~ 
 
 The location of the start of `Thread2()` in the executable is **0x500**.
 
@@ -583,7 +583,7 @@ In order to load the file into WinDbg you need to allocate space with ``.dvalloc
 
 Please note the address returned by ``.dvalloc`` can be different depending on a few factors. Mind the address that is returned by this command. Also note that the radix for these commands is 16, so all of the numbers are in hex.
 
-```
+~~~ 
 0:000> .dvalloc 0n13000
 Allocated 4000 bytes starting at 000f0000
 
@@ -632,7 +632,7 @@ Reading 3200 bytes.......
 000f05d0 eb96            jmp     000f0568
 
 
-```
+~~~ 
 
 You will notice this disassembly looks close to the disassembly in previous steps. However, none of the symbols are resolved. That's because this file isn't actually loaded, it is just resident in memory.
 
@@ -643,11 +643,11 @@ We're in the home stretch. If you've made it this far, you're an animal. After w
 
 To do this we will use the ``.witemem`` command.
 
-```
+~~~ 
 0:000> .writemem c:\temp\fixedfile.exe 0xf0000 L 0n12800
 Writing 3200 bytes.......
 
-```
+~~~ 
 
 Thats it! 
 

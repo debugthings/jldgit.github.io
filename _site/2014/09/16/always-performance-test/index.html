@@ -47,64 +47,63 @@
 
 <body>
   <nav class="navbar navbar-inverse navbar-fixed-top" role="navigation">
-    <div class="container">
-      <div class="navbar-header">
-        <button type="button" class="navbar-toggle collapsed" data-toggle="collapse" data-target="#navbar" aria-expanded="false" aria-controls="navbar">
-          <span class="sr-only">Toggle navigation</span>
-          <span class="icon-bar"></span>
-          <span class="icon-bar"></span>
-          <span class="icon-bar"></span>
-        </button>
-        <a href="/" class="navbar-brand" title="Home">DEBUG THINGS</a>
-      </div>
-      <div id="navbar" class="navbar-collapse collapse">
-        <ul class="nav navbar-nav">
-          <li><a href="/about/">About</a></li>
-          <li><a href="/projects">Projects</a></li>
-          <li><a href="/owasp/">OWASP Tampa</a></li>
-        </ul>
-      </div><!--/.navbar-collapse -->
+  <div class="container">
+    <div class="navbar-header">
+      <button type="button" class="navbar-toggle collapsed" data-toggle="collapse" data-target="#navbar" aria-expanded="false" aria-controls="navbar">
+        <span class="sr-only">Toggle navigation</span>
+        <span class="icon-bar"></span>
+        <span class="icon-bar"></span>
+        <span class="icon-bar"></span>
+      </button>
+      <a href="/" class="navbar-brand" title="Home">DEBUG THINGS</a>
     </div>
-  </nav>
+    <div id="navbar" class="navbar-collapse collapse">
+      <ul class="nav navbar-nav">
+        <li><a href="/about/">About</a></li>
+        <li><a href="/projects">Projects</a></li>
+        <li><a href="/owasp/">OWASP Tampa</a></li>
+      </ul>
+    </div><!--/.navbar-collapse -->
+  </div>
+</nav>
   <div class="container containerbg">
    <div class="row rowoffset">
-    <div class="col-md-8">
+    <div class="col-md-12">
       <div class="post">
   <h1 class="post-title">Always Performance Test!</h1>
   <span class="post-date">16 Sep 2014</span>
   <a href="https://twitter.com/share" class="twitter-share-button" data-via="debugthings" data-size="large">Tweet</a>
   <script>!function(d,s,id){var js,fjs=d.getElementsByTagName(s)[0],p=/^http:/.test(d.location)?'http':'https';if(!d.getElementById(id)){js=d.createElement(s);js.id=id;js.src=p+'://platform.twitter.com/widgets.js';fjs.parentNode.insertBefore(js,fjs);}}(document, 'script', 'twitter-wjs');</script>
-  <p>While thumbing through Twitter I ran across an <a href="http://apmblog.compuware.com/2014/09/16/detecting-bad-deployments-resource-impact-response-time-hotspot-garbage-collection/">article</a> written by <a href="https://twitter.com/grabnerandi">@grabnerandi</a> about a company not being able to load test a change for dependency injection. I can&rsquo;t tell you how many times in my job that performance testing has been brushed over for speed to market.</p>
+  <p>While thumbing through Twitter I ran across an <a href="http://apmblog.compuware.com/2014/09/16/detecting-bad-deployments-resource-impact-response-time-hotspot-garbage-collection/">article</a> written by <a href="https://twitter.com/grabnerandi">@grabnerandi</a> about a company not being able to load test a change for dependency injection. I can’t tell you how many times in my job that performance testing has been brushed over for speed to market.</p>
 
-<p>Look, I get it. <strong>Money</strong>. There, I said it. Most of the time the driving factor for not doing something you should be disciplined about is the bottom line. While I get it I don&rsquo;t like it. I have had to inject myself into a release process to be the harbinger of doom. I try not to get all &ldquo;the sky is falling,&rdquo; but in reality it could.</p>
+<p>Look, I get it. <strong>Money</strong>. There, I said it. Most of the time the driving factor for not doing something you should be disciplined about is the bottom line. While I get it I don’t like it. I have had to inject myself into a release process to be the harbinger of doom. I try not to get all “the sky is falling,” but in reality it could.</p>
 
-<p>I know, I know. <strong>Time</strong>. Right after money, but usually goes hand-in-hand, is time. This excuse gets even the best of us. Does anyone have time? No. Do we do it anyway? Sometimes. I&rsquo;d like to say that while being the performance testing and DevOps advocate that I just ooze availability. But, I don&rsquo;t. Just like everyone else I have constraints.</p>
+<p>I know, I know. <strong>Time</strong>. Right after money, but usually goes hand-in-hand, is time. This excuse gets even the best of us. Does anyone have time? No. Do we do it anyway? Sometimes. I’d like to say that while being the performance testing and DevOps advocate that I just ooze availability. But, I don’t. Just like everyone else I have constraints.</p>
 
 <p>What does it mean? Money + Time = <strong>Effort</strong>. It always comes down to effort. This is the way to merge both time and money into one shortsighted mess. The effort required to test is usually deemed greater than the effort to just put it in. This is the death bringer of many of once stable applications.</p>
 
-<h2>Story Time</h2>
-
-<p>A while ago our team was asked to performance test a new web application. We got our grubby little hands on it we shredded the code and the database layout. Only to be met with &ldquo;No one runs it like that.&rdquo; Apparently we were &ldquo;no one.&rdquo; As a good performance testing team we provided solutions to the problems and the application team would make sure they went in. </p>
+<h2 id="story-time">Story Time</h2>
+<p>A while ago our team was asked to performance test a new web application. We got our grubby little hands on it we shredded the code and the database layout. Only to be met with “No one runs it like that.” Apparently we were “no one.” As a good performance testing team we provided solutions to the problems and the application team would make sure they went in. </p>
 
 <p>Ever since then, just about every dot release (x.1, x.2, etc.) has been tested by our team. A lot of things change from version to version, but we now had enough experience with the style of the developers and could keep up with the changes. Each time we found one or two things, but we rarely had major problems like we did in the first few releases. Our performance results always came back with positive results.</p>
 
-<p>Fast forward about 2 years. Multiple major and minor releases have come and went without issue. The application team had requested a new feature a few months ago and it was now ready for deployment. The change was &ldquo;small&rdquo; and carried only a couple of new screens. <em>Our team never even heard about it.</em></p>
+<p>Fast forward about 2 years. Multiple major and minor releases have come and went without issue. The application team had requested a new feature a few months ago and it was now ready for deployment. The change was “small” and carried only a couple of new screens. <em>Our team never even heard about it.</em></p>
 
 <p>On go live, the applications started out fine but would always start performing poorly around 11am. This happened to be the peak time the application was used. A recycle would happen and the problem would go away for an hour and happen again. This process was repeated daily for a week. The application team was working with the vendor to find a solution.</p>
 
-<p>Our team got involved and we decided to take a look at what was going on. Since the application didn&rsquo;t have any APM tools on it we went the traditional route and started monitoring performance counters. We went back in time and looked at the historical data. We could see that CPU was definitely becoming saturated. A bit deeper inspection into the .NET counters revealed that the <a href="http://msdn.microsoft.com/en-us/library/x2tyfybc(v=vs.110).aspx"># of Induced GC</a> counter was going up at a steady rate.</p>
+<p>Our team got involved and we decided to take a look at what was going on. Since the application didn’t have any APM tools on it we went the traditional route and started monitoring performance counters. We went back in time and looked at the historical data. We could see that CPU was definitely becoming saturated. A bit deeper inspection into the .NET counters revealed that the <a href="http://msdn.microsoft.com/en-us/library/x2tyfybc(v=vs.110).aspx"># of Induced GC</a> counter was going up at a steady rate.</p>
 
-<p>We compared the counters to a date just before the go-live and to no one&rsquo;s surprise the issue was not there. We went back and performance tested the new application with existing scripts (we did not include the new screens) and the issue was still there. This showed there was something wrong in something else besides the proposed &ldquo;only changes.&rdquo;</p>
+<p>We compared the counters to a date just before the go-live and to no one’s surprise the issue was not there. We went back and performance tested the new application with existing scripts (we did not include the new screens) and the issue was still there. This showed there was something wrong in something else besides the proposed “only changes.”</p>
 
 <p>Luckily we had <a href="http://www.compuware.com/en_us/application-performance-management.html">dynaTrace</a> at our disposal in our lower life cycle and we were able to quickly find the offending code. Analysis from the vendor showed a junior developer pulled from a previous branch that had a bug that was fixed long ago. A patch was issued that day by the vendor. We performance tested it. :)</p>
 
-<h2>Lesson</h2>
-
-<h3>Always Performance Test!</h3>
+<h2 id="lesson">Lesson</h2>
+<p>###Always Performance Test!</p>
 
 <p>Considering all of the time, money, and effort (yes all three) wasted on: deploying bad code, end user impact, and time to resolution. It might have been quicker, easier, and cheaper to performance test this code.</p>
 
-<p>If you&rsquo;re ever in a situation where one of these big three come up you should always make a statement, on record, about the need to performance test. If you are silent it&rsquo;s not a great place to be if someone asks why it was never done. Being in DevOps you have just as much of a responsibility and burden to ensure application performance is as high as possible.</p>
+<p>If you’re ever in a situation where one of these big three come up you should always make a statement, on record, about the need to performance test. If you are silent it’s not a great place to be if someone asks why it was never done. Being in DevOps you have just as much of a responsibility and burden to ensure application performance is as high as possible.</p>
+
 
 </div>
 
@@ -132,6 +131,15 @@
     
     <li>
       <h3>
+        <a href="/2014/11/18/extending-mysql-server-part3/">
+          MySQL .NET Hosting Extension - Part 3 - Adding in the .NET Hosting API
+          <small>18 Nov 2014</small>
+        </a>
+      </h3>
+    </li>
+    
+    <li>
+      <h3>
         <a href="/2014/11/16/extending-mysql-server-part2/">
           MySQL .NET Hosting Extension - Part 2 - UDF Deep Dive
           <small>16 Nov 2014</small>
@@ -148,15 +156,6 @@
       </h3>
     </li>
     
-    <li>
-      <h3>
-        <a href="/2014/11/11/extending-mysql-server-part0/">
-          MySQL .NET Hosting Extension - Part 0
-          <small>11 Nov 2014</small>
-        </a>
-      </h3>
-    </li>
-    
   </ul>
 </div>
 
@@ -164,24 +163,6 @@
         <p>
           &copy; 2014. All rights reserved.
         </p>
-      </div>
-    </div>
-    <div class="col-md-3 col-md-offset-1 hidden-xs hidden-sm" >
-      <div class="well">
-        <h3>About</h3>
-        <p>
-          This blog is dedicated to a number of topics. Honestly it's what ever I feel like talking about on any given day. Topics will most always be tech related some how. Major themes will be low level debugging, .NET hacking, DevOps, and programming.
-        </p>
-        <p>
-          All thoughts and opinions on this blog are my own.
-        </p>
-        <div style="display: flex; padding-top: 0.5em">
-          <a href="http://www.linkedin.com/in/debugthings/"><img src="https://dlc1-s.licdn.com/sites/default/files/InBug-60px-R.png" class="linked" /></a>
-          <a href="http://www.twitter.com/debugthings"><div class="twitbox"><img src="https://g.twimg.com/Twitter_logo_white.png" /></div><span>@debugthings</span></a>
-        </div>  
-      </div>
-      <div>
-
       </div>
     </div>
   </div>

@@ -32,22 +32,22 @@ The UDF program flow is pretty simple to get. There are only three methods we ne
 
 For a complete reference check out [this page][ref].
 
-```Cpp
+~~~ Cpp
 extern "C"
 {
 	my_bool mysqldotnet_int_init(UDF_INIT *initid, UDF_ARGS *args, char *message);
 	long long mysqldotnet_int(UDF_INIT *initid, UDF_ARGS *args, char *is_null, char *error);
 	void mysqldotnet_int_deinit(UDF_INIT *initid);
 }
-```
+~~~ 
 
 >**NOTE** I am using `extern "C"` in this example becaue I am writing my UDF in C++.
 
 ###The init function
 
-```C
+~~~ C
 my_bool mysqldotnet_int_init(UDF_INIT *initid, UDF_ARGS *args, char *message);
-```
+~~~ 
 This name self explanatory. It will be used to initialize the run of this method. This is run **once** per query. So, if you have a need to setup memory, check values, load libraries, etc. you could do that here. It is important to note that your code needs to be thread safe. If you decide to use global variables (which you shouldn't) you need to protect them.
 
 ####initd
@@ -55,7 +55,7 @@ The `UDF_INIT initd` parameter represents state that is passed to all of the cor
 
 This structure has one interesting member that we will visit in future posts, `void *extension`. This item has the potential to store anything we desire, an address pointer, a new structure, an external library function. The list is obviously endless.
 
-```cpp
+~~~ cpp
 typedef struct st_udf_init
 {
 	my_bool maybe_null;          /* 1 if function can return NULL */
@@ -65,14 +65,14 @@ typedef struct st_udf_init
 	my_bool const_item;          /* 1 if function always returns the same value */
 	void *extension;
 } UDF_INIT;
-```
+~~~ 
 
 ####args
 The next important parameter is `UDF_ARGS *args`. These are the actual arguments that are passed to your function. In the initialize function you are allowed to strongly type the parameters to the function. For example `SELECT mysqldotnet_int(3,"MultiplyFunction");`
 
-This query calls the int function of my custom code. I pass in a raw value of 3 and a string value of "MultuplyFunction".  The number of arguments is not defined and is arbitrary in length. In the init function you can check the type of the arguments to ensure valid operation before continuing.
+This query calls the int function of my custom code. I pass in a raw value of 3 and a string value of "MultuplyFunction". The number of arguments is not defined and is arbitrary in length. In the init function you can check the type of the arguments to ensure valid operation before continuing.
 
-```cpp
+~~~ cpp
 typedef struct st_udf_args
 {
 	unsigned int arg_count;           /* Number of arguments */
@@ -84,16 +84,16 @@ typedef struct st_udf_args
 	unsigned long *attribute_lengths;     /* Length of attribute arguments */
 	void *extension;
 } UDF_ARGS;
-```
+~~~ 
 
 ####message
 The `char* message` parameter contains a pointer to where you can write out your error or status message on init. We will show more about this pointer in the up comming series. For now, be aware that it exists and you can use it to send a message back to the MySQL console. Please note the max size is `MYSQL_ERRMSG_SIZE`; which is defined as `#define MYSQL_ERRMSG_SIZE	512` in `mysql_com.h`.
 
 ###The "core" function
 
-```C
+~~~ C
 long long mysqldotnet_int(UDF_INIT *initid, UDF_ARGS *args, char *is_null, char *error);
-```
+~~~ 
 
 This is the heart of your UDF. In the simplest of terms this code sits in the middle of a loop and will be executed for each record. A lot can take place during the execution of your code and you need to be careful about how you (ab)use the data handed to you.
 
@@ -101,7 +101,7 @@ This is the heart of your UDF. In the simplest of terms this code sits in the mi
 The `UDF_INIT initd` parameter is the state information that is saved between function calls. If you set something in your init function you can retrieve it from here. You can also alter state of this parameter here, but I would caution only to do so when it's absolutely necessary. For sake of speed and safety you should only work with local variables.
 
 
-```cpp
+~~~ cpp
 typedef struct st_udf_init
 {
 	my_bool maybe_null;          /* 1 if function can return NULL */
@@ -111,12 +111,12 @@ typedef struct st_udf_init
 	my_bool const_item;          /* 1 if function always returns the same value */
 	void *extension;
 } UDF_INIT;
-```
+~~~ 
 
 ####args
 For each execution of your UDF you will get a fresh copy of UDF_ARGS. They shouldn't vary too much since (hopefully) your parameters should be the same. However, if there is any logic built in to the SQL statement you could, of course, run into times where you're passed an integer and then a decimal. That example would be a sign of poor query writing, but you need to be aware of it for casting issues.
 
-```cpp
+~~~ cpp
 typedef struct st_udf_args
 {
 	unsigned int arg_count;           /* Number of arguments */
@@ -128,13 +128,13 @@ typedef struct st_udf_args
 	unsigned long *attribute_lengths;     /* Length of attribute arguments */
 	void *extension;
 } UDF_ARGS;
-```
+~~~ 
 
 In order to loop through your args properly you need to account for what the arguments are. An example would be a function that is expecting to do work on a collection of integers. Now, consider the following SQL query `SELECT mysqldotnet_int(3, 6, 78, 4.0, 10, "AddAllTogether");`. The intention of the function is to add all of them together, but there are varying types.
 
 Your function, again by use of branching instructions such as `CASE` and `IF`, can introduce significant variation in the parameters you accept. You could use the code example below. This was extracted from the [UDF documentation][ARGS].
 
-```C
+~~~ C
 long long myfunc_int(UDF_INIT *initid, UDF_ARGS *args, char *is_null,
 		char *error)
 	{
@@ -160,38 +160,38 @@ long long myfunc_int(UDF_INIT *initid, UDF_ARGS *args, char *is_null,
 			return val;
 		}
 	}
-```
+~~~ 
 
 ####is_null
 This is a one char (one byte) feild that you can set to let MySQL know that the result is NULL. This will override the value you return and set it to NULL.
 
-```C
+~~~ C
 long long myfunc_int(UDF_INIT *initid, UDF_ARGS *args, char *is_null,
 		char *error)
 	{
 		*is_null = 1;
 		return -1;
 	}
-```
+~~~ 
 
 ####error
 This is a one char (one byte) feild that you can set to let MySQL know that there is an error. This will override the value you return and set it NULL.
 
-```C
+~~~ C
 long long myfunc_int(UDF_INIT *initid, UDF_ARGS *args, char *is_null,
 		char *error)
 	{
 		*error = 1;
 		return -1;
 	}
-```
+~~~ 
 
 >**NOTE:** Once you set this, all subsequent calls to this method will return NULL. This field is to indicate that your function cannot continue.
 
 ###The deinit function
-```C
+~~~ C
 long long mysqldotnet_int(UDF_INIT *initid, UDF_ARGS *args, char *is_null, char *error);
-```
+~~~ 
 This function is run when the SQL statement ends. This can be used to clean up any allocations or other items that you may have created when running this UDF.
 
 ####initd

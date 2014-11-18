@@ -22,7 +22,7 @@ For this I always use [Fiddler][fiddler]. There are some great plugins that will
 
 When we first navigate to [www.microsoft.com][ms] we will see the total amount of requests that are sent over. We can see this by selecting all of the requests that make up a page. In this case the home page. I have trimmed off some extra data for brevity.
 
-```
+~~~ 
 Request Count:   51
 Unique Hosts:    14
 Bytes Sent:      36,471		(headers:36,471; body:0)
@@ -52,23 +52,23 @@ application/octet-stream: 86,289
                image/gif: 6,757
 
 ... hosts and timing estimates removed ...
-```
+~~~ 
 
 For my purposes a very important line was needed. In particular the amount of bytes. More over we need to convert this to bits.
 
-```
+~~~ 
 Bytes Received:  884,345		(headers:27,698; body:856,647)
-```
+~~~ 
 
 Armed with this information I could start calculating some of this fuzzy math. I knew that if we had 100Mbit of bandwidth and the majority of our users would get **about** the same speed then we can use this formula going forward. This generates a theoretical maximum.
 
-```
+~~~ 
 ((Bytes Received) * 8) / (Sequence (clock) duration) = effective bandwidth
 
 (884,345B * 8b) / 2.98s = 2,374,080 = 2.4Mbit/sec
 
 100Mbit/sec / 2.4Mbit/sec = 42 THEORETICAL simultaneous NEW page transfers in 3 seconds (14/sec)
-```
+~~~ 
 
 In reality we more than likely won't be able to hit 42. If we kind of squint our eyes and do some estimating we will need to reduce the number of actual page transfers. I always use the 80% rule. So really we could do about 34 new page loads at one time and be safe.
 
@@ -90,7 +90,7 @@ Ah, yes. If you forgot, most modern browsers will adhere to caching rules. You n
 
 If we visit the same page(s) as before we can capture the same Fiddler statistics to get an idea of our cached content. If you look at the data below it looks as as if we have 20 times LESS data than before. So, in the naive approach we can transfer about 20 times the amount of page views when we have 100% return visitors. Here is an [excellent MSDN article][art] on HTTP performance using Fiddler; read it.
 
-```
+~~~ 
 Request Count:   17
 Unique Hosts:    9
 Bytes Sent:      15,501		(headers:15,501; body:0)
@@ -118,13 +118,13 @@ application/x-javascript: 2,978
          text/javascript: 401
                image/gif: 86
 
-```
+~~~ 
 
 In the real world you won't have that many return visitors. Depending on the type of requests you have (dynamic v. static) and what your business model is like (information or sales) you could be more in the camp of 30% to 50% return. You know your data best. I could offer some foolhardy estimates based on experience, but it would do you a disservice. Explore your data and know your numbers.
 
 Now, lets take this data and apply some fuzz to it and see what our effective rate at load would be.
 
-```
+~~~ 
 New users:
 14 pages/sec * 60sec = 840pages/minute * 50% = 420
 
@@ -137,7 +137,7 @@ Total:
 Fuzzed number (80%):
 7056 pages per minute
 
-```
+~~~ 
 
 Now, this number sounds more like a enterprise level application. But, it seems kind of high.
 
@@ -208,11 +208,11 @@ It's no secret that when you use a Microsoft product it will cost you. But, in t
 
 Knowing my goal allowed me to save a lot of money. The going rate for testing in the cloud at the time of this writing is $0.002 per user minute. For example:
 
-```
+~~~ 
 1000 virtual users x 30 minutes = 30,000 virtual user minutes * $0.002 = $60
 5000 virtual users x 30 minutes = 150,000 virtual user minutes * $0.002 = $300
 5000 virtual users x 60 minutes = 300,000 virtual user minutes * $0.002 = $600
-```
+~~~ 
 
 If you can afford some bad response times at the beginning of your test you should attempt to shorten your ramp-up time. So, if your normal user load takes 2 hours to be at capacity you can try shortening that to 10 or 20 minutes on an internal load test and see how your system handles it. Once you confirm you can take that kind of hit you should alter your load test to match that. Next, if your test had normally run for a couple of hours, you should consider only running for 30 minutes. 
 
