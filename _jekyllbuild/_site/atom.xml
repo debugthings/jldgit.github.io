@@ -4,13 +4,254 @@
  <title>Debug Things</title>
  <link href="/atom.xml" rel="self"/>
  <link href="/"/>
- <updated>2014-11-26T19:53:03-08:00</updated>
+ <updated>2014-11-28T23:26:53-08:00</updated>
  <id></id>
  <author>
    <name>James Davis</name>
    <email>james.l.davis@outlook.com</email>
  </author>
 
+ 
+ <entry>
+   <title>MySQL .NET Hosting Extension - Part 5 - AppDomain and Host Safety</title>
+   <link href="//2014/11/30/extending-mysql-server-part5/"/>
+   <updated>2014-11-30T00:00:00-08:00</updated>
+   <id>/2014/11/30/extending-mysql-server-part5</id>
+   <content type="html">&lt;p&gt;Now that we have a properly refactored base, and we have a good working solution to load new file from, we need to start considering safety. Not just type safety and integrity of data. No, safety of the executing code as well as the safety of the CLR host—MySQL in this case. Without that we would open up our new plugin library to a lot of malicious things.&lt;/p&gt;
+
+&lt;h2 id=&quot;how-to-get-the-code&quot;&gt;How to get the code&lt;/h2&gt;
+
+&lt;p&gt;Enter the following commands in your GIT command prompt. It’s that simple. All code changes as I have shown them in this blog post should be there. If you come across this post at a way later date, try increasing the range from 5 to 10, and so on.&lt;/p&gt;
+
+&lt;div class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code&gt;got clone https://github.com/jldgit/mysql_udf_dotnet.git -b wip-nextversion
+git log --abbrev-commit -n 5 --pretty=oneline
+
+303d9cd Changes relating to post 4
+5d721fa Good working copy.
+6a588f8 Work in progress.
+f1696c3 Merge branch 'master' of https://github.com/jldgit/mysql_udf.git
+ac92302 Included support for .NET 4.0. Refactored a few items.
+
+git checkout 303d9cd
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+
+&lt;h2 id=&quot;whats-changed&quot;&gt;What’s Changed?&lt;/h2&gt;
+&lt;p&gt;Not a lot has changed in this version. We are now in at a good cruising speed to add in new components as needed. The major changes here are adding in some new configuration sections relating to permission groups (permission sets) that we can arbitrarily create. I’ve also added in &lt;a href=&quot;http://msdn.microsoft.com/en-us/library/system.security.permissions.hostprotectionattribute(v=vs.110).aspx&quot;&gt;Host Access Protection&lt;/a&gt; which will block some features that are useful but dangerous when working in a shared server environment. You can get around them, but you have to go FullTrust.&lt;/p&gt;
+
+&lt;h3 id=&quot;updated-appdomain-manager-mysqlhostmanager&quot;&gt;Updated AppDomain Manager (MySQLHostManager)&lt;/h3&gt;
+&lt;p&gt;Added in a new configuration section that allows us to define very specific security for the assemblies that are to be loaded in our MySQL process. The example below shows how these items relate. As mentioned in &lt;a href=&quot;/2014/11/26/extending-mysql-server-part4/&quot;&gt;part 4&lt;/a&gt; of this series the default execution mode is &lt;a href=&quot;http://msdn.microsoft.com/en-us/library/system.security.permissions.securitypermissionflag%28v=vs.110%29.aspx&quot;&gt;SecurityPermissionFlag.Execution&lt;/a&gt;. This allows very simplistic computation to be done, but a lot of powerful features in .NET are stripped away. Now, we can grant FullTrust or a very specific set of permissions. &lt;/p&gt;
+
+&lt;div class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-XML&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;span id=&quot;line-1&quot;&gt;&lt;span class=&quot;cp&quot;&gt;&amp;lt;?xml version=&amp;quot;1.0&amp;quot; encoding=&amp;quot;utf-8&amp;quot; ?&amp;gt;&lt;/span&gt;
+&lt;/span&gt;&lt;span id=&quot;line-2&quot;&gt;&lt;span class=&quot;nt&quot;&gt;&amp;lt;configuration&amp;gt;&lt;/span&gt;
+&lt;/span&gt;&lt;span id=&quot;line-3&quot;&gt;
+&lt;/span&gt;&lt;span id=&quot;line-4&quot;&gt;  &lt;span class=&quot;nt&quot;&gt;&amp;lt;configSections&amp;gt;&lt;/span&gt;
+&lt;/span&gt;&lt;span id=&quot;line-5&quot;&gt;    &lt;span class=&quot;nt&quot;&gt;&amp;lt;section&lt;/span&gt; &lt;span class=&quot;na&quot;&gt;name =&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;&amp;quot;mysqlassemblies&amp;quot;&lt;/span&gt; &lt;span class=&quot;na&quot;&gt;type=&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;&amp;quot;MySQLHostManager.MySQLAssemblyList, &lt;/span&gt;
+&lt;/span&gt;&lt;span id=&quot;line-6&quot;&gt;&lt;span class=&quot;s&quot;&gt;             MySQLHostManager, Version=1.0.0.0, PublicKeyToken=71c4a5d4270bd29c&amp;quot;&lt;/span&gt;&lt;span class=&quot;nt&quot;&gt;/&amp;gt;&lt;/span&gt;
+&lt;/span&gt;&lt;span id=&quot;line-7&quot;&gt;  &lt;span class=&quot;nt&quot;&gt;&amp;lt;/configSections&amp;gt;&lt;/span&gt;
+&lt;/span&gt;&lt;span id=&quot;line-8&quot;&gt;
+&lt;/span&gt;&lt;span id=&quot;line-9&quot;&gt;  &lt;span class=&quot;nt&quot;&gt;&amp;lt;mysqlassemblies&amp;gt;&lt;/span&gt;
+&lt;/span&gt;&lt;span id=&quot;line-10&quot;&gt;    &lt;span class=&quot;nt&quot;&gt;&amp;lt;permissionsets&amp;gt;&lt;/span&gt;
+&lt;/span&gt;&lt;span id=&quot;line-11&quot;&gt;
+&lt;/span&gt;&lt;span id=&quot;line-12&quot;&gt;      &lt;span class=&quot;nt&quot;&gt;&amp;lt;permissionset&lt;/span&gt; &lt;span class=&quot;na&quot;&gt;name=&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;&amp;quot;MySQLPartial&amp;quot;&lt;/span&gt;&lt;span class=&quot;nt&quot;&gt;&amp;gt;&lt;/span&gt;
+&lt;/span&gt;&lt;span id=&quot;line-13&quot;&gt;        &lt;span class=&quot;nt&quot;&gt;&amp;lt;permissions&amp;gt;&lt;/span&gt;
+&lt;/span&gt;&lt;span id=&quot;line-14&quot;&gt;          &lt;span class=&quot;nt&quot;&gt;&amp;lt;add&lt;/span&gt; &lt;span class=&quot;na&quot;&gt;name=&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;&amp;quot;FileIOPermission&amp;quot;&lt;/span&gt; &lt;span class=&quot;nt&quot;&gt;/&amp;gt;&lt;/span&gt;
+&lt;/span&gt;&lt;span id=&quot;line-15&quot;&gt;        &lt;span class=&quot;nt&quot;&gt;&amp;lt;/permissions&amp;gt;&lt;/span&gt;
+&lt;/span&gt;&lt;span id=&quot;line-16&quot;&gt;      &lt;span class=&quot;nt&quot;&gt;&amp;lt;/permissionset&amp;gt;&lt;/span&gt;
+&lt;/span&gt;&lt;span id=&quot;line-17&quot;&gt;
+&lt;/span&gt;&lt;span id=&quot;line-18&quot;&gt;    &lt;span class=&quot;nt&quot;&gt;&amp;lt;/permissionsets&amp;gt;&lt;/span&gt;
+&lt;/span&gt;&lt;span id=&quot;line-19&quot;&gt;
+&lt;/span&gt;&lt;span id=&quot;line-20&quot;&gt;    &lt;span class=&quot;nt&quot;&gt;&amp;lt;assemblies&amp;gt;&lt;/span&gt;
+&lt;/span&gt;&lt;span id=&quot;line-21&quot;&gt;      &lt;span class=&quot;c&quot;&gt;&amp;lt;!--No specific permission set assigned to this assembly; uses default (MySQLPartial)--&amp;gt;&lt;/span&gt;
+&lt;/span&gt;&lt;span id=&quot;line-22&quot;&gt;      &lt;span class=&quot;nt&quot;&gt;&amp;lt;assembly&lt;/span&gt; &lt;span class=&quot;na&quot;&gt;name=&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;&amp;quot;MySQLCustomClass.CustomMySQLClass&amp;quot;&lt;/span&gt; &lt;span class=&quot;na&quot;&gt;fullname =&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;&amp;quot;MySQLCustomClass, &lt;/span&gt;
+&lt;/span&gt;&lt;span id=&quot;line-23&quot;&gt;&lt;span class=&quot;s&quot;&gt;                Version=1.0.0.0, PublicKeyToken=a55d172c54d273f4&amp;quot;&lt;/span&gt; &lt;span class=&quot;na&quot;&gt;clrversion=&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;&amp;quot;2.0&amp;quot;&lt;/span&gt; &lt;span class=&quot;nt&quot;&gt;/&amp;gt;&lt;/span&gt;
+&lt;/span&gt;&lt;span id=&quot;line-24&quot;&gt;
+&lt;/span&gt;&lt;span id=&quot;line-25&quot;&gt;      &lt;span class=&quot;c&quot;&gt;&amp;lt;!--FullTrust Granted to this assembly--&amp;gt;&lt;/span&gt;
+&lt;/span&gt;&lt;span id=&quot;line-26&quot;&gt;      &lt;span class=&quot;nt&quot;&gt;&amp;lt;assembly&lt;/span&gt; &lt;span class=&quot;na&quot;&gt;name=&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;&amp;quot;MySQLCustomClass.FullTrustAssemblyDemo&amp;quot;&lt;/span&gt; &lt;span class=&quot;na&quot;&gt;fullname =&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;&amp;quot;MySQLCustomClass, &lt;/span&gt;
+&lt;/span&gt;&lt;span id=&quot;line-27&quot;&gt;&lt;span class=&quot;s&quot;&gt;                Version=1.0.0.0, PublicKeyToken=a55d172c54d273f4&amp;quot;&lt;/span&gt; &lt;span class=&quot;na&quot;&gt;clrversion=&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;&amp;quot;2.0&amp;quot;&lt;/span&gt;
+&lt;/span&gt;&lt;span id=&quot;line-28&quot;&gt;                &lt;span class=&quot;na&quot;&gt;permissions=&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;&amp;quot;FullTrust&amp;quot;&lt;/span&gt;&lt;span class=&quot;nt&quot;&gt;/&amp;gt;&lt;/span&gt;
+&lt;/span&gt;&lt;span id=&quot;line-29&quot;&gt;      &lt;span class=&quot;c&quot;&gt;&amp;lt;!--MySQLPartial Granted to this assembly--&amp;gt;&lt;/span&gt;
+&lt;/span&gt;&lt;span id=&quot;line-30&quot;&gt;      &lt;span class=&quot;nt&quot;&gt;&amp;lt;assembly&lt;/span&gt; &lt;span class=&quot;na&quot;&gt;name=&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;&amp;quot;MySQLCustomClass.PartialTrustAssemblyDemo&amp;quot;&lt;/span&gt; &lt;span class=&quot;na&quot;&gt;fullname =&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;&amp;quot;MySQLCustomClass, &lt;/span&gt;
+&lt;/span&gt;&lt;span id=&quot;line-31&quot;&gt;&lt;span class=&quot;s&quot;&gt;                Version=1.0.0.0, PublicKeyToken=a55d172c54d273f4&amp;quot;&lt;/span&gt; &lt;span class=&quot;na&quot;&gt;clrversion=&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;&amp;quot;2.0&amp;quot;&lt;/span&gt;
+&lt;/span&gt;&lt;span id=&quot;line-32&quot;&gt;                &lt;span class=&quot;na&quot;&gt;permissions=&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;&amp;quot;MySQLPartial&amp;quot;&lt;/span&gt;&lt;span class=&quot;nt&quot;&gt;/&amp;gt;&lt;/span&gt;
+&lt;/span&gt;&lt;span id=&quot;line-33&quot;&gt;    &lt;span class=&quot;nt&quot;&gt;&amp;lt;/assemblies&amp;gt;&lt;/span&gt;
+&lt;/span&gt;&lt;span id=&quot;line-34&quot;&gt;  &lt;span class=&quot;nt&quot;&gt;&amp;lt;/mysqlassemblies&amp;gt;&lt;/span&gt;
+&lt;/span&gt;&lt;span id=&quot;line-35&quot;&gt;&lt;span class=&quot;nt&quot;&gt;&amp;lt;/configuration&amp;gt;&lt;/span&gt;
+&lt;/span&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+
+&lt;blockquote&gt;
+  &lt;p&gt;&lt;strong&gt;NOTE:&lt;/strong&gt;The clrversion attribute has not been implemented yet. I will get to that in the next blog post.&lt;/p&gt;
+&lt;/blockquote&gt;
+
+&lt;h3 id=&quot;updated-clrlib&quot;&gt;Updated clr_lib&lt;/h3&gt;
+&lt;p&gt;I added in the Host Access Protection features that will keep the CLR safe in the event of some possible bad things that can be done by code. Here is a list of the items I am stopping for partially trusted code. The key phrase here is that it only stops &lt;strong&gt;PARTIALLY&lt;/strong&gt; trusted code. If you mark an assembly as FullTrust, it’s game on. This also means you can set up a CAS Policy (for .NET 3.5 and below) and bypass the need to have this setting. But in .NET 4.0 CAS Policy is no longer in use. &lt;/p&gt;
+
+&lt;table&gt;
+  &lt;thead&gt;
+    &lt;tr&gt;
+      &lt;th&gt;Attribute&lt;/th&gt;
+      &lt;th&gt;Description&lt;/th&gt;
+    &lt;/tr&gt;
+  &lt;/thead&gt;
+  &lt;tbody&gt;
+    &lt;tr&gt;
+      &lt;td&gt;eSynchronization&lt;/td&gt;
+      &lt;td&gt;Specifies that common language runtime classes and members that allow user code to hold locks be blocked from running in partially trusted code.&lt;/td&gt;
+    &lt;/tr&gt;
+    &lt;tr&gt;
+      &lt;td&gt;eSelfAffectingThreading&lt;/td&gt;
+      &lt;td&gt;Specifies that managed classes and members whose capabilities can affect threads in the hosted process be blocked from running in partially trusted code.&lt;/td&gt;
+    &lt;/tr&gt;
+    &lt;tr&gt;
+      &lt;td&gt;eSelfAffectingProcessMgmt&lt;/td&gt;
+      &lt;td&gt;Specifies that managed classes and members whose capabilities can affect the hosted process be blocked from running in partially trusted code.&lt;/td&gt;
+    &lt;/tr&gt;
+    &lt;tr&gt;
+      &lt;td&gt;eExternalProcessMgmt&lt;/td&gt;
+      &lt;td&gt;Specifies that managed classes and members that allow the creation, manipulation, and destruction of external processes be blocked from running in partially trusted code.&lt;/td&gt;
+    &lt;/tr&gt;
+    &lt;tr&gt;
+      &lt;td&gt;eExternalThreading&lt;/td&gt;
+      &lt;td&gt;Specifies that managed classes and members that allow the creation, manipulation, and destruction of external threads be blocked from running in partially trusted code.&lt;/td&gt;
+    &lt;/tr&gt;
+    &lt;tr&gt;
+      &lt;td&gt;eUI&lt;/td&gt;
+      &lt;td&gt;Specifies that managed classes and members that allow or require human interaction be blocked from running in partially trusted code.&lt;/td&gt;
+    &lt;/tr&gt;
+  &lt;/tbody&gt;
+&lt;/table&gt;
+
+&lt;h2 id=&quot;expanded-walkthrough&quot;&gt;Expanded Walkthrough&lt;/h2&gt;
+&lt;p&gt;This wasn’t a major code change and we really only scratched the surface of what this change really did. I chose to be a bit more restrictive for HAPso I can whittle away the over restrictive. I also chose to be very flexible for what CAS permissions would be allowed. Let’s take a little closer look at the permissions code and the HAP code.&lt;/p&gt;
+
+&lt;h3 id=&quot;security-permissions&quot;&gt;Security Permissions&lt;/h3&gt;
+&lt;p&gt;The cornerstone of .NET security is &lt;a href=&quot;http://msdn.microsoft.com/en-us/library/c5tk9z76(v=vs.110).aspx&quot;&gt;Code Access Security&lt;/a&gt;. This is a set of attributes and assertions that check the rights of the caller(s). In the simplest form it checks to see if any of the callers have access to call the possibly insecure code. For example, if we try to write a file, and we do not have the &lt;code&gt;FileIOPermission&lt;/code&gt; we will get a security exception. In the code below you can see how we iterate through a plain text list of permissions (case sensitive for now). If we have that permission listed it will add it to the default policy.&lt;/p&gt;
+
+&lt;p&gt;If we happen to have the phrase FullTrust in the assembly permissions attribute, we give the app domain an Unrestricted permission state. This is the same as adding each permission. This means that &lt;strong&gt;ALL&lt;/strong&gt; assemblies loaded in this domain will have full trust. We will circle back in later blog posts to fix a possible security flaw in this design.&lt;/p&gt;
+
+&lt;div class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-csharp&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;span id=&quot;line-1&quot;&gt;&lt;span class=&quot;k&quot;&gt;private&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;PermissionSet&lt;/span&gt; &lt;span class=&quot;nf&quot;&gt;GetAssemblyPermissions&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;MySQLAsembly&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;typeName&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt;
+&lt;/span&gt;&lt;span id=&quot;line-2&quot;&gt;&lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;
+&lt;/span&gt;&lt;span id=&quot;line-3&quot;&gt;  &lt;span class=&quot;n&quot;&gt;PermissionSet&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;permissions&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;k&quot;&gt;new&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;PermissionSet&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;PermissionState&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;None&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;);&lt;/span&gt;
+&lt;/span&gt;&lt;span id=&quot;line-4&quot;&gt;  &lt;span class=&quot;n&quot;&gt;permissions&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;AddPermission&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;k&quot;&gt;new&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;SecurityPermission&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;SecurityPermissionFlag&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;Execution&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;));&lt;/span&gt;
+&lt;/span&gt;&lt;span id=&quot;line-5&quot;&gt;
+&lt;/span&gt;&lt;span id=&quot;line-6&quot;&gt;  &lt;span class=&quot;k&quot;&gt;if&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;(!&lt;/span&gt;&lt;span class=&quot;kt&quot;&gt;string&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;IsNullOrEmpty&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;typeName&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;permissions&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;))&lt;/span&gt;
+&lt;/span&gt;&lt;span id=&quot;line-7&quot;&gt;  &lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;
+&lt;/span&gt;&lt;span id=&quot;line-8&quot;&gt;    &lt;span class=&quot;k&quot;&gt;if&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;typeName&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;permissions&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;Equals&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;&amp;quot;fulltrust&amp;quot;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;StringComparison&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;InvariantCultureIgnoreCase&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;))&lt;/span&gt;
+&lt;/span&gt;&lt;span id=&quot;line-9&quot;&gt;    &lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;
+&lt;/span&gt;&lt;span id=&quot;line-10&quot;&gt;      &lt;span class=&quot;c1&quot;&gt;// override the default permission set with a full trust permission set.&lt;/span&gt;
+&lt;/span&gt;&lt;span id=&quot;line-11&quot;&gt;      &lt;span class=&quot;n&quot;&gt;permissions&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;k&quot;&gt;new&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;PermissionSet&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;PermissionState&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;Unrestricted&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;);&lt;/span&gt;
+&lt;/span&gt;&lt;span id=&quot;line-12&quot;&gt;    &lt;span class=&quot;p&quot;&gt;}&lt;/span&gt;
+&lt;/span&gt;&lt;span id=&quot;line-13&quot;&gt;    &lt;span class=&quot;k&quot;&gt;else&lt;/span&gt;
+&lt;/span&gt;&lt;span id=&quot;line-14&quot;&gt;    &lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;
+&lt;/span&gt;&lt;span id=&quot;line-15&quot;&gt;      &lt;span class=&quot;kt&quot;&gt;var&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;section2&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;System&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;Configuration&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;ConfigurationManager&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;GetSection&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;&amp;quot;mysqlassemblies&amp;quot;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt; 
+&lt;/span&gt;&lt;span id=&quot;line-16&quot;&gt;      &lt;span class=&quot;k&quot;&gt;as&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;MySQLAssemblyList&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+&lt;/span&gt;&lt;span id=&quot;line-17&quot;&gt;      &lt;span class=&quot;kt&quot;&gt;var&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;permlists&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;section2&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;permissionsetscollection&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+&lt;/span&gt;&lt;span id=&quot;line-18&quot;&gt;      &lt;span class=&quot;kt&quot;&gt;var&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;permlist&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;permlists&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;typeName&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;permissions&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;];&lt;/span&gt;
+&lt;/span&gt;&lt;span id=&quot;line-19&quot;&gt;
+&lt;/span&gt;&lt;span id=&quot;line-20&quot;&gt;  
+&lt;/span&gt;&lt;span id=&quot;line-21&quot;&gt;      &lt;span class=&quot;k&quot;&gt;foreach&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;MySQLPermission&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;permission&lt;/span&gt; &lt;span class=&quot;k&quot;&gt;in&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;permlist&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;permissionscollection&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt;
+&lt;/span&gt;&lt;span id=&quot;line-22&quot;&gt;      &lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;
+&lt;/span&gt;&lt;span id=&quot;line-23&quot;&gt;          &lt;span class=&quot;k&quot;&gt;switch&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;permission&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;Name&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt;
+&lt;/span&gt;&lt;span id=&quot;line-24&quot;&gt;          &lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;
+&lt;/span&gt;&lt;span id=&quot;line-25&quot;&gt;            &lt;span class=&quot;c1&quot;&gt;// Removed code for brevity ...&lt;/span&gt;
+&lt;/span&gt;&lt;span id=&quot;line-26&quot;&gt;            &lt;span class=&quot;k&quot;&gt;case&lt;/span&gt; &lt;span class=&quot;s&quot;&gt;&amp;quot;OdbcPermission&amp;quot;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;permissions&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;AddPermission&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;
+&lt;/span&gt;&lt;span id=&quot;line-27&quot;&gt;              &lt;span class=&quot;k&quot;&gt;new&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;System&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;Data&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;Odbc&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;OdbcPermission&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;PermissionState&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;Unrestricted&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;));&lt;/span&gt;
+&lt;/span&gt;&lt;span id=&quot;line-28&quot;&gt;                &lt;span class=&quot;k&quot;&gt;break&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+&lt;/span&gt;&lt;span id=&quot;line-29&quot;&gt;            &lt;span class=&quot;k&quot;&gt;case&lt;/span&gt; &lt;span class=&quot;s&quot;&gt;&amp;quot;OleDbPermission&amp;quot;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;permissions&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;AddPermission&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;
+&lt;/span&gt;&lt;span id=&quot;line-30&quot;&gt;              &lt;span class=&quot;k&quot;&gt;new&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;System&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;Data&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;OleDb&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;OleDbPermission&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;PermissionState&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;Unrestricted&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;));&lt;/span&gt;
+&lt;/span&gt;&lt;span id=&quot;line-31&quot;&gt;                &lt;span class=&quot;k&quot;&gt;break&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+&lt;/span&gt;&lt;span id=&quot;line-32&quot;&gt;            &lt;span class=&quot;k&quot;&gt;case&lt;/span&gt; &lt;span class=&quot;s&quot;&gt;&amp;quot;SqlClientPermission&amp;quot;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;permissions&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;AddPermission&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;
+&lt;/span&gt;&lt;span id=&quot;line-33&quot;&gt;              &lt;span class=&quot;k&quot;&gt;new&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;System&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;Data&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;SqlClient&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;SqlClientPermission&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;PermissionState&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;Unrestricted&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;));&lt;/span&gt;
+&lt;/span&gt;&lt;span id=&quot;line-34&quot;&gt;                &lt;span class=&quot;k&quot;&gt;break&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+&lt;/span&gt;&lt;span id=&quot;line-35&quot;&gt;            &lt;span class=&quot;k&quot;&gt;case&lt;/span&gt; &lt;span class=&quot;s&quot;&gt;&amp;quot;EnvironmentPermission&amp;quot;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;permissions&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;AddPermission&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;
+&lt;/span&gt;&lt;span id=&quot;line-36&quot;&gt;              &lt;span class=&quot;k&quot;&gt;new&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;System&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;Security&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;Permissions&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;EnvironmentPermission&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;PermissionState&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;Unrestricted&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;));&lt;/span&gt;
+&lt;/span&gt;&lt;span id=&quot;line-37&quot;&gt;                &lt;span class=&quot;k&quot;&gt;break&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+&lt;/span&gt;&lt;span id=&quot;line-38&quot;&gt;            &lt;span class=&quot;k&quot;&gt;case&lt;/span&gt; &lt;span class=&quot;s&quot;&gt;&amp;quot;FileDialogPermission&amp;quot;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;permissions&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;AddPermission&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;
+&lt;/span&gt;&lt;span id=&quot;line-39&quot;&gt;              &lt;span class=&quot;k&quot;&gt;new&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;System&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;Security&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;Permissions&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;FileDialogPermission&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;PermissionState&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;Unrestricted&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;));&lt;/span&gt;
+&lt;/span&gt;&lt;span id=&quot;line-40&quot;&gt;                &lt;span class=&quot;k&quot;&gt;break&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+&lt;/span&gt;&lt;span id=&quot;line-41&quot;&gt;            &lt;span class=&quot;k&quot;&gt;case&lt;/span&gt; &lt;span class=&quot;s&quot;&gt;&amp;quot;FileIOPermission&amp;quot;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;permissions&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;AddPermission&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;
+&lt;/span&gt;&lt;span id=&quot;line-42&quot;&gt;              &lt;span class=&quot;k&quot;&gt;new&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;System&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;Security&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;Permissions&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;FileIOPermission&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;PermissionState&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;Unrestricted&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;));&lt;/span&gt;
+&lt;/span&gt;&lt;span id=&quot;line-43&quot;&gt;                &lt;span class=&quot;k&quot;&gt;break&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+&lt;/span&gt;&lt;span id=&quot;line-44&quot;&gt;            &lt;span class=&quot;c1&quot;&gt;// Removed code for brevity ...&lt;/span&gt;
+&lt;/span&gt;&lt;span id=&quot;line-45&quot;&gt;
+&lt;/span&gt;&lt;span id=&quot;line-46&quot;&gt;            &lt;span class=&quot;k&quot;&gt;default&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;:&lt;/span&gt;
+&lt;/span&gt;&lt;span id=&quot;line-47&quot;&gt;                &lt;span class=&quot;k&quot;&gt;break&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+&lt;/span&gt;&lt;span id=&quot;line-48&quot;&gt;          &lt;span class=&quot;p&quot;&gt;}&lt;/span&gt;
+&lt;/span&gt;&lt;span id=&quot;line-49&quot;&gt;        &lt;span class=&quot;p&quot;&gt;}&lt;/span&gt;
+&lt;/span&gt;&lt;span id=&quot;line-50&quot;&gt;    &lt;span class=&quot;p&quot;&gt;}&lt;/span&gt;
+&lt;/span&gt;&lt;span id=&quot;line-51&quot;&gt;
+&lt;/span&gt;&lt;span id=&quot;line-52&quot;&gt;  &lt;span class=&quot;p&quot;&gt;}&lt;/span&gt;
+&lt;/span&gt;&lt;span id=&quot;line-53&quot;&gt;  &lt;span class=&quot;k&quot;&gt;return&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;permissions&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+&lt;/span&gt;&lt;span id=&quot;line-54&quot;&gt;&lt;span class=&quot;p&quot;&gt;}&lt;/span&gt;
+&lt;/span&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+
+&lt;h3 id=&quot;host-access-protection&quot;&gt;Host Access Protection&lt;/h3&gt;
+&lt;p&gt;In order to make sure we don’t inadvertantly shut MySQL down, or even block a thread indefinitely we implement Host Protection. This is not exactly the same as Code Access Security. Meaning, it has nothing to do with the call stack. The &lt;a href=&quot;http://msdn.microsoft.com/en-us/library/system.security.permissions.hostprotectionattribute(v=vs.110).aspx&quot;&gt;HostProtectionAttibute&lt;/a&gt; immediately stops execution if it is found while JITting the code. So, this means you could have code that is not “host aware” running that would clear the CAS checks, but could still cause stability issues.&lt;/p&gt;
+
+&lt;p&gt;An example of this is calling &lt;code&gt;System.Diagnostics.Debug.WriteLine(&quot;Yaaassss!&quot;);&lt;/code&gt; inside of your code. There is nothing particularly bad here as it’s not writing to the UI so it would seem this code is safe. However, if you look inside of the code you will find the following things to be true. The &lt;code&gt;WriteLine()&lt;/code&gt; method internally calls on the trace listeners collection and that acquires a lock.&lt;/p&gt;
+
+&lt;p&gt;The lock compiles down into &lt;code&gt;Monitor.Enter()&lt;/code&gt; and &lt;code&gt;Monitor.Exit()&lt;/code&gt;. If we look at this code we can see the HostProtection attribute is establishing that it has both Synchronization (eSynchronization) and ExternalThreading (eExternalThreading). This trips the HAP when the code is being JITted.&lt;/p&gt;
+
+&lt;p&gt;The way around this is to grant the AppDomain unrestricted security which turns off the verification. So essentially, you can bypass host access protection by setting an assembly (or the domain) to FullTrust.&lt;/p&gt;
+
+&lt;div class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-csharp&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;span id=&quot;line-1&quot;&gt;&lt;span class=&quot;k&quot;&gt;public&lt;/span&gt; &lt;span class=&quot;k&quot;&gt;static&lt;/span&gt; &lt;span class=&quot;k&quot;&gt;void&lt;/span&gt; &lt;span class=&quot;nf&quot;&gt;WriteLine&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;kt&quot;&gt;string&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;message&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt;
+&lt;/span&gt;&lt;span id=&quot;line-2&quot;&gt;&lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;
+&lt;/span&gt;&lt;span id=&quot;line-3&quot;&gt;  &lt;span class=&quot;k&quot;&gt;if&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;(!&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;TraceInternal&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;UseGlobalLock&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt;
+&lt;/span&gt;&lt;span id=&quot;line-4&quot;&gt;  &lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;
+&lt;/span&gt;&lt;span id=&quot;line-5&quot;&gt;     &lt;span class=&quot;c1&quot;&gt;// Internal trace lister code that does not acquire a lock.&lt;/span&gt;
+&lt;/span&gt;&lt;span id=&quot;line-6&quot;&gt;     &lt;span class=&quot;c1&quot;&gt;// Removed for brevity.&lt;/span&gt;
+&lt;/span&gt;&lt;span id=&quot;line-7&quot;&gt;  &lt;span class=&quot;p&quot;&gt;}&lt;/span&gt;
+&lt;/span&gt;&lt;span id=&quot;line-8&quot;&gt;  &lt;span class=&quot;k&quot;&gt;else&lt;/span&gt;
+&lt;/span&gt;&lt;span id=&quot;line-9&quot;&gt;  &lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;
+&lt;/span&gt;&lt;span id=&quot;line-10&quot;&gt;    &lt;span class=&quot;k&quot;&gt;lock&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;TraceInternal&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;critSec&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt;
+&lt;/span&gt;&lt;span id=&quot;line-11&quot;&gt;    &lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;
+&lt;/span&gt;&lt;span id=&quot;line-12&quot;&gt;      &lt;span class=&quot;k&quot;&gt;foreach&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;TraceListener&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;traceListener&lt;/span&gt; &lt;span class=&quot;k&quot;&gt;in&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;TraceInternal&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;Listeners&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt;
+&lt;/span&gt;&lt;span id=&quot;line-13&quot;&gt;      &lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;
+&lt;/span&gt;&lt;span id=&quot;line-14&quot;&gt;        &lt;span class=&quot;n&quot;&gt;traceListener&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;WriteLine&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;message&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;);&lt;/span&gt;
+&lt;/span&gt;&lt;span id=&quot;line-15&quot;&gt;        &lt;span class=&quot;k&quot;&gt;if&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;(!&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;TraceInternal&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;AutoFlush&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt;
+&lt;/span&gt;&lt;span id=&quot;line-16&quot;&gt;        &lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;
+&lt;/span&gt;&lt;span id=&quot;line-17&quot;&gt;            &lt;span class=&quot;k&quot;&gt;continue&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+&lt;/span&gt;&lt;span id=&quot;line-18&quot;&gt;        &lt;span class=&quot;p&quot;&gt;}&lt;/span&gt;
+&lt;/span&gt;&lt;span id=&quot;line-19&quot;&gt;        &lt;span class=&quot;n&quot;&gt;traceListener&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;Flush&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;();&lt;/span&gt;
+&lt;/span&gt;&lt;span id=&quot;line-20&quot;&gt;      &lt;span class=&quot;p&quot;&gt;}&lt;/span&gt;
+&lt;/span&gt;&lt;span id=&quot;line-21&quot;&gt;    &lt;span class=&quot;p&quot;&gt;}&lt;/span&gt;
+&lt;/span&gt;&lt;span id=&quot;line-22&quot;&gt;  &lt;span class=&quot;p&quot;&gt;}&lt;/span&gt;
+&lt;/span&gt;&lt;span id=&quot;line-23&quot;&gt;&lt;span class=&quot;p&quot;&gt;}&lt;/span&gt;
+&lt;/span&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+
+&lt;div class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-csharp&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;span id=&quot;line-1&quot;&gt;&lt;span class=&quot;na&quot;&gt;[ComVisible(true)]&lt;/span&gt;
+&lt;/span&gt;&lt;span id=&quot;line-2&quot;&gt;&lt;span class=&quot;na&quot;&gt;[HostProtection(SecurityAction.LinkDemand, Synchronization=true, ExternalThreading=true)]&lt;/span&gt;
+&lt;/span&gt;&lt;span id=&quot;line-3&quot;&gt;&lt;span class=&quot;k&quot;&gt;public&lt;/span&gt; &lt;span class=&quot;k&quot;&gt;static&lt;/span&gt; &lt;span class=&quot;k&quot;&gt;class&lt;/span&gt; &lt;span class=&quot;nc&quot;&gt;Monitor&lt;/span&gt;
+&lt;/span&gt;&lt;span id=&quot;line-4&quot;&gt;&lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;
+&lt;/span&gt;&lt;span id=&quot;line-5&quot;&gt;   &lt;span class=&quot;c1&quot;&gt;// Removed code for brevity &lt;/span&gt;
+&lt;/span&gt;&lt;span id=&quot;line-6&quot;&gt;
+&lt;/span&gt;&lt;span id=&quot;line-7&quot;&gt;   &lt;span class=&quot;k&quot;&gt;public&lt;/span&gt; &lt;span class=&quot;k&quot;&gt;static&lt;/span&gt; &lt;span class=&quot;k&quot;&gt;extern&lt;/span&gt; &lt;span class=&quot;k&quot;&gt;void&lt;/span&gt; &lt;span class=&quot;nf&quot;&gt;Enter&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;kt&quot;&gt;object&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;obj&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;);&lt;/span&gt;
+&lt;/span&gt;&lt;span id=&quot;line-8&quot;&gt;&lt;span class=&quot;p&quot;&gt;}&lt;/span&gt;
+&lt;/span&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+
+&lt;p&gt;This is the code snippet that turns on the Host Protection manager with our specified flags.&lt;/p&gt;
+
+&lt;div class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-Cpp&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;span id=&quot;line-1&quot;&gt;&lt;span class=&quot;c1&quot;&gt;// get the host protection manager&lt;/span&gt;
+&lt;/span&gt;&lt;span id=&quot;line-2&quot;&gt;&lt;span class=&quot;n&quot;&gt;ICLRHostProtectionManager&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;*&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;pHostProtectionManager&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;nb&quot;&gt;NULL&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+&lt;/span&gt;&lt;span id=&quot;line-3&quot;&gt;&lt;span class=&quot;n&quot;&gt;HRESULT&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;hrGetProtectionManager&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;m_pClrControl&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;-&amp;gt;&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;GetCLRManager&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;
+&lt;/span&gt;&lt;span id=&quot;line-4&quot;&gt;  &lt;span class=&quot;n&quot;&gt;IID_ICLRHostProtectionManager&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt;
+&lt;/span&gt;&lt;span id=&quot;line-5&quot;&gt;  &lt;span class=&quot;k&quot;&gt;reinterpret_cast&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;&amp;lt;&lt;/span&gt;&lt;span class=&quot;kt&quot;&gt;void&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;**&amp;gt;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;&amp;amp;&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;pHostProtectionManager&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;));&lt;/span&gt;
+&lt;/span&gt;&lt;span id=&quot;line-6&quot;&gt;&lt;span class=&quot;k&quot;&gt;if&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;FAILED&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;hrGetProtectionManager&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;))&lt;/span&gt;
+&lt;/span&gt;&lt;span id=&quot;line-7&quot;&gt;  &lt;span class=&quot;k&quot;&gt;return&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;hrGetProtectionManager&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+&lt;/span&gt;&lt;span id=&quot;line-8&quot;&gt;
+&lt;/span&gt;&lt;span id=&quot;line-9&quot;&gt;&lt;span class=&quot;c1&quot;&gt;// setup host proctection to disallow any threading from partially trusted code.&lt;/span&gt;
+&lt;/span&gt;&lt;span id=&quot;line-10&quot;&gt;&lt;span class=&quot;c1&quot;&gt;// Why? well, if a thread is allowed to hang indefinitely the command could get stuck.&lt;/span&gt;
+&lt;/span&gt;&lt;span id=&quot;line-11&quot;&gt;&lt;span class=&quot;n&quot;&gt;HRESULT&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;hrHostProtection&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;pHostProtectionManager&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;-&amp;gt;&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;SetProtectedCategories&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;
+&lt;/span&gt;&lt;span id=&quot;line-12&quot;&gt;  &lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;EApiCategories&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;eSynchronization&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;|&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;eSelfAffectingThreading&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;|&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;eSelfAffectingProcessMgmt&lt;/span&gt; 
+&lt;/span&gt;&lt;span id=&quot;line-13&quot;&gt;  &lt;span class=&quot;o&quot;&gt;|&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;eExternalProcessMgmt&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;|&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;eExternalThreading&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;|&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;eUI&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;));&lt;/span&gt;
+&lt;/span&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+
+&lt;h2 id=&quot;wrapping-up&quot;&gt;Wrapping Up&lt;/h2&gt;
+&lt;p&gt;Now that we have a solid foundation from part 4 we can extend it to be a bit more restrictive (&lt;em&gt;yes, that’s what we want&lt;/em&gt;) so we can protect our server. As we move into the next few posts we will start to add on some more security and some more useful features. Shadow Copy comes to mind.&lt;/p&gt;
+
+&lt;p&gt;As always, I’m here to help if you have questions. Look for a v1.0 before the end of December. I will make sure the application has an installer and can be used with both 32bit and 64bit.&lt;/p&gt;
+
+</content>
+ </entry>
  
  <entry>
    <title>MySQL .NET Hosting Extension - Part 4 - Extending the AppDomain Manager</title>
@@ -23,7 +264,8 @@
 
 &lt;p&gt;Enter the following commands in your GIT command prompt. It’s that simple. All code changes as I have shown them in this blog post should be there. If you come across this post at a way later date, try increasing the range from 5 to 10, and so on.&lt;/p&gt;
 
-&lt;div class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code&gt;git log --abbrev-commit -n 5 --pretty=oneline
+&lt;div class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code&gt;got clone https://github.com/jldgit/mysql_udf_dotnet.git -b wip-nextversion
+git log --abbrev-commit -n 5 --pretty=oneline
 
 303d9cd Changes relating to post 4
 5d721fa Good working copy.
