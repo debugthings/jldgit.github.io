@@ -4,7 +4,7 @@
  <title>Debug Things</title>
  <link href="/atom.xml" rel="self"/>
  <link href="/"/>
- <updated>2014-11-28T23:26:53-08:00</updated>
+ <updated>2014-11-28T23:34:34-08:00</updated>
  <id></id>
  <author>
    <name>James Davis</name>
@@ -23,16 +23,16 @@
 
 &lt;p&gt;Enter the following commands in your GIT command prompt. It’s that simple. All code changes as I have shown them in this blog post should be there. If you come across this post at a way later date, try increasing the range from 5 to 10, and so on.&lt;/p&gt;
 
-&lt;div class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code&gt;got clone https://github.com/jldgit/mysql_udf_dotnet.git -b wip-nextversion
+&lt;div class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code&gt;git clone https://github.com/jldgit/mysql_udf_dotnet.git -b wip-nextversion
 git log --abbrev-commit -n 5 --pretty=oneline
 
+6d017b0 Changes relating to post 5
 303d9cd Changes relating to post 4
 5d721fa Good working copy.
 6a588f8 Work in progress.
 f1696c3 Merge branch 'master' of https://github.com/jldgit/mysql_udf.git
-ac92302 Included support for .NET 4.0. Refactored a few items.
 
-git checkout 303d9cd
+git checkout 6d017b0
 &lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
 
 &lt;h2 id=&quot;whats-changed&quot;&gt;What’s Changed?&lt;/h2&gt;
@@ -264,7 +264,7 @@ git checkout 303d9cd
 
 &lt;p&gt;Enter the following commands in your GIT command prompt. It’s that simple. All code changes as I have shown them in this blog post should be there. If you come across this post at a way later date, try increasing the range from 5 to 10, and so on.&lt;/p&gt;
 
-&lt;div class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code&gt;got clone https://github.com/jldgit/mysql_udf_dotnet.git -b wip-nextversion
+&lt;div class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code&gt;git clone https://github.com/jldgit/mysql_udf_dotnet.git -b wip-nextversion
 git log --abbrev-commit -n 5 --pretty=oneline
 
 303d9cd Changes relating to post 4

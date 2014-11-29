@@ -15,7 +15,7 @@ So far the application was simple and was able to load and run a command from in
 Enter the following commands in your GIT command prompt. It's that simple. All code changes as I have shown them in this blog post should be there. If you come across this post at a way later date, try increasing the range from 5 to 10, and so on.
 
 ~~~
-got clone https://github.com/jldgit/mysql_udf_dotnet.git -b wip-nextversion
+git clone https://github.com/jldgit/mysql_udf_dotnet.git -b wip-nextversion
 git log --abbrev-commit -n 5 --pretty=oneline
 
 303d9cd Changes relating to post 4
