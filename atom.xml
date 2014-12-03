@@ -4,13 +4,87 @@
  <title>Debug Things</title>
  <link href="/atom.xml" rel="self"/>
  <link href="/"/>
- <updated>2014-12-02T12:10:24-08:00</updated>
+ <updated>2014-12-03T13:45:38-08:00</updated>
  <id></id>
  <author>
    <name>James Davis</name>
    <email>james.l.davis@outlook.com</email>
  </author>
 
+ 
+ <entry>
+   <title>Compiling for Two (.NET versions)</title>
+   <link href="//2014/12/03/compiling-for-two/"/>
+   <updated>2014-12-03T00:00:00-08:00</updated>
+   <id>/2014/12/03/compiling-for-two</id>
+   <content type="html">&lt;p&gt;While writing the &lt;a href=&quot;https://github.com/jldgit/mysql_udf_dotnet&quot;&gt;MySQL plugin&lt;/a&gt; I found a strange need to compile two versions of my AppDomain Manager. Mainly it was for future compatibility. Plus I figured as long as my Interfaces didn’t change, everything would be great. But it left me with a sucking hole in my project solution. I was going to have to maintain two versions of source code &lt;strong&gt;FOR THE EXACT SAME THING&lt;/strong&gt;. I didn’t like that.&lt;/p&gt;
+
+&lt;h2 id=&quot;something-symbolic&quot;&gt;Something Symbolic&lt;/h2&gt;
+&lt;p&gt;Instead of trying to do some whizbang copy command each time I reached a little deeper into my toolkit and remembered &lt;a href=&quot;http://en.wikipedia.org/wiki/Symbolic_link&quot;&gt;symbolic links&lt;/a&gt; from way back when. I don’t use them that often any more, however in my hardcore Linux days I used them all the time.&lt;/p&gt;
+
+&lt;p&gt;In windows you can use the &lt;a href=&quot;http://msdn.microsoft.com/en-us/library/windows/desktop/aa365006%28v=vs.85%29.aspx&quot;&gt;mklink&lt;/a&gt; command to create a new softlink. This softlink behaves just like a real file. Except when you delete the link you do not delete the original file. This has the useful benefit of being able to be referenced inside of numerous locations, but you only edit one file.&lt;/p&gt;
+
+&lt;p&gt;In my case I wanted to duplicate functionality between two assemblies. Why didn’t I just stick with the older version and just load it into the new CLR? Aren’t they the same? Yep, the CLRs are very, very backwards compatible. However, I didn’t want to get myself into a spot where 3 years down the road my v2.0 version is obsolete and I have to migrate the project in one big chunk. So, I decided to link it and add a compiler directive to allow me to selectively turn code off and on.&lt;/p&gt;
+
+&lt;p&gt;Let’s take a look at the mklink command. I list all of the options here but since I’m only looking at creating a symlink. Below the help text is the command I executed.&lt;/p&gt;
+
+&lt;div class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code&gt;&amp;gt;mklink
+Creates a symbolic link.
+
+MKLINK [[/D] | [/H] | [/J]] Link Target
+
+        /D      Creates a directory symbolic link.  Default is a file
+                symbolic link.
+        /H      Creates a hard link instead of a symbolic link.
+        /J      Creates a Directory Junction.
+        Link    specifies the new symbolic link name.
+        Target  specifies the path (relative or absolute) that the new link
+                refers to.
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+
+&lt;div class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code&gt;mklink MySQLHostManager.cs ..\mysql_managed_interface\MySQLHostManager.cs
+symbolic link created for MySQLHostManager.cs &amp;lt;&amp;lt;===&amp;gt;&amp;gt; ..\mysql_managed_interface\MySQLHostManager.cs
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+
+&lt;p&gt;That previous command created a new link to &lt;code&gt;MySQLHostManager.cs&lt;/code&gt; from the actual &lt;code&gt;MySQLHostManager.cs&lt;/code&gt; file in another directory. The great think about this link is it is relative. So, if you happen to move the entire directory structure up or down a level this will be honored.&lt;/p&gt;
+
+&lt;h2 id=&quot;what-if-its-a-new-machine&quot;&gt;What IF it’s a new machine?&lt;/h2&gt;
+&lt;p&gt;Creating this link on my machine was great. But what about my other dev machine, or my VM, or my other machine, or someone else’s machine? The answer wasn’t to create a wiki page or a link in a doc somewhere, or even this blog post. No, the real solution was to make sure this was repeatable.&lt;/p&gt;
+
+&lt;p&gt;Inside of my solution I have a project for the v4.0 version of my assembly. Complete with new references for the new CLR. I added a build event to my assembly to make this link before each run. The problem here is we need to be able to make sure that we don’t run the &lt;code&gt;mklink&lt;/code&gt; command each and every time. Again, falling back to my bag of tricks I used a simple one line batch &lt;a href=&quot;http://technet.microsoft.com/en-us/library/bb490920.aspx&quot;&gt;IF command&lt;/a&gt;.&lt;/p&gt;
+
+&lt;div class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code&gt;IF EXIST MySQLHostManager.cs ( echo &quot;Link Exists&quot;) 
+ELSE (mklink MySQLHostManager.cs ..\mysql_managed_interface\MySQLHostManager.cs)
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+
+&lt;p&gt;I placed this command inside of my project properties in the pre-build event section. This will guarantee that the link is created the first time you run the build and it will not be attempted to be created after the build.&lt;/p&gt;
+
+&lt;p&gt;&lt;img src=&quot;/images/props.png&quot; alt=&quot;Property Page&quot; /&gt;&lt;/p&gt;
+
+&lt;h2 id=&quot;what-about-new-methods&quot;&gt;What about new methods?&lt;/h2&gt;
+&lt;p&gt;Since we now have a good solution to compile for two versions of the CLR, we will need some way to make sure that depreciated methods, or non-existent methods (in the case of v2.0) do not find their way into the wrong compiler. The solution for this was easy as well.&lt;/p&gt;
+
+&lt;p&gt;I once again turned to the property pages and added a compilation symbol to designate what version I was compiling for. This can be used in conjunction with a &lt;code&gt;#ifdef&lt;/code&gt; compiler directive to selectively compile code based on what version you’re targeting.&lt;/p&gt;
+
+&lt;p&gt;&lt;img src=&quot;/images/props_compilation_symbol.png&quot; alt=&quot;Compilation Symbol&quot; /&gt;&lt;/p&gt;
+
+&lt;div class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-Csharp&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;span id=&quot;line-1&quot;&gt;&lt;span class=&quot;k&quot;&gt;static&lt;/span&gt; &lt;span class=&quot;k&quot;&gt;void&lt;/span&gt; &lt;span class=&quot;nf&quot;&gt;ADIDelegate&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;kt&quot;&gt;string&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;[]&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;args&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt;
+&lt;/span&gt;&lt;span id=&quot;line-2&quot;&gt;&lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;
+&lt;/span&gt;&lt;span id=&quot;line-3&quot;&gt;&lt;span class=&quot;cp&quot;&gt;#if DOTNET40&lt;/span&gt;
+&lt;/span&gt;&lt;span id=&quot;line-4&quot;&gt;  &lt;span class=&quot;kt&quot;&gt;var&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;asm&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;Assembly&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;Load&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;args&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;m&quot;&gt;0&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;]);&lt;/span&gt; 
+&lt;/span&gt;&lt;span id=&quot;line-5&quot;&gt;&lt;span class=&quot;cp&quot;&gt;#else&lt;/span&gt;
+&lt;/span&gt;&lt;span id=&quot;line-6&quot;&gt;  &lt;span class=&quot;kt&quot;&gt;var&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;asm&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;AppDomain&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;CurrentDomain&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;Load&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;args&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;m&quot;&gt;0&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;]);&lt;/span&gt;
+&lt;/span&gt;&lt;span id=&quot;line-7&quot;&gt;&lt;span class=&quot;cp&quot;&gt;#endif&lt;/span&gt;
+&lt;/span&gt;&lt;span id=&quot;line-8&quot;&gt;&lt;span class=&quot;p&quot;&gt;}&lt;/span&gt;
+&lt;/span&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+
+&lt;h2 id=&quot;easy-right&quot;&gt;Easy, right?&lt;/h2&gt;
+&lt;p&gt;Well this wasn’t a super technical post, but I wanted to get this written down because I couldn’t find a good way to compile for both v2.0 and v4.0 AND get updated project references.&lt;/p&gt;
+
+&lt;p&gt;There may be a more elegant way that I’m not aware of, but this works well for me. If in any case you wanted to do this for any number of files you even have the option to create a directory link.&lt;/p&gt;
+
+</content>
+ </entry>
  
  <entry>
    <title>MySQL .NET Hosting Extension - Part 6 - Supporting Side-by-Side .NET CLRs</title>
