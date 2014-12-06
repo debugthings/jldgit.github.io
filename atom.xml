@@ -4,13 +4,58 @@
  <title>Debug Things</title>
  <link href="/atom.xml" rel="self"/>
  <link href="/"/>
- <updated>2014-12-03T13:45:38-08:00</updated>
+ <updated>2014-12-05T20:32:55-08:00</updated>
  <id></id>
  <author>
    <name>James Davis</name>
    <email>james.l.davis@outlook.com</email>
  </author>
 
+ 
+ <entry>
+   <title>Y U NO HAVE BUTTON?</title>
+   <link href="//2014/12/05/y-u-no-have-button/"/>
+   <updated>2014-12-05T00:00:00-08:00</updated>
+   <id>/2014/12/05/y-u-no-have-button</id>
+   <content type="html">&lt;p&gt;Seriously, it’s 2014 almost 2015. I wanted to add a file type association to my machine using the provided Windows interfaces. I added an association by using the open file dialog, but realized after the fact that I wanted to give the file type a better name. A quick Google search provided a number of links asking how, but only one that told me how.&lt;/p&gt;
+
+&lt;p&gt;&lt;a href=&quot;http://msdn.microsoft.com/en-us/library/windows/desktop/hh127427%28v=vs.85%29.aspx&quot;&gt;This&lt;/a&gt; describes how to do this. The first few steps are pretty straight forward. Use regedit, use the “Open File” context menu. But one of the steps says the following line verbatim: “&lt;strong&gt;Step 3:&lt;/strong&gt; Call the &lt;a href=&quot;http://msdn.microsoft.com/en-us/library/windows/desktop/bb762118(v=vs.85).aspx&quot;&gt;SHChangeNotify&lt;/a&gt; function to notify the Shell to update its icon cache.” I mean yeah, I get it. But, what?&lt;/p&gt;
+
+&lt;p&gt;&lt;img src=&quot;/images/yuno.jpg&quot; alt=&quot;YUNO&quot; /&gt;&lt;/p&gt;
+
+&lt;p&gt;Judging by the comments I am not alone. While I’m not a UX guy, I would assume a button could be added that just says “Update File Associations”. Please take note of the following UI design change. I think this sums it up nicely.&lt;/p&gt;
+
+&lt;p&gt;&lt;img src=&quot;/images/UpdateBox.png&quot; alt=&quot;For Rent&quot; /&gt;&lt;/p&gt;
+
+&lt;p&gt;Here is one of my favorite quotes from &lt;a href=&quot;https://social.msdn.microsoft.com/profile/lenin_carrion/&quot;&gt;Lenin Carrion&lt;/a&gt;. This guy for real made an account just so he could comment on this page.&lt;/p&gt;
+
+&lt;blockquote&gt;
+  &lt;p&gt;What a ridiculous explanation.
+“Call the SHChangeNotify function”, yeah, very easy. &lt;strong&gt;Do I have to first read to “how to be a geek or a nerd chapter 34 thousand”?&lt;/strong&gt;   What is call a function in that step? for what I saw it was a C sharp function. What does a C# function has to do here?
+Lenin_Carrion
+11/27/2014&lt;/p&gt;
+&lt;/blockquote&gt;
+
+&lt;p&gt;In the link above it talks about using &lt;a href=&quot;http://msdn.microsoft.com/en-us/library/windows/desktop/bb762118(v=vs.85).aspx&quot;&gt;SHChangeNotify&lt;/a&gt; to update the file associations. This seems a bit heavy handed, and probably out of scope for MOST computer techs out there that just want to make someone see the correct icon or text. But, for those who’d like to be able to do this and have some form of compiler, here is the code. For real, it’s only two lines of code. So, why can’t Microsoft add this button?&lt;/p&gt;
+
+&lt;div class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-Cpp&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;span id=&quot;line-1&quot;&gt;&lt;span class=&quot;cp&quot;&gt;#include &amp;lt;tchar.h&amp;gt;&lt;/span&gt;
+&lt;/span&gt;&lt;span id=&quot;line-2&quot;&gt;&lt;span class=&quot;cp&quot;&gt;#include &amp;lt;Shlobj.h&amp;gt;&lt;/span&gt;
+&lt;/span&gt;&lt;span id=&quot;line-3&quot;&gt;
+&lt;/span&gt;&lt;span id=&quot;line-4&quot;&gt;
+&lt;/span&gt;&lt;span id=&quot;line-5&quot;&gt;&lt;span class=&quot;kt&quot;&gt;int&lt;/span&gt; &lt;span class=&quot;nf&quot;&gt;_tmain&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;kt&quot;&gt;int&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;argc&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;_TCHAR&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;*&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;argv&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;[])&lt;/span&gt;
+&lt;/span&gt;&lt;span id=&quot;line-6&quot;&gt;&lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;
+&lt;/span&gt;&lt;span id=&quot;line-7&quot;&gt;&lt;span class=&quot;n&quot;&gt;SHChangeNotify&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;
+&lt;/span&gt;&lt;span id=&quot;line-8&quot;&gt;    &lt;span class=&quot;n&quot;&gt;SHCNE_ASSOCCHANGED&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt;
+&lt;/span&gt;&lt;span id=&quot;line-9&quot;&gt;    &lt;span class=&quot;n&quot;&gt;SHCNF_FLUSH&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt;
+&lt;/span&gt;&lt;span id=&quot;line-10&quot;&gt;    &lt;span class=&quot;nb&quot;&gt;NULL&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt;
+&lt;/span&gt;&lt;span id=&quot;line-11&quot;&gt;    &lt;span class=&quot;nb&quot;&gt;NULL&lt;/span&gt;
+&lt;/span&gt;&lt;span id=&quot;line-12&quot;&gt;    &lt;span class=&quot;p&quot;&gt;);&lt;/span&gt;
+&lt;/span&gt;&lt;span id=&quot;line-13&quot;&gt;&lt;span class=&quot;k&quot;&gt;return&lt;/span&gt; &lt;span class=&quot;mi&quot;&gt;0&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+&lt;/span&gt;&lt;span id=&quot;line-14&quot;&gt;&lt;span class=&quot;p&quot;&gt;}&lt;/span&gt;
+&lt;/span&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+
+</content>
+ </entry>
  
  <entry>
    <title>Compiling for Two (.NET versions)</title>

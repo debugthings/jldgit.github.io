@@ -73,70 +73,14 @@
   
   <div class="post">
     <h1 class="post-title">
-      <a href="/2014/12/05/y-u-no-have-button/">
-        Y U NO HAVE BUTTON?
+      <a href="/2014/09/06/code-to-code/">
+        Writing code to write code
       </a>
     </h1>
 
-    <span class="post-date">05 Dec 2014</span>
+    <span class="post-date">06 Sep 2014</span>
 
-    Seriously, it&#8217;s 2014 almost 2015. I wanted to add a file type association to my machine using the provided Windows interfaces. I added an association by using the open file dialog, but realized after the fact that I wanted to give the file type a better name. A quick Google search provided a number of links asking how, but only one that told me how.
-
-
-  </div>
-  
-  <div class="post">
-    <h1 class="post-title">
-      <a href="/2014/12/03/compiling-for-two/">
-        Compiling for Two (.NET versions)
-      </a>
-    </h1>
-
-    <span class="post-date">03 Dec 2014</span>
-
-    While writing the <a href="https://github.com/jldgit/mysql_udf_dotnet">MySQL plugin</a> I found a strange need to compile two versions of my AppDomain Manager. Mainly it was for future compatibility. Plus I figured as long as my Interfaces didn&#8217;t change, everything would be great. But it left me with a sucking hole in my project solution. I was going to have to maintain two versions of source code <strong>FOR THE EXACT SAME THING</strong>. I didn&#8217;t like that.
-
-
-  </div>
-  
-  <div class="post">
-    <h1 class="post-title">
-      <a href="/2014/12/02/extending-mysql-server-part6/">
-        MySQL .NET Hosting Extension - Part 6 - Supporting Side-by-Side .NET CLRs
-      </a>
-    </h1>
-
-    <span class="post-date">02 Dec 2014</span>
-
-    So far, we&#8217;ve done a lot to the CLR hosting engine to properly handle type loading, type safety and custom assemblies. Now we have the task to support some desired functionality supplied with the CLR. Namely being able to support, or not support side-by-side CLR loading. We will take a look at what code changes are involved and what we can do to ensure proper loading.
-
-
-  </div>
-  
-  <div class="post">
-    <h1 class="post-title">
-      <a href="/2014/11/30/extending-mysql-server-part5/">
-        MySQL .NET Hosting Extension - Part 5 - AppDomain and Host Safety
-      </a>
-    </h1>
-
-    <span class="post-date">30 Nov 2014</span>
-
-    Now that we have a properly refactored base, and we have a good working solution to load new file from, we need to start considering safety. Not just type safety and integrity of data. No, safety of the executing code as well as the safety of the CLR host&#8212;MySQL in this case. Without that we would open up our new plugin library to a lot of malicious things.
-
-
-  </div>
-  
-  <div class="post">
-    <h1 class="post-title">
-      <a href="/2014/11/26/extending-mysql-server-part4/">
-        MySQL .NET Hosting Extension - Part 4 - Extending the AppDomain Manager
-      </a>
-    </h1>
-
-    <span class="post-date">26 Nov 2014</span>
-
-    So far the application was simple and was able to load and run a command from inside of our AppDomain manager. As promised, I am extending this functionality to allow loading of any number of classes. In order to do this I made some large changes to the application. In order to keep things somewhat coherent between Parts 1, 2 and 3&#8212;I branched off into a work in progress(wip) area that should make it easier to follow along.
+    Every now and then a balance needs to be struck from the every day coding of an application. While personal life is usually the topic for these types of posts, today that is not the case. Sometimes you have to write code in order to write code. This is somewhat of an extended rant from my previous post.
 
 
   </div>
@@ -152,10 +96,12 @@
 <nav>
   <ul class="pager">
     
-    <li class="previous"><a  href="/page2">Previous Posts</a></li>
+    <li class="previous disabled"><a href="#">Previous Posts</a></li>
     
     
-    <li class="next disabled"><a  href="#">Newer Posts</a></li>
+    
+    <li class="next"><a href="/page3">Newer Posts</a></li>
+    
     
   </ul>
 </nav>
