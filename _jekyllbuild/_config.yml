@@ -10,9 +10,8 @@ permalink:        pretty
 # Setup
 title:            Debug Things
 tagline:          Debugging, performance testing, DevOps, and ranting.
-url:              
+url:              http://www.debugthings.com
 paginate:         5
-baseurl:          /
 author:
   name:           James Davis
   url:            https://twitter.com/debugthings
