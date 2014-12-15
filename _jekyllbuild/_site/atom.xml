@@ -2,9 +2,9 @@
 <feed xmlns="http://www.w3.org/2005/Atom">
 
  <title>Debug Things</title>
- <link href="http://www.debugthings.comatom.xml" rel="self"/>
- <link href="http://www.debugthings.com"/>
- <updated>2014-12-08T18:34:17-08:00</updated>
+ <link href="http://www.debugthings.com/atom.xml" rel="self"/>
+ <link href="http://www.debugthings.com/"/>
+ <updated>2014-12-14T22:26:08-08:00</updated>
  <id>http://www.debugthings.com</id>
  <author>
    <name>James Davis</name>
@@ -13,8 +13,167 @@
 
  
  <entry>
+   <title>MySQL .NET Hosting Extension - Part 7 - AppDomain Pools</title>
+   <link href="http://www.debugthings.com//2014/12/15/extending-mysql-server-part7/"/>
+   <updated>2014-12-15T00:00:00-08:00</updated>
+   <id>http://www.debugthings.com/2014/12/15/extending-mysql-server-part7</id>
+   <content type="html">&lt;p&gt;If we look at some of the performance metrics of the MySQL UDF extension, we’re not looking great for a few items. Number one, of course, is the loading of the .NET CLR. Unfortunately unless I integrate this tool into the MySQL code itself I can’t control that. The next is the loading and use of the AppDomain. That, however, I can fix.&lt;/p&gt;
+
+&lt;h2 id=&quot;how-to-get-the-code&quot;&gt;How to get the code&lt;/h2&gt;
+
+&lt;p&gt;Enter the following commands in your GIT command prompt. It’s that simple. All code changes as I have shown them in this blog post should be there. If you come across this post at a way later date, try increasing the range from 5 to 10, and so on.&lt;/p&gt;
+
+&lt;div class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code&gt;git clone https://github.com/jldgit/mysql_udf_dotnet.git -b wip-nextversion
+git log --abbrev-commit -n 5 --pretty=oneline
+
+e9dc6de Changed relating to post 7
+91e2238 Changes relating to post 6
+6d017b0 Changes relating to post 5
+303d9cd Changes relating to post 4
+5d721fa Good working copy.
+
+git checkout e9dc6de
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+
+&lt;h2 id=&quot;whats-changed&quot;&gt;What’s Changed?&lt;/h2&gt;
+&lt;p&gt;I’ve updated the code to address a problem with loading and unloading AppDomains each time the code is called. The majority of the updates are inside of the managed AppDomainManager assembly.&lt;/p&gt;
+
+&lt;h3 id=&quot;updated-appdomainmanager&quot;&gt;Updated AppDomainManager&lt;/h3&gt;
+&lt;p&gt;I added some new configuration items that revolve around the newly implemented AppDomain cleanup timer. This timer fires in an increment you set in the .config file. &lt;/p&gt;
+
+&lt;h3 id=&quot;updated-clrlib&quot;&gt;Updated clr_lib&lt;/h3&gt;
+&lt;p&gt;I removed some extraneous code that was used to save copies of the AppDomain names to be reused. This is gone by the wayside to use the raw pointer when calling the functions. Much, much faster.&lt;/p&gt;
+
+&lt;h3 id=&quot;updated-mysqludfc&quot;&gt;Updated mysql_udf.c&lt;/h3&gt;
+&lt;p&gt;As mentioned above I am now using the raw pointer. I have updated the UDF code to reflect this. I have also added some extra logging that will be sent back to the MySQL client.&lt;/p&gt;
+
+&lt;h2 id=&quot;the-problem&quot;&gt;The Problem&lt;/h2&gt;
+&lt;p&gt;When an AppDomain is created and an assembly is loaded the following high-level steps must happen. These steps can take any amount of time depending on how busy the machine is. On my Core i7 laptop with minimal load it was around &lt;strong&gt;500ms&lt;/strong&gt; for a cold start and maybe 300ms after things have been used a few times.&lt;/p&gt;
+
+&lt;ol&gt;
+  &lt;li&gt;MySQL .NET UDF gets a pointer to the default domain.&lt;/li&gt;
+  &lt;li&gt;The default domain reads the config file to determine the CLR for the selected assembly.&lt;/li&gt;
+  &lt;li&gt;MySQL .NET UDF uses the default CLR to get a pointer to the correct domain.&lt;/li&gt;
+  &lt;li&gt;The correct domain reads from the config file to look up specific options for the assembly.&lt;/li&gt;
+  &lt;li&gt;The default domain then creates a domain and returns a pointer to the newly created managed host to MySQL .NET UDF.
+    &lt;ul&gt;
+      &lt;li&gt;On initialization of the domain, it loads the assembly from the file store.&lt;/li&gt;
+    &lt;/ul&gt;
+  &lt;/li&gt;
+  &lt;li&gt;MySQL .NET UDF takes the managed host and passes it as one of the UDF parameters to be reused.&lt;/li&gt;
+&lt;/ol&gt;
+
+&lt;p&gt;This isn’t a lot of unique steps per se, but each one is computationally expensive. There are a lot of code checks and JITing that must happen each time the domain is loaded and the newly loaded methods are called. The solution to this is rather simple.&lt;/p&gt;
+
+&lt;h2 id=&quot;the-solution&quot;&gt;The Solution&lt;/h2&gt;
+&lt;p&gt;Instead of spinning up a new AppDomain each time the methods are called in a query, we can pool them instead. The newly created domains are stored in a Dictionary collection and are selectively reused. The new steps are now the following for a first time domain start up.&lt;/p&gt;
+
+&lt;ol&gt;
+  &lt;li&gt;MySQL .NET gets a pointer to the default domain.&lt;/li&gt;
+  &lt;li&gt;The default domain reads the config file to determine the CLR for the selected assembly.&lt;/li&gt;
+  &lt;li&gt;MySQL .NET uses the default CLR to get a pointer to the correct domain.&lt;/li&gt;
+  &lt;li&gt;The correct domain reads from the config file to look up specific options for the assembly.&lt;/li&gt;
+  &lt;li&gt;The default domain then creates a domain 
+    &lt;ul&gt;
+      &lt;li&gt;&lt;strong&gt;On initialization of the domain, it loads the assembly from the file store.&lt;/strong&gt;&lt;/li&gt;
+    &lt;/ul&gt;
+  &lt;/li&gt;
+  &lt;li&gt;A pointer is kept for the new AppDomain and stored in the “Domains In Use” Dictionary.&lt;/li&gt;
+  &lt;li&gt;It then returns returns the pointer to the newly created managed host, back to MySQL .NET UDF.&lt;/li&gt;
+  &lt;li&gt;MySQL .NET UDF takes the managed host and passes it as one of the UDF parameters to be reused.&lt;/li&gt;
+&lt;/ol&gt;
+
+&lt;p&gt;Once the AppDomain is created it has a configurable finite life time. This lifetime can be set inside of the mysqld.config file. Now that we’re using pools let’s take a look at the configuration for the timers; and the new load sequence for a domain that is created but not being used.&lt;/p&gt;
+
+&lt;div class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-XML&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;span id=&quot;line-1&quot;&gt;&lt;span class=&quot;nt&quot;&gt;&amp;lt;appDomainCleanup&lt;/span&gt;
+&lt;/span&gt;&lt;span id=&quot;line-2&quot;&gt;  &lt;span class=&quot;na&quot;&gt;interval=&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;&amp;quot;0.00:05:00&amp;quot;&lt;/span&gt;
+&lt;/span&gt;&lt;span id=&quot;line-3&quot;&gt;  &lt;span class=&quot;na&quot;&gt;forcedInterval=&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;&amp;quot;1.00:00:00&amp;quot;&lt;/span&gt; &lt;span class=&quot;nt&quot;&gt;/&amp;gt;&lt;/span&gt;
+&lt;/span&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+
+&lt;ol&gt;
+  &lt;li&gt;MySQL .NET UDF gets a pointer to the default domain.&lt;/li&gt;
+  &lt;li&gt;The default domain reads the config file to determine the CLR for the selected assembly.&lt;/li&gt;
+  &lt;li&gt;MySQL .NET UDF uses the default CLR to get a pointer to the correct domain.&lt;/li&gt;
+  &lt;li&gt;The correct domain checks to see if an AppDomain is created and available for the assembly.&lt;/li&gt;
+  &lt;li&gt;It then checks to see if the domain is “too old”.
+    &lt;ul&gt;
+      &lt;li&gt;If so, it will be moved to a structure that is unloaded every minute (on a separate thread).&lt;/li&gt;
+      &lt;li&gt;If not, it moves on to step 5.&lt;/li&gt;
+    &lt;/ul&gt;
+  &lt;/li&gt;
+  &lt;li&gt;The correct domain returns the pointer to MySQL .NET UDF.&lt;/li&gt;
+&lt;/ol&gt;
+
+&lt;p&gt;Before these changes, when the UDF was done with the AppDomain it used to unload it right there on the same thread. This was also expensive as it causes GCs to run and Finalizers to execute. Also, the clr_lib used to keep a stored copy of the data in a std::map&amp;lt;&amp;gt; member. This was a bit redundant so it was removed. However, the CLRs are still stored in a std::map&amp;lt;&amp;gt; and will stay there to help “future proof” the application. Now when the UDF is done the following steps are taken.&lt;/p&gt;
+
+&lt;ol&gt;
+  &lt;li&gt;MySQL .NET UDF deinit is called&lt;/li&gt;
+  &lt;li&gt;The stored pointer is used to call the UnloadAppDomain() function if IUnmanagedHost passing in the AppDomain name.&lt;/li&gt;
+  &lt;li&gt;The UnloadAppDomain() function calls the Unload() function on the proper default domain.&lt;/li&gt;
+  &lt;li&gt;The Unload() function does not actually unload the domain. Instead it checks to see if the AppDomain’s configurable lifetime has expired. If it has, it adds it to the AppDomains to die.&lt;/li&gt;
+&lt;/ol&gt;
+
+&lt;p&gt;This allows us to offload the timer to unload old domains when the time is right. For now, this guy is on a loop that fires every minute no matter what.&lt;/p&gt;
+
+&lt;h2 id=&quot;issues&quot;&gt;Issues&lt;/h2&gt;
+&lt;p&gt;So, now that we’re doing more than just loading a domain each time, we have to be mindful of some multi-threading possibilities. No, not in the .NET extension code, but in the AppDomainManager code.&lt;/p&gt;
+
+&lt;p&gt;When a new item is added or removed from the Dictionary collection we need to lock() around it to make sure we’re not grabbing an unloaded domain, or grabbing a domain that is in transition from Active to Inactive. The background on the Dictionary key naming scheme is simple. Create a double pipe delimited list of the Assembly and a FileTime and use that information to verify the run.&lt;/p&gt;
+
+&lt;p&gt;I know I probably should create a class that holds this information and also holds lock structures to access specific properties. But, there is a problem with such a complicated solution. Namely, I have to create and dispose a ton of objects over time, each with sub objects and so on and so forth. The performance hit is amortized over the lifetime of the application but could cause some undue and unforeseen GC time.&lt;/p&gt;
+
+&lt;p&gt;But even with a simpler approach I still introduced a bug during one of my test runs by just one simple mistake. Here it is for your viewing pleasure.&lt;/p&gt;
+
+&lt;div class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-Csharp&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;span id=&quot;line-1&quot;&gt;&lt;span class=&quot;kt&quot;&gt;string&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;AppDomainName&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;string&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;Format&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;&amp;quot;{0}||{1}&amp;quot;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;typeName&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; 
+&lt;/span&gt;&lt;span id=&quot;line-2&quot;&gt;&lt;span class=&quot;n&quot;&gt;DateTime&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;Now&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;ToFileTime&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;().&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;ToString&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;());&lt;/span&gt; &lt;span class=&quot;c1&quot;&gt;//BUG Here&lt;/span&gt;
+&lt;/span&gt;&lt;span id=&quot;line-3&quot;&gt;&lt;span class=&quot;k&quot;&gt;lock&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;objLock&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt;
+&lt;/span&gt;&lt;span id=&quot;line-4&quot;&gt;&lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;
+&lt;/span&gt;&lt;span id=&quot;line-5&quot;&gt;    &lt;span class=&quot;k&quot;&gt;if&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;activeAppDomains&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;ContainsKey&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;assemblyName&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;))&lt;/span&gt;
+&lt;/span&gt;&lt;span id=&quot;line-6&quot;&gt;    &lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;
+&lt;/span&gt;&lt;span id=&quot;line-7&quot;&gt;        &lt;span class=&quot;n&quot;&gt;AppDomainName&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;string&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;Format&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;&amp;quot;{0}||{1}&amp;quot;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;typeName&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;DateTime&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;Now&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;ToFileTime&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;()&lt;/span&gt; 
+&lt;/span&gt;&lt;span id=&quot;line-8&quot;&gt;        &lt;span class=&quot;p&quot;&gt;+&lt;/span&gt; &lt;span class=&quot;k&quot;&gt;new&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;Random&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;().&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;Next&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;m&quot;&gt;1&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;m&quot;&gt;10000000&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)).&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;ToString&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;());&lt;/span&gt;
+&lt;/span&gt;&lt;span id=&quot;line-9&quot;&gt;    &lt;span class=&quot;p&quot;&gt;}&lt;/span&gt;
+&lt;/span&gt;&lt;span id=&quot;line-10&quot;&gt;&lt;span class=&quot;p&quot;&gt;}&lt;/span&gt;
+&lt;/span&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+
+&lt;p&gt;This was a sneaky one. Basically there would be a few threads queued up on the lock—all of them with the same time. The locks would release, but since the action is happening so fast a couple of threads end up getting the same quantum and the Random() would issue the same value. The fix was simple.&lt;/p&gt;
+
+&lt;div class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-Csharp&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;span id=&quot;line-1&quot;&gt;&lt;span class=&quot;k&quot;&gt;lock&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;objLock&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt;
+&lt;/span&gt;&lt;span id=&quot;line-2&quot;&gt;&lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;
+&lt;/span&gt;&lt;span id=&quot;line-3&quot;&gt;    &lt;span class=&quot;kt&quot;&gt;string&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;AppDomainName&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;string&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;Format&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;&amp;quot;{0}||{1}&amp;quot;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;typeName&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; 
+&lt;/span&gt;&lt;span id=&quot;line-4&quot;&gt;    &lt;span class=&quot;n&quot;&gt;DateTime&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;Now&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;ToFileTime&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;().&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;ToString&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;());&lt;/span&gt; &lt;span class=&quot;c1&quot;&gt;//No BUG Here&lt;/span&gt;
+&lt;/span&gt;&lt;span id=&quot;line-5&quot;&gt;    &lt;span class=&quot;k&quot;&gt;if&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;activeAppDomains&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;ContainsKey&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;assemblyName&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;))&lt;/span&gt;
+&lt;/span&gt;&lt;span id=&quot;line-6&quot;&gt;    &lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;
+&lt;/span&gt;&lt;span id=&quot;line-7&quot;&gt;        &lt;span class=&quot;n&quot;&gt;AppDomainName&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;string&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;Format&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;&amp;quot;{0}||{1}&amp;quot;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;typeName&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;DateTime&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;Now&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;ToFileTime&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;()&lt;/span&gt; 
+&lt;/span&gt;&lt;span id=&quot;line-8&quot;&gt;        &lt;span class=&quot;p&quot;&gt;+&lt;/span&gt; &lt;span class=&quot;k&quot;&gt;new&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;Random&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;().&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;Next&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;m&quot;&gt;1&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;m&quot;&gt;10000000&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)).&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;ToString&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;());&lt;/span&gt;
+&lt;/span&gt;&lt;span id=&quot;line-9&quot;&gt;    &lt;span class=&quot;p&quot;&gt;}&lt;/span&gt;
+&lt;/span&gt;&lt;span id=&quot;line-10&quot;&gt;&lt;span class=&quot;p&quot;&gt;}&lt;/span&gt;
+&lt;/span&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+
+&lt;p&gt;By moving the FileTime string creation to inside of the lock() I can guarantee that we should be gifted a unique time as the FileTime is in 100ns intervals. However, if for some reason we run faster than that I still have the Random() number being added just in case.&lt;/p&gt;
+
+&lt;h2 id=&quot;testing-limited&quot;&gt;Testing (limited)&lt;/h2&gt;
+&lt;p&gt;In order to test the database I loaded it with the &lt;a href=&quot;https://dev.mysql.com/doc/employee/en/&quot;&gt;MySQL employee sample database&lt;/a&gt;. My test harness calls the following SQL across 10 threads 600 times in a row.&lt;/p&gt;
+
+&lt;p&gt;&lt;code&gt;SELECT MYSQLDOTNET_INT('MySQLCustomClass.CustomMySQLClass', emp_no), emp_no, first_name, last_name FROM employees&lt;/code&gt;&lt;/p&gt;
+
+&lt;p&gt;&lt;code&gt;SELECT  (emp_no * 3.14) + 10, emp_no, first_name, last_name FROM employees&lt;/code&gt;&lt;/p&gt;
+
+&lt;p&gt;This SQL is trivial but will all in all spins up and shuts down 6,000 AppDomains. When the test is running the memory footprint of my instance of MySQL does not climb over 90MB.&lt;/p&gt;
+
+&lt;p&gt;Single threaded the non .NET query takes an average of 1.5 seconds. Single threaded .NET query runs at &lt;strong&gt;1.4&lt;/strong&gt; seconds average. My only guess is the extra math being executed inside of MySQL has to be lexed, parsed, and finally computed. On the surface it looks like we’re faster, but more than likely this is just an effect of bad query writing on my part.&lt;/p&gt;
+
+&lt;h2 id=&quot;wrap-up&quot;&gt;Wrap Up&lt;/h2&gt;
+&lt;p&gt;Now the application really has some substance. I have been running performance tests for a few days now and the results are promising. Still more testing has to be done for longer amounts of time to be sure.&lt;/p&gt;
+
+&lt;p&gt;In the next post I will introduce shadow copies and how we can use it to modify query results between runs without having to restart the MySQL process and without having to unload any plugins.&lt;/p&gt;
+
+</content>
+ </entry>
+ 
+ <entry>
    <title>Y U NO HAVE BUTTON?</title>
-   <link href="http://www.debugthings.com/2014/12/05/y-u-no-have-button/"/>
+   <link href="http://www.debugthings.com//2014/12/05/y-u-no-have-button/"/>
    <updated>2014-12-05T00:00:00-08:00</updated>
    <id>http://www.debugthings.com/2014/12/05/y-u-no-have-button</id>
    <content type="html">&lt;p&gt;Seriously, it’s 2014 almost 2015. I wanted to add a file type association to my machine using the provided Windows interfaces. I added an association by using the open file dialog, but realized after the fact that I wanted to give the file type a better name. A quick Google search provided a number of links asking how, but only one that told me how.&lt;/p&gt;
@@ -59,7 +218,7 @@ Lenin_Carrion
  
  <entry>
    <title>Compiling for Two (.NET versions)</title>
-   <link href="http://www.debugthings.com/2014/12/03/compiling-for-two/"/>
+   <link href="http://www.debugthings.com//2014/12/03/compiling-for-two/"/>
    <updated>2014-12-03T00:00:00-08:00</updated>
    <id>http://www.debugthings.com/2014/12/03/compiling-for-two</id>
    <content type="html">&lt;p&gt;While writing the &lt;a href=&quot;https://github.com/jldgit/mysql_udf_dotnet&quot;&gt;MySQL plugin&lt;/a&gt; I found a strange need to compile two versions of my AppDomain Manager. Mainly it was for future compatibility. Plus I figured as long as my Interfaces didn’t change, everything would be great. But it left me with a sucking hole in my project solution. I was going to have to maintain two versions of source code &lt;strong&gt;FOR THE EXACT SAME THING&lt;/strong&gt;. I didn’t like that.&lt;/p&gt;
@@ -133,7 +292,7 @@ ELSE (mklink MySQLHostManager.cs ..\mysql_managed_interface\MySQLHostManager.cs)
  
  <entry>
    <title>MySQL .NET Hosting Extension - Part 6 - Supporting Side-by-Side .NET CLRs</title>
-   <link href="http://www.debugthings.com/2014/12/02/extending-mysql-server-part6/"/>
+   <link href="http://www.debugthings.com//2014/12/02/extending-mysql-server-part6/"/>
    <updated>2014-12-02T00:00:00-08:00</updated>
    <id>http://www.debugthings.com/2014/12/02/extending-mysql-server-part6</id>
    <content type="html">&lt;p&gt;So far, we’ve done a lot to the CLR hosting engine to properly handle type loading, type safety and custom assemblies. Now we have the task to support some desired functionality supplied with the CLR. Namely being able to support, or not support side-by-side CLR loading. We will take a look at what code changes are involved and what we can do to ensure proper loading.&lt;/p&gt;
@@ -317,7 +476,7 @@ git checkout 91e2238
  
  <entry>
    <title>MySQL .NET Hosting Extension - Part 5 - AppDomain and Host Safety</title>
-   <link href="http://www.debugthings.com/2014/11/30/extending-mysql-server-part5/"/>
+   <link href="http://www.debugthings.com//2014/11/30/extending-mysql-server-part5/"/>
    <updated>2014-11-30T00:00:00-08:00</updated>
    <id>http://www.debugthings.com/2014/11/30/extending-mysql-server-part5</id>
    <content type="html">&lt;p&gt;Now that we have a properly refactored base, and we have a good working solution to load new file from, we need to start considering safety. Not just type safety and integrity of data. No, safety of the executing code as well as the safety of the CLR host—MySQL in this case. Without that we would open up our new plugin library to a lot of malicious things.&lt;/p&gt;
@@ -558,7 +717,7 @@ git checkout 6d017b0
  
  <entry>
    <title>MySQL .NET Hosting Extension - Part 4 - Extending the AppDomain Manager</title>
-   <link href="http://www.debugthings.com/2014/11/26/extending-mysql-server-part4/"/>
+   <link href="http://www.debugthings.com//2014/11/26/extending-mysql-server-part4/"/>
    <updated>2014-11-26T00:00:00-08:00</updated>
    <id>http://www.debugthings.com/2014/11/26/extending-mysql-server-part4</id>
    <content type="html">&lt;p&gt;So far the application was simple and was able to load and run a command from inside of our AppDomain manager. As promised, I am extending this functionality to allow loading of any number of classes. In order to do this I made some large changes to the application. In order to keep things somewhat coherent between Parts 1, 2 and 3—I branched off into a work in progress(wip) area that should make it easier to follow along.&lt;/p&gt;
@@ -832,7 +991,7 @@ git checkout 303d9cd
  
  <entry>
    <title>MySQL .NET Hosting Extension - Part 3 - Adding in the .NET Hosting API</title>
-   <link href="http://www.debugthings.com/2014/11/18/extending-mysql-server-part3/"/>
+   <link href="http://www.debugthings.com//2014/11/18/extending-mysql-server-part3/"/>
    <updated>2014-11-18T00:00:00-08:00</updated>
    <id>http://www.debugthings.com/2014/11/18/extending-mysql-server-part3</id>
    <content type="html">&lt;p&gt;Now that we’ve walked through the basics of a UDF, let’s start bolting on an AppDomain Manager. As I mentioned before in &lt;a href=&quot;(/2014/11/16/extending-mysql-server-part2/)&quot;&gt;part 2&lt;/a&gt; my example is based off of the &lt;a href=&quot;http://www.microsoft.com/en-us/download/details.aspx?id=7325&quot;&gt;ADMHost&lt;/a&gt; sample provided by Microsoft. The code is used as a jump off point, but we will be extending it as these posts progress. This part of the series will focus on the insertion points rather than the actual code. That will be in the next part. For some extra information on the hosting API check out &lt;a href=&quot;http://www.amazon.com/gp/product/0735619883/&quot;&gt;Customizing the Microsoft® .NET Framework&lt;/a&gt; by &lt;a href=&quot;http://blogs.msdn.com/b/stevenpr/&quot;&gt;Steven Pratschner&lt;/a&gt;. Also check out &lt;a href=&quot;http://msdn.microsoft.com/en-us/library/ms404385(v=vs.110).aspx&quot;&gt;MSDN&lt;/a&gt; for update information on the APIs.&lt;/p&gt;
@@ -1190,7 +1349,7 @@ This flag tells the AppDomain to call into the &lt;code&gt;IHostManager::SetAppD
  
  <entry>
    <title>MySQL .NET Hosting Extension - Part 2 - UDF Deep Dive</title>
-   <link href="http://www.debugthings.com/2014/11/16/extending-mysql-server-part2/"/>
+   <link href="http://www.debugthings.com//2014/11/16/extending-mysql-server-part2/"/>
    <updated>2014-11-16T00:00:00-08:00</updated>
    <id>http://www.debugthings.com/2014/11/16/extending-mysql-server-part2</id>
    <content type="html">&lt;p&gt;After I worked through compiling the sources, the next step was to get .NET hosting working at a basic level. I used source from another project called &lt;a href=&quot;http://www.microsoft.com/en-us/download/details.aspx?id=7325&quot;&gt;ADMHost&lt;/a&gt; (App Domain Manager) to base my code on. This code allows you to specify and create a managed AppDomain manager and use it to manage and run your .NET assemblies.&lt;/p&gt;
@@ -1386,7 +1545,7 @@ This flag tells the AppDomain to call into the &lt;code&gt;IHostManager::SetAppD
  
  <entry>
    <title>MySQL .NET Hosting Extension - Part 1 - Compile Sample UDF</title>
-   <link href="http://www.debugthings.com/2014/11/11/extending-mysql-server-part1/"/>
+   <link href="http://www.debugthings.com//2014/11/11/extending-mysql-server-part1/"/>
    <updated>2014-11-11T00:00:00-08:00</updated>
    <id>http://www.debugthings.com/2014/11/11/extending-mysql-server-part1</id>
    <content type="html">&lt;p&gt;So, the first thing I had to do was compile the MySQL sample UDF which is included in the source tree. While it seems like a simple thing to do with CMake and all of the proper tools installed, there are a few things not documented. The steps to compile &lt;a href=&quot;http://dev.mysql.com/doc/refman/5.5/en/udf-compiling.html&quot;&gt;can be found here&lt;/a&gt;. The steps are really straight forward, but there is a catch. In order to build on Windows there are a few steps you will need to do in order to fully get the example working.&lt;/p&gt;
@@ -1520,7 +1679,7 @@ mysql&amp;gt;
  
  <entry>
    <title>MySQL .NET Hosting Extension - Part 0</title>
-   <link href="http://www.debugthings.com/2014/11/11/extending-mysql-server-part0/"/>
+   <link href="http://www.debugthings.com//2014/11/11/extending-mysql-server-part0/"/>
    <updated>2014-11-11T00:00:00-08:00</updated>
    <id>http://www.debugthings.com/2014/11/11/extending-mysql-server-part0</id>
    <content type="html">&lt;p&gt;For some reason I feel compelled to write an extension for &lt;a href=&quot;http://www.mysql.com/&quot;&gt;MySQL&lt;/a&gt; that allows use of .NET classes for functions. It’s really a purely academic exercise—even though I’m not in school—that I’m using to explore the use of the &lt;a href=&quot;http://msdn.microsoft.com/en-us/library/dd380850(v=vs.110).aspx&quot;&gt;.NET Hosting APIs&lt;/a&gt;. I will use my blog as a way to keep myself focused and accountable. But more over it’s so I don’t forget what I wanted to do. I will line out a few milestones.&lt;/p&gt;
@@ -1559,7 +1718,7 @@ mysql&amp;gt;
  
  <entry>
    <title>First Time Speaking at OWASP Tampa</title>
-   <link href="http://www.debugthings.com/2014/11/06/owasp-top-10-mvc-tampa-day-talk/"/>
+   <link href="http://www.debugthings.com//2014/11/06/owasp-top-10-mvc-tampa-day-talk/"/>
    <updated>2014-11-06T00:00:00-08:00</updated>
    <id>http://www.debugthings.com/2014/11/06/owasp-top-10-mvc-tampa-day-talk</id>
    <content type="html">&lt;p&gt;A few weeks ago I submitted a talk for &lt;a href=&quot;https://www.owasp.org/index.php/Tampa&quot;&gt;OWASP Tampa Days 2014&lt;/a&gt; and I was selected.  The topic I picked to demonstrate was how MVC for .NET can solve some of the problems listed in the &lt;a href=&quot;https://www.owasp.org/index.php/Top_10_2013-Top_10&quot;&gt;OWASP Top 10&lt;/a&gt;. Let me be the first to say that I was truly unprepared for what I was about to get into. This was truly an exercise in conciseness. &lt;a href=&quot;/owasp/&quot;&gt;Get the slides here&lt;/a&gt;&lt;/p&gt;
@@ -1591,7 +1750,7 @@ mysql&amp;gt;
  
  <entry>
    <title>Contributing to a Forum for 10 Days Straight</title>
-   <link href="http://www.debugthings.com/2014/10/31/answering-questions/"/>
+   <link href="http://www.debugthings.com//2014/10/31/answering-questions/"/>
    <updated>2014-10-31T00:00:00-07:00</updated>
    <id>http://www.debugthings.com/2014/10/31/answering-questions</id>
    <content type="html">&lt;p&gt;Back in early October my company sent me to &lt;a href=&quot;http://http://compuwareperform.com/&quot;&gt;Perform 2014&lt;/a&gt;. While there, I met with some great people and found out that I’m not alone. It was also very humbling. I liked that. But, with all of the meeting I found that there were a lot of people who didn’t know where to turn to for help. Turns out there is a very active user community. I wanted to get involved.&lt;/p&gt;
@@ -1625,7 +1784,7 @@ mysql&amp;gt;
  
  <entry>
    <title>Debugging - HostProtectionException in SSRS</title>
-   <link href="http://www.debugthings.com/2014/10/21/hostprotectionexception-ssrs/"/>
+   <link href="http://www.debugthings.com//2014/10/21/hostprotectionexception-ssrs/"/>
    <updated>2014-10-21T00:00:00-07:00</updated>
    <id>http://www.debugthings.com/2014/10/21/hostprotectionexception-ssrs</id>
    <content type="html">&lt;h2 id=&quot;overview&quot;&gt;Overview&lt;/h2&gt;
@@ -1751,7 +1910,7 @@ ESP       EIP
  
  <entry>
    <title>Debugging - Fixing a deadlock</title>
-   <link href="http://www.debugthings.com/2014/09/24/critical-section-deadlock/"/>
+   <link href="http://www.debugthings.com//2014/09/24/critical-section-deadlock/"/>
    <updated>2014-09-24T00:00:00-07:00</updated>
    <id>http://www.debugthings.com/2014/09/24/critical-section-deadlock</id>
    <content type="html">&lt;p&gt;More often than not I do postmortem debugging. That is to say, I get a dump file long after the machine has experienced an issue. But, on occasion I get pulled in to take a look at problems that need to be run through the debugger. This article will show you some commands you can use to locate and fix code using WinDbg.&lt;/p&gt;
@@ -2405,7 +2564,7 @@ Writing 3200 bytes.......
  
  <entry>
    <title>Bandwidth. It's not free...</title>
-   <link href="http://www.debugthings.com/2014/09/23/bandwidth/"/>
+   <link href="http://www.debugthings.com//2014/09/23/bandwidth/"/>
    <updated>2014-09-23T00:00:00-07:00</updated>
    <id>http://www.debugthings.com/2014/09/23/bandwidth</id>
    <content type="html">&lt;p&gt;Usually when I performance test internal applications I don’t consider bandwidth unless I know we’re doing something irrational like transferring multi gigabyte files all the time. And even then I only consider it if we’re crossing a WAN or some other “slow” link between sites. But, every now and then there is a project that runs over the Internet and it is very data intensive. And, a lot of that data is out of the control of the developers (images, 3rd party libraries, fonts).&lt;/p&gt;
@@ -2637,7 +2796,7 @@ Fuzzed number (80%):
  
  <entry>
    <title>Always Performance Test!</title>
-   <link href="http://www.debugthings.com/2014/09/16/always-performance-test/"/>
+   <link href="http://www.debugthings.com//2014/09/16/always-performance-test/"/>
    <updated>2014-09-16T00:00:00-07:00</updated>
    <id>http://www.debugthings.com/2014/09/16/always-performance-test</id>
    <content type="html">&lt;p&gt;While thumbing through Twitter I ran across an &lt;a href=&quot;http://apmblog.compuware.com/2014/09/16/detecting-bad-deployments-resource-impact-response-time-hotspot-garbage-collection/&quot;&gt;article&lt;/a&gt; written by &lt;a href=&quot;https://twitter.com/grabnerandi&quot;&gt;@grabnerandi&lt;/a&gt; about a company not being able to load test a change for dependency injection. I can’t tell you how many times in my job that performance testing has been brushed over for speed to market.&lt;/p&gt;
@@ -2675,7 +2834,7 @@ Fuzzed number (80%):
  
  <entry>
    <title>Writing code to write code</title>
-   <link href="http://www.debugthings.com/2014/09/06/code-to-code/"/>
+   <link href="http://www.debugthings.com//2014/09/06/code-to-code/"/>
    <updated>2014-09-06T00:00:00-07:00</updated>
    <id>http://www.debugthings.com/2014/09/06/code-to-code</id>
    <content type="html">&lt;p&gt;Every now and then a balance needs to be struck from the every day coding of an application. While personal life is usually the topic for these types of posts, today that is not the case. Sometimes you have to write code in order to write code. This is somewhat of an extended rant from my previous post.&lt;/p&gt;

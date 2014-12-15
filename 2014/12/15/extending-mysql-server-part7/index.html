@@ -1,0 +1,294 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en-us">
+
+<head>
+  <link href="http://gmpg.org/xfn/11" rel="profile">
+  <meta http-equiv="content-type" content="text/html; charset=utf-8">
+
+  <!-- Enable responsiveness on mobile devices-->
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1">
+
+  <title>
+    
+    MySQL .NET Hosting Extension - Part 7 - AppDomain Pools &middot; Debug Things
+    
+  </title>
+  <!--FONTS-->
+  <link href='http://fonts.googleapis.com/css?family=Lato&subset=latin,latin-ext' rel='stylesheet' type='text/css'>
+
+
+  <!-- CSS -->
+  <link rel="stylesheet" href="/public/css/monokai.css">
+  <link rel="stylesheet" href="/public/css/bootstrap.css">
+  <link rel="stylesheet" href="/public/css/poole.css">
+
+  
+
+  <!-- Icons -->
+  <link rel="apple-touch-icon-precomposed" sizes="144x144" href="/public/apple-touch-icon-precomposed.png">
+  <link rel="shortcut icon" href="/public/favicon.ico">
+
+  <!-- RSS -->
+  <link rel="alternate" type="application/rss+xml" title="RSS" href="/atom.xml">
+
+  <script>
+  (function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){
+  (i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),
+  m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)
+  })(window,document,'script','//www.google-analytics.com/analytics.js','ga');
+
+  ga('create', 'UA-56527114-1', 'auto');
+  ga('send', 'pageview');
+
+</script>
+
+</head>
+
+
+<body>
+  <nav class="navbar navbar-inverse navbar-fixed-top" role="navigation">
+  <div class="container">
+    <div class="navbar-header">
+      <button type="button" class="navbar-toggle collapsed" data-toggle="collapse" data-target="#navbar" aria-expanded="false" aria-controls="navbar">
+        <span class="sr-only">Toggle navigation</span>
+        <span class="icon-bar"></span>
+        <span class="icon-bar"></span>
+        <span class="icon-bar"></span>
+      </button>
+      <a href="/" class="navbar-brand" title="Home">DEBUG THINGS</a>
+    </div>
+    <div id="navbar" class="navbar-collapse collapse">
+      <ul class="nav navbar-nav">
+        <li><a href="/about/">About</a></li>
+        <li><a href="/projects">Projects</a></li>
+        <li><a href="/owasp/">OWASP Tampa</a></li>
+      </ul>
+    </div><!--/.navbar-collapse -->
+  </div>
+</nav>
+  <div class="container containerbg">
+   <div class="row rowoffset">
+    <div class="col-md-12">
+      <div class="post">
+  <h1 class="post-title">MySQL .NET Hosting Extension - Part 7 - AppDomain Pools</h1>
+  <span class="post-date">15 Dec 2014</span>
+  <a href="https://twitter.com/share" class="twitter-share-button" data-via="debugthings" data-size="large">Tweet</a>
+  <script>!function(d,s,id){var js,fjs=d.getElementsByTagName(s)[0],p=/^http:/.test(d.location)?'http':'https';if(!d.getElementById(id)){js=d.createElement(s);js.id=id;js.src=p+'://platform.twitter.com/widgets.js';fjs.parentNode.insertBefore(js,fjs);}}(document, 'script', 'twitter-wjs');</script>
+  <p>If we look at some of the performance metrics of the MySQL UDF extension, we’re not looking great for a few items. Number one, of course, is the loading of the .NET CLR. Unfortunately unless I integrate this tool into the MySQL code itself I can’t control that. The next is the loading and use of the AppDomain. That, however, I can fix.</p>
+
+<h2 id="how-to-get-the-code">How to get the code</h2>
+
+<p>Enter the following commands in your GIT command prompt. It’s that simple. All code changes as I have shown them in this blog post should be there. If you come across this post at a way later date, try increasing the range from 5 to 10, and so on.</p>
+
+<div class="highlight"><pre><code>git clone https://github.com/jldgit/mysql_udf_dotnet.git -b wip-nextversion
+git log --abbrev-commit -n 5 --pretty=oneline
+
+e9dc6de Changed relating to post 7
+91e2238 Changes relating to post 6
+6d017b0 Changes relating to post 5
+303d9cd Changes relating to post 4
+5d721fa Good working copy.
+
+git checkout e9dc6de
+</code></pre></div>
+
+<h2 id="whats-changed">What’s Changed?</h2>
+<p>I’ve updated the code to address a problem with loading and unloading AppDomains each time the code is called. The majority of the updates are inside of the managed AppDomainManager assembly.</p>
+
+<h3 id="updated-appdomainmanager">Updated AppDomainManager</h3>
+<p>I added some new configuration items that revolve around the newly implemented AppDomain cleanup timer. This timer fires in an increment you set in the .config file. </p>
+
+<h3 id="updated-clrlib">Updated clr_lib</h3>
+<p>I removed some extraneous code that was used to save copies of the AppDomain names to be reused. This is gone by the wayside to use the raw pointer when calling the functions. Much, much faster.</p>
+
+<h3 id="updated-mysqludfc">Updated mysql_udf.c</h3>
+<p>As mentioned above I am now using the raw pointer. I have updated the UDF code to reflect this. I have also added some extra logging that will be sent back to the MySQL client.</p>
+
+<h2 id="the-problem">The Problem</h2>
+<p>When an AppDomain is created and an assembly is loaded the following high-level steps must happen. These steps can take any amount of time depending on how busy the machine is. On my Core i7 laptop with minimal load it was around <strong>500ms</strong> for a cold start and maybe 300ms after things have been used a few times.</p>
+
+<ol>
+  <li>MySQL .NET UDF gets a pointer to the default domain.</li>
+  <li>The default domain reads the config file to determine the CLR for the selected assembly.</li>
+  <li>MySQL .NET UDF uses the default CLR to get a pointer to the correct domain.</li>
+  <li>The correct domain reads from the config file to look up specific options for the assembly.</li>
+  <li>The default domain then creates a domain and returns a pointer to the newly created managed host to MySQL .NET UDF.
+    <ul>
+      <li>On initialization of the domain, it loads the assembly from the file store.</li>
+    </ul>
+  </li>
+  <li>MySQL .NET UDF takes the managed host and passes it as one of the UDF parameters to be reused.</li>
+</ol>
+
+<p>This isn’t a lot of unique steps per se, but each one is computationally expensive. There are a lot of code checks and JITing that must happen each time the domain is loaded and the newly loaded methods are called. The solution to this is rather simple.</p>
+
+<h2 id="the-solution">The Solution</h2>
+<p>Instead of spinning up a new AppDomain each time the methods are called in a query, we can pool them instead. The newly created domains are stored in a Dictionary collection and are selectively reused. The new steps are now the following for a first time domain start up.</p>
+
+<ol>
+  <li>MySQL .NET gets a pointer to the default domain.</li>
+  <li>The default domain reads the config file to determine the CLR for the selected assembly.</li>
+  <li>MySQL .NET uses the default CLR to get a pointer to the correct domain.</li>
+  <li>The correct domain reads from the config file to look up specific options for the assembly.</li>
+  <li>The default domain then creates a domain 
+    <ul>
+      <li><strong>On initialization of the domain, it loads the assembly from the file store.</strong></li>
+    </ul>
+  </li>
+  <li>A pointer is kept for the new AppDomain and stored in the “Domains In Use” Dictionary.</li>
+  <li>It then returns returns the pointer to the newly created managed host, back to MySQL .NET UDF.</li>
+  <li>MySQL .NET UDF takes the managed host and passes it as one of the UDF parameters to be reused.</li>
+</ol>
+
+<p>Once the AppDomain is created it has a configurable finite life time. This lifetime can be set inside of the mysqld.config file. Now that we’re using pools let’s take a look at the configuration for the timers; and the new load sequence for a domain that is created but not being used.</p>
+
+<div class="highlight"><pre><code class="language-XML"><div class="highlight"><pre><span id="line-1"><span class="nt">&lt;appDomainCleanup</span>
+</span><span id="line-2">  <span class="na">interval=</span><span class="s">&quot;0.00:05:00&quot;</span>
+</span><span id="line-3">  <span class="na">forcedInterval=</span><span class="s">&quot;1.00:00:00&quot;</span> <span class="nt">/&gt;</span>
+</span></pre></div></code></pre></div>
+
+<ol>
+  <li>MySQL .NET UDF gets a pointer to the default domain.</li>
+  <li>The default domain reads the config file to determine the CLR for the selected assembly.</li>
+  <li>MySQL .NET UDF uses the default CLR to get a pointer to the correct domain.</li>
+  <li>The correct domain checks to see if an AppDomain is created and available for the assembly.</li>
+  <li>It then checks to see if the domain is “too old”.
+    <ul>
+      <li>If so, it will be moved to a structure that is unloaded every minute (on a separate thread).</li>
+      <li>If not, it moves on to step 5.</li>
+    </ul>
+  </li>
+  <li>The correct domain returns the pointer to MySQL .NET UDF.</li>
+</ol>
+
+<p>Before these changes, when the UDF was done with the AppDomain it used to unload it right there on the same thread. This was also expensive as it causes GCs to run and Finalizers to execute. Also, the clr_lib used to keep a stored copy of the data in a std::map&lt;&gt; member. This was a bit redundant so it was removed. However, the CLRs are still stored in a std::map&lt;&gt; and will stay there to help “future proof” the application. Now when the UDF is done the following steps are taken.</p>
+
+<ol>
+  <li>MySQL .NET UDF deinit is called</li>
+  <li>The stored pointer is used to call the UnloadAppDomain() function if IUnmanagedHost passing in the AppDomain name.</li>
+  <li>The UnloadAppDomain() function calls the Unload() function on the proper default domain.</li>
+  <li>The Unload() function does not actually unload the domain. Instead it checks to see if the AppDomain’s configurable lifetime has expired. If it has, it adds it to the AppDomains to die.</li>
+</ol>
+
+<p>This allows us to offload the timer to unload old domains when the time is right. For now, this guy is on a loop that fires every minute no matter what.</p>
+
+<h2 id="issues">Issues</h2>
+<p>So, now that we’re doing more than just loading a domain each time, we have to be mindful of some multi-threading possibilities. No, not in the .NET extension code, but in the AppDomainManager code.</p>
+
+<p>When a new item is added or removed from the Dictionary collection we need to lock() around it to make sure we’re not grabbing an unloaded domain, or grabbing a domain that is in transition from Active to Inactive. The background on the Dictionary key naming scheme is simple. Create a double pipe delimited list of the Assembly and a FileTime and use that information to verify the run.</p>
+
+<p>I know I probably should create a class that holds this information and also holds lock structures to access specific properties. But, there is a problem with such a complicated solution. Namely, I have to create and dispose a ton of objects over time, each with sub objects and so on and so forth. The performance hit is amortized over the lifetime of the application but could cause some undue and unforeseen GC time.</p>
+
+<p>But even with a simpler approach I still introduced a bug during one of my test runs by just one simple mistake. Here it is for your viewing pleasure.</p>
+
+<div class="highlight"><pre><code class="language-Csharp"><div class="highlight"><pre><span id="line-1"><span class="kt">string</span> <span class="n">AppDomainName</span> <span class="p">=</span> <span class="kt">string</span><span class="p">.</span><span class="n">Format</span><span class="p">(</span><span class="s">&quot;{0}||{1}&quot;</span><span class="p">,</span> <span class="n">typeName</span><span class="p">,</span> 
+</span><span id="line-2"><span class="n">DateTime</span><span class="p">.</span><span class="n">Now</span><span class="p">.</span><span class="n">ToFileTime</span><span class="p">().</span><span class="n">ToString</span><span class="p">());</span> <span class="c1">//BUG Here</span>
+</span><span id="line-3"><span class="k">lock</span> <span class="p">(</span><span class="n">objLock</span><span class="p">)</span>
+</span><span id="line-4"><span class="p">{</span>
+</span><span id="line-5">    <span class="k">if</span> <span class="p">(</span><span class="n">activeAppDomains</span><span class="p">.</span><span class="n">ContainsKey</span><span class="p">(</span><span class="n">assemblyName</span><span class="p">))</span>
+</span><span id="line-6">    <span class="p">{</span>
+</span><span id="line-7">        <span class="n">AppDomainName</span> <span class="p">=</span> <span class="kt">string</span><span class="p">.</span><span class="n">Format</span><span class="p">(</span><span class="s">&quot;{0}||{1}&quot;</span><span class="p">,</span> <span class="n">typeName</span><span class="p">,</span> <span class="p">(</span><span class="n">DateTime</span><span class="p">.</span><span class="n">Now</span><span class="p">.</span><span class="n">ToFileTime</span><span class="p">()</span> 
+</span><span id="line-8">        <span class="p">+</span> <span class="k">new</span> <span class="n">Random</span><span class="p">().</span><span class="n">Next</span><span class="p">(</span><span class="m">1</span><span class="p">,</span> <span class="m">10000000</span><span class="p">)).</span><span class="n">ToString</span><span class="p">());</span>
+</span><span id="line-9">    <span class="p">}</span>
+</span><span id="line-10"><span class="p">}</span>
+</span></pre></div></code></pre></div>
+
+<p>This was a sneaky one. Basically there would be a few threads queued up on the lock—all of them with the same time. The locks would release, but since the action is happening so fast a couple of threads end up getting the same quantum and the Random() would issue the same value. The fix was simple.</p>
+
+<div class="highlight"><pre><code class="language-Csharp"><div class="highlight"><pre><span id="line-1"><span class="k">lock</span> <span class="p">(</span><span class="n">objLock</span><span class="p">)</span>
+</span><span id="line-2"><span class="p">{</span>
+</span><span id="line-3">    <span class="kt">string</span> <span class="n">AppDomainName</span> <span class="p">=</span> <span class="kt">string</span><span class="p">.</span><span class="n">Format</span><span class="p">(</span><span class="s">&quot;{0}||{1}&quot;</span><span class="p">,</span> <span class="n">typeName</span><span class="p">,</span> 
+</span><span id="line-4">    <span class="n">DateTime</span><span class="p">.</span><span class="n">Now</span><span class="p">.</span><span class="n">ToFileTime</span><span class="p">().</span><span class="n">ToString</span><span class="p">());</span> <span class="c1">//No BUG Here</span>
+</span><span id="line-5">    <span class="k">if</span> <span class="p">(</span><span class="n">activeAppDomains</span><span class="p">.</span><span class="n">ContainsKey</span><span class="p">(</span><span class="n">assemblyName</span><span class="p">))</span>
+</span><span id="line-6">    <span class="p">{</span>
+</span><span id="line-7">        <span class="n">AppDomainName</span> <span class="p">=</span> <span class="kt">string</span><span class="p">.</span><span class="n">Format</span><span class="p">(</span><span class="s">&quot;{0}||{1}&quot;</span><span class="p">,</span> <span class="n">typeName</span><span class="p">,</span> <span class="p">(</span><span class="n">DateTime</span><span class="p">.</span><span class="n">Now</span><span class="p">.</span><span class="n">ToFileTime</span><span class="p">()</span> 
+</span><span id="line-8">        <span class="p">+</span> <span class="k">new</span> <span class="n">Random</span><span class="p">().</span><span class="n">Next</span><span class="p">(</span><span class="m">1</span><span class="p">,</span> <span class="m">10000000</span><span class="p">)).</span><span class="n">ToString</span><span class="p">());</span>
+</span><span id="line-9">    <span class="p">}</span>
+</span><span id="line-10"><span class="p">}</span>
+</span></pre></div></code></pre></div>
+
+<p>By moving the FileTime string creation to inside of the lock() I can guarantee that we should be gifted a unique time as the FileTime is in 100ns intervals. However, if for some reason we run faster than that I still have the Random() number being added just in case.</p>
+
+<h2 id="testing-limited">Testing (limited)</h2>
+<p>In order to test the database I loaded it with the <a href="https://dev.mysql.com/doc/employee/en/">MySQL employee sample database</a>. My test harness calls the following SQL across 10 threads 600 times in a row.</p>
+
+<p><code>SELECT MYSQLDOTNET_INT('MySQLCustomClass.CustomMySQLClass', emp_no), emp_no, first_name, last_name FROM employees</code></p>
+
+<p><code>SELECT  (emp_no * 3.14) + 10, emp_no, first_name, last_name FROM employees</code></p>
+
+<p>This SQL is trivial but will all in all spins up and shuts down 6,000 AppDomains. When the test is running the memory footprint of my instance of MySQL does not climb over 90MB.</p>
+
+<p>Single threaded the non .NET query takes an average of 1.5 seconds. Single threaded .NET query runs at <strong>1.4</strong> seconds average. My only guess is the extra math being executed inside of MySQL has to be lexed, parsed, and finally computed. On the surface it looks like we’re faster, but more than likely this is just an effect of bad query writing on my part.</p>
+
+<h2 id="wrap-up">Wrap Up</h2>
+<p>Now the application really has some substance. I have been running performance tests for a few days now and the results are promising. Still more testing has to be done for longer amounts of time to be sure.</p>
+
+<p>In the next post I will introduce shadow copies and how we can use it to modify query results between runs without having to restart the MySQL process and without having to unload any plugins.</p>
+
+
+</div>
+
+ <div id="disqus_thread"></div>
+    <script type="text/javascript">
+        /* * * CONFIGURATION VARIABLES: EDIT BEFORE PASTING INTO YOUR WEBPAGE * * */
+        var disqus_shortname = 'debugthings'; // required: replace example with your forum shortname
+        var disqus_url = 'http://www.debugthings.com/2014/12/15/extending-mysql-server-part7/';
+        var disqus_identifier = '/2014/12/15/extending-mysql-server-part7';
+
+
+        /* * * DON'T EDIT BELOW THIS LINE * * */
+        (function() {
+            var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
+            dsq.src = '//' + disqus_shortname + '.disqus.com/embed.js';
+            (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+        })();
+    </script>
+    <noscript>Please enable JavaScript to view the <a href="http://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
+    
+
+<div class="related">
+  <h2>Related Posts</h2>
+  <ul class="related-posts">
+    
+    <li>
+      <h3>
+        <a href="http://www.debugthings.com/2014/12/05/y-u-no-have-button/">
+          Y U NO HAVE BUTTON?
+          <small>05 Dec 2014</small>
+        </a>
+      </h3>
+    </li>
+    
+    <li>
+      <h3>
+        <a href="http://www.debugthings.com/2014/12/03/compiling-for-two/">
+          Compiling for Two (.NET versions)
+          <small>03 Dec 2014</small>
+        </a>
+      </h3>
+    </li>
+    
+    <li>
+      <h3>
+        <a href="http://www.debugthings.com/2014/12/02/extending-mysql-server-part6/">
+          MySQL .NET Hosting Extension - Part 6 - Supporting Side-by-Side .NET CLRs
+          <small>02 Dec 2014</small>
+        </a>
+      </h3>
+    </li>
+    
+  </ul>
+</div>
+
+      <div class="footer">
+        <p>
+          &copy; 2014. All rights reserved.
+        </p>
+      </div>
+    </div>
+  </div>
+</div>
+
+
+</body>
+</html>

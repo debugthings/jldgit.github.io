@@ -18,18 +18,18 @@
 
 
   <!-- CSS -->
-  <link rel="stylesheet" href="public/css/monokai.css">
-  <link rel="stylesheet" href="public/css/bootstrap.css">
-  <link rel="stylesheet" href="public/css/poole.css">
+  <link rel="stylesheet" href="/public/css/monokai.css">
+  <link rel="stylesheet" href="/public/css/bootstrap.css">
+  <link rel="stylesheet" href="/public/css/poole.css">
 
   
 
   <!-- Icons -->
-  <link rel="apple-touch-icon-precomposed" sizes="144x144" href="public/apple-touch-icon-precomposed.png">
-  <link rel="shortcut icon" href="public/favicon.ico">
+  <link rel="apple-touch-icon-precomposed" sizes="144x144" href="/public/apple-touch-icon-precomposed.png">
+  <link rel="shortcut icon" href="/public/favicon.ico">
 
   <!-- RSS -->
-  <link rel="alternate" type="application/rss+xml" title="RSS" href="atom.xml">
+  <link rel="alternate" type="application/rss+xml" title="RSS" href="/atom.xml">
 
   <script>
   (function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){
@@ -55,7 +55,7 @@
         <span class="icon-bar"></span>
         <span class="icon-bar"></span>
       </button>
-      <a href="" class="navbar-brand" title="Home">DEBUG THINGS</a>
+      <a href="/" class="navbar-brand" title="Home">DEBUG THINGS</a>
     </div>
     <div id="navbar" class="navbar-collapse collapse">
       <ul class="nav navbar-nav">
@@ -73,7 +73,21 @@
   
   <div class="post">
     <h1 class="post-title">
-      <a href="http://www.debugthings.com/2014/12/05/y-u-no-have-button/">
+      <a href="/2014/12/15/extending-mysql-server-part7/">
+        MySQL .NET Hosting Extension - Part 7 - AppDomain Pools
+      </a>
+    </h1>
+
+    <span class="post-date">15 Dec 2014</span>
+
+    If we look at some of the performance metrics of the MySQL UDF extension, we&#8217;re not looking great for a few items. Number one, of course, is the loading of the .NET CLR. Unfortunately unless I integrate this tool into the MySQL code itself I can&#8217;t control that. The next is the loading and use of the AppDomain. That, however, I can fix.
+
+
+  </div>
+  
+  <div class="post">
+    <h1 class="post-title">
+      <a href="/2014/12/05/y-u-no-have-button/">
         Y U NO HAVE BUTTON?
       </a>
     </h1>
@@ -87,7 +101,7 @@
   
   <div class="post">
     <h1 class="post-title">
-      <a href="http://www.debugthings.com/2014/12/03/compiling-for-two/">
+      <a href="/2014/12/03/compiling-for-two/">
         Compiling for Two (.NET versions)
       </a>
     </h1>
@@ -101,7 +115,7 @@
   
   <div class="post">
     <h1 class="post-title">
-      <a href="http://www.debugthings.com/2014/12/02/extending-mysql-server-part6/">
+      <a href="/2014/12/02/extending-mysql-server-part6/">
         MySQL .NET Hosting Extension - Part 6 - Supporting Side-by-Side .NET CLRs
       </a>
     </h1>
@@ -115,7 +129,7 @@
   
   <div class="post">
     <h1 class="post-title">
-      <a href="http://www.debugthings.com/2014/11/30/extending-mysql-server-part5/">
+      <a href="/2014/11/30/extending-mysql-server-part5/">
         MySQL .NET Hosting Extension - Part 5 - AppDomain and Host Safety
       </a>
     </h1>
@@ -123,20 +137,6 @@
     <span class="post-date">30 Nov 2014</span>
 
     Now that we have a properly refactored base, and we have a good working solution to load new file from, we need to start considering safety. Not just type safety and integrity of data. No, safety of the executing code as well as the safety of the CLR host&#8212;MySQL in this case. Without that we would open up our new plugin library to a lot of malicious things.
-
-
-  </div>
-  
-  <div class="post">
-    <h1 class="post-title">
-      <a href="http://www.debugthings.com/2014/11/26/extending-mysql-server-part4/">
-        MySQL .NET Hosting Extension - Part 4 - Extending the AppDomain Manager
-      </a>
-    </h1>
-
-    <span class="post-date">26 Nov 2014</span>
-
-    So far the application was simple and was able to load and run a command from inside of our AppDomain manager. As promised, I am extending this functionality to allow loading of any number of classes. In order to do this I made some large changes to the application. In order to keep things somewhat coherent between Parts 1, 2 and 3&#8212;I branched off into a work in progress(wip) area that should make it easier to follow along.
 
 
   </div>
@@ -152,7 +152,7 @@
 <nav>
   <ul class="pager">
     
-    <li class="previous"><a  href="page2">Previous Posts</a></li>
+    <li class="previous"><a  href="/page2">Previous Posts</a></li>
     
     
     <li class="next disabled"><a  href="#">Newer Posts</a></li>

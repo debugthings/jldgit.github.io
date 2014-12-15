@@ -11,6 +11,7 @@ permalink:        pretty
 title:            Debug Things
 tagline:          Debugging, performance testing, DevOps, and ranting.
 url:              http://www.debugthings.com
+baseurl:          /
 paginate:         5
 author:
   name:           James Davis
