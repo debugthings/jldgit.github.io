@@ -4,13 +4,156 @@
  <title>Debug Things</title>
  <link href="http://www.debugthings.com/atom.xml" rel="self"/>
  <link href="http://www.debugthings.com/"/>
- <updated>2014-12-14T22:26:08-08:00</updated>
+ <updated>2014-12-16T12:18:31-08:00</updated>
  <id>http://www.debugthings.com</id>
  <author>
    <name>James Davis</name>
    <email>james.l.davis@outlook.com</email>
  </author>
 
+ 
+ <entry>
+   <title>MySQL .NET Hosting Extension - Part 8 - Mimicking IIS (Shadow Copy, Custom Configs)</title>
+   <link href="http://www.debugthings.com//2014/12/16/extending-mysql-server-part8/"/>
+   <updated>2014-12-16T00:00:00-08:00</updated>
+   <id>http://www.debugthings.com/2014/12/16/extending-mysql-server-part8</id>
+   <content type="html">&lt;p&gt;One of the coolest things about deploying to IIS is the shadow copy feature. This allows you to drop in a new DLL and when the application detects it, it will spin up a new AppDomain and send all new requests there. This “seamless” integration is great for achieving high availability. Web servers and SQL servers alike need to experience as little down time as possible. We will walk through adding shadow copy and implementing file watchers inside of the MySQLHostManager that will handle these conditions.&lt;/p&gt;
+
+&lt;h2 id=&quot;how-to-get-the-code&quot;&gt;How to get the code&lt;/h2&gt;
+
+&lt;p&gt;Enter the following commands in your GIT command prompt. It’s that simple. All code changes as I have shown them in this blog post should be there. If you come across this post at a way later date, try increasing the range from 5 to 10, and so on.&lt;/p&gt;
+
+&lt;div class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code&gt;git clone https://github.com/jldgit/mysql_udf_dotnet.git -b wip-nextversion
+git log --abbrev-commit -n 5 --pretty=oneline
+
+4a0be76 Changes relating to post 8
+e9dc6de Changed relating to post 7
+91e2238 Changes relating to post 6
+6d017b0 Changes relating to post 5
+303d9cd Changes relating to post 4
+
+git checkout 4a0be76
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+
+&lt;h2 id=&quot;whats-changed&quot;&gt;What’s Changed?&lt;/h2&gt;
+&lt;p&gt;In this version we have a lot of code changes that support the new shadow copies as well as the filewatcher for the .config files. I have also updated some of the locking when creating an AppDomain. The change here is if the application can’t get a lock within 10ms it will continue on and create a new domain regardless of any domains that are in the pool.&lt;/p&gt;
+
+&lt;h3 id=&quot;mysqlhostmanager-implements-shadow-copy&quot;&gt;MySQLHostManager implements Shadow Copy&lt;/h3&gt;
+&lt;p&gt;As mentioned there is a one line change that enables the shadow copy feature it is the very appropriately named &lt;a href=&quot;http://msdn.microsoft.com/en-us/library/system.appdomainsetup.shadowcopyfiles%28v=vs.110%29.aspx&quot;&gt;AppDomainSetup.ShadowCopyFiles&lt;/a&gt; property. This allows us to use the CLR download directory. See the MSDN article &lt;a href=&quot;http://msdn.microsoft.com/en-us/library/ms404279(v=vs.110).aspx&quot;&gt;“Shadow Copying Assemblies”&lt;/a&gt; for an explanation of the process. Be aware I am not implementing a custom download directory as it requires us to maintain the cache.&lt;/p&gt;
+
+&lt;h3 id=&quot;mysqlhostmanager-implements-custom-configs&quot;&gt;MySQLHostManager implements custom configs&lt;/h3&gt;
+&lt;p&gt;As well with the shadow copy implementation I also left in a line of code from when I first started implementing my AppDomain manager in &lt;a href=&quot;/2014/11/26/extending-mysql-server-part4/&quot;&gt;part 4&lt;/a&gt;. The &lt;a href=&quot;http://msdn.microsoft.com/en-us/library/system.appdomainsetup.configurationfile(v=vs.110).aspx&quot;&gt;AppDomainSetup.ConfigurationFile&lt;/a&gt; property allows the newly created AppDomain to use a separate configuration file from the &lt;code&gt;mysqld.exe.config&lt;/code&gt; file that sets up the default domains and lets the Hosting API know about our intentions to load files.&lt;/p&gt;
+
+&lt;h2 id=&quot;expanded-walkthrough&quot;&gt;Expanded Walkthrough&lt;/h2&gt;
+
+&lt;h3 id=&quot;shadow-copying&quot;&gt;Shadow Copying&lt;/h3&gt;
+&lt;p&gt;The idea behind shadow copying files is simple; when an assembly is loaded the file is locked and cannot be altered. The only way it can be altered is by shutting down all of the AppDomains that have a hold on the file. The means you could be waiting a while. &lt;/p&gt;
+
+&lt;p&gt;However, if shadow copying is enabled the file is copied to another location before being loaded and the copy is locked. This leaves the original free to be altered. This is important because you can replace this file and load it in a new AppDomain. This new file is ALSO copied to the shadow location which means you can also replace the copy with another copy. This can go on for ever.&lt;/p&gt;
+
+&lt;blockquote&gt;
+  &lt;p&gt;&lt;strong&gt;NOTE:&lt;/strong&gt; One little caveat to this is the fact that if you use a strong name inside of the &lt;code&gt;mysqld.exe.config&lt;/code&gt; file you must make sure your file is signed and has the exact version (unless you use a binding redirect).&lt;/p&gt;
+&lt;/blockquote&gt;
+
+&lt;p&gt;Let’s take a look at the simple code that enables shadow copying.&lt;/p&gt;
+
+&lt;div class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-Csharp&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;span id=&quot;line-1&quot;&gt;&lt;span class=&quot;n&quot;&gt;AppDomainSetup&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;ads&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;k&quot;&gt;new&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;AppDomainSetup&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;();&lt;/span&gt;
+&lt;/span&gt;&lt;span id=&quot;line-2&quot;&gt;&lt;span class=&quot;c1&quot;&gt;// .. removed for clarity ..&lt;/span&gt;
+&lt;/span&gt;&lt;span id=&quot;line-3&quot;&gt;&lt;span class=&quot;n&quot;&gt;ads&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;ShadowCopyFiles&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;s&quot;&gt;&amp;quot;true&amp;quot;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+&lt;/span&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+
+&lt;p&gt;This single line requires you to set the value to the string value &lt;code&gt;&quot;true&quot;&lt;/code&gt; and not &lt;code&gt;true&lt;/code&gt;. I dunno why, but that is how it has been for a while now. If you look in some of the Microsoft code that does things like &lt;code&gt;System.Web.Hosting.ApplicationManager::PopulateDomainBindings()&lt;/code&gt; you will see the same code.&lt;/p&gt;
+
+&lt;p&gt;With this set we can open up mysqld.exe in WinDbg, loading SOS and using the &lt;code&gt;!DumpDomain&lt;/code&gt; command to  take a look at where the assembly is being loaded from. Look at the bottom of this listing and you can see the MySQLCustomClass assembly being loaded from &lt;code&gt;C:\Users\James\AppData\Local\assembly\dl3\XDO19CO6.93L\QWVBM69E.1HJ\05b42dd0\d00c85ba_2618d001\&lt;/code&gt;. This indicates that the CLR copied this file to the download cache directory and is using it from there.&lt;/p&gt;
+
+&lt;div class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code&gt;0:035&amp;gt; !DumpDomain 
+&amp;lt;&amp;lt;&amp;lt;&amp;lt;&amp;lt;&amp;lt; DATA REMOVED FOR CLARITY &amp;gt;&amp;gt;&amp;gt;&amp;gt;&amp;gt;&amp;gt;
+--------------------------------------
+Domain 23:          0e0277d0
+LowFrequencyHeap:   0e027c3c
+HighFrequencyHeap:  0e027c88
+StubHeap:           0e027cd4
+Stage:              OPEN
+SecurityDescriptor: 0def63d0
+Name:               MySQLCustomClass.CustomMySQLClass||130631735636773794
+Assembly:           0df78388 [C:\Windows\Microsoft.Net\assembly\GAC_32\mscorlib\v4.0_4.0.0.0__b77a5c561934e089\mscorlib.dll]
+ClassLoader:        0e31ee60
+SecurityDescriptor: 00681c30
+  Module Name
+70871000    C:\Windows\Microsoft.Net\assembly\GAC_32\mscorlib\v4.0_4.0.0.0__b77a5c561934e089\mscorlib.dll
+
+Assembly:           0df79a08 [C:\Windows\Microsoft.Net\assembly\GAC_MSIL\MySQLHostManager\v4.0_4.0.0.0__71c4a5d4270bd29c\MySQLHostManager.dll]
+ClassLoader:        0067f610
+SecurityDescriptor: 00681878
+  Module Name
+0d4743f8    C:\Windows\Microsoft.Net\assembly\GAC_MSIL\MySQLHostManager\v4.0_4.0.0.0__71c4a5d4270bd29c\MySQLHostManager.dll
+
+Assembly:           0df79408 [C:\Windows\assembly\GAC_MSIL\MySQLHostManager\2.0.0.0__71c4a5d4270bd29c\MySQLHostManager.dll]
+ClassLoader:        0e5a88b8
+SecurityDescriptor: 00681f60
+  Module Name
+0d4749b8    C:\Windows\assembly\GAC_MSIL\MySQLHostManager\2.0.0.0__71c4a5d4270bd29c\MySQLHostManager.dll
+
+Assembly:           0df78d48 [C:\Users\James\AppData\Local\assembly\dl3\XDO19CO6.93L\QWVBM69E.1HJ\05b42dd0\d00c85ba_2618d001\MySQLCustomClass.dll]
+ClassLoader:        0e5a86b0
+SecurityDescriptor: 006805e0
+  Module Name
+0d475fcc    C:\Users\James\AppData\Local\assembly\dl3\XDO19CO6.93L\QWVBM69E.1HJ\05b42dd0\d00c85ba_2618d001\MySQLCustomClass.dll
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+
+&lt;h3 id=&quot;mysqldotnetconfig-file-changes&quot;&gt;mysqldotnet.config file changes&lt;/h3&gt;
+&lt;p&gt;In ASP.NET you can have multiple applications under multiple virtual directories. Each ASP.NET application can have it’s own &lt;code&gt;web.config&lt;/code&gt;. I wanted to have a similar feature with each assembly having it’s own &lt;code&gt;mysqldotnet.config&lt;/code&gt;. As well, I wanted to have the ability to make a change to either of the config files and have the default domain spin down the old domains and spin up new ones.&lt;/p&gt;
+
+&lt;p&gt;In order to track when a config file changes, we need to use the &lt;code&gt;FileSystemWatcher&lt;/code&gt; class. This class takes in a file path in the constructor and has you attach an event on specific file actions like Create, Changed or Deleted. In our case we are only attaching to the changed event.&lt;/p&gt;
+
+&lt;div class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-Csharp&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;span id=&quot;line-1&quot;&gt;&lt;span class=&quot;c1&quot;&gt;// This free standing code snippet is located in the constructor.&lt;/span&gt;
+&lt;/span&gt;&lt;span id=&quot;line-2&quot;&gt;&lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;
+&lt;/span&gt;&lt;span id=&quot;line-3&quot;&gt;    &lt;span class=&quot;kt&quot;&gt;var&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;configFileWatcher&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;k&quot;&gt;new&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;System&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;IO&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;FileSystemWatcher&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;&amp;quot;.\\mysqld.exe.config&amp;quot;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;);&lt;/span&gt;
+&lt;/span&gt;&lt;span id=&quot;line-4&quot;&gt;    &lt;span class=&quot;n&quot;&gt;configFileWatcher&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;Changed&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;+=&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;configFileWatcher_Changed&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+&lt;/span&gt;&lt;span id=&quot;line-5&quot;&gt;&lt;span class=&quot;p&quot;&gt;}&lt;/span&gt;
+&lt;/span&gt;&lt;span id=&quot;line-6&quot;&gt;
+&lt;/span&gt;&lt;span id=&quot;line-7&quot;&gt;&lt;span class=&quot;c1&quot;&gt;// This event sets the AppDomain manager private members to tell us when this event occured.&lt;/span&gt;
+&lt;/span&gt;&lt;span id=&quot;line-8&quot;&gt;&lt;span class=&quot;k&quot;&gt;void&lt;/span&gt; &lt;span class=&quot;nf&quot;&gt;configFileWatcher_Changed&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;kt&quot;&gt;object&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;sender&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;FileSystemEventArgs&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;e&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt;
+&lt;/span&gt;&lt;span id=&quot;line-9&quot;&gt;&lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;
+&lt;/span&gt;&lt;span id=&quot;line-10&quot;&gt;    &lt;span class=&quot;n&quot;&gt;System&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;Configuration&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;ConfigurationManager&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;RefreshSection&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;&amp;quot;mysqlassemblies&amp;quot;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;);&lt;/span&gt;
+&lt;/span&gt;&lt;span id=&quot;line-11&quot;&gt;    &lt;span class=&quot;n&quot;&gt;fileWatcherPurge&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;DateTime&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;Now&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+&lt;/span&gt;&lt;span id=&quot;line-12&quot;&gt;&lt;span class=&quot;p&quot;&gt;}&lt;/span&gt;
+&lt;/span&gt;&lt;span id=&quot;line-13&quot;&gt;
+&lt;/span&gt;&lt;span id=&quot;line-14&quot;&gt;&lt;span class=&quot;c1&quot;&gt;// Upon any active application creation or unload we will check to see if it&amp;#39;s created time is less than the purge&lt;/span&gt;
+&lt;/span&gt;&lt;span id=&quot;line-15&quot;&gt;&lt;span class=&quot;k&quot;&gt;if&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;mysqlhost&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;FirstAccessed&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;&amp;lt;&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;fileWatcherPurge&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt;
+&lt;/span&gt;&lt;span id=&quot;line-16&quot;&gt;&lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;
+&lt;/span&gt;&lt;span id=&quot;line-17&quot;&gt;    &lt;span class=&quot;c1&quot;&gt;// Set Appdomain to die&lt;/span&gt;
+&lt;/span&gt;&lt;span id=&quot;line-18&quot;&gt;&lt;span class=&quot;p&quot;&gt;}&lt;/span&gt;
+&lt;/span&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+
+&lt;p&gt;With this event I tell the default domain to refresh the section under mysqlassemblies so it will jettison the cached version of the config file. I also set a date time to do a check when we create or unload an AppDomain that will remove it if it finds that the domain was created before the file change.&lt;/p&gt;
+
+&lt;h3 id=&quot;targeted-mysqldotnetconfig-files&quot;&gt;Targeted mysqldotnet.config files&lt;/h3&gt;
+&lt;p&gt;Another possibility to consider is you want to use specific configurable settings inside of your custom code. You could just plop your DLLs and .config file in the &lt;code&gt;MYSQLROOT\lib\plugins&lt;/code&gt; directory but then you’d have the chance of overwriting any settings you may have for one particular assembly. The way to make this work properly is to set the &lt;a href=&quot;http://msdn.microsoft.com/en-us/library/system.appdomainsetup.privatebinpath%28v=vs.110%29.aspx&quot;&gt;AppDomainSetup.ApplicationBase&lt;/a&gt;.&lt;/p&gt;
+
+&lt;p&gt;With this path set, the assembly probing will begin at &lt;code&gt;MYSQLROOT\lib\plugins&lt;/code&gt; and search for the assembly in the follwing pattern. Since we do not specify a culture we do not probe any culture directories.&lt;/p&gt;
+
+&lt;ol&gt;
+  &lt;li&gt;MYSQLROOT\lib\plugins&lt;/li&gt;
+  &lt;li&gt;MYSQLROOT\lib\plugins\MySQLCustomClass&lt;/li&gt;
+  &lt;li&gt;MYSQLROOT\lib\plugins\bin\&lt;/li&gt;
+  &lt;li&gt;MYSQLROOT\lib\plugins\bin\MySQLCustomClass&lt;/li&gt;
+&lt;/ol&gt;
+
+&lt;p&gt;We can now place our assembly and .config file inside of &lt;code&gt;MYSQLROOT\lib\plugins\MySQLCustomClass&lt;/code&gt;. Now, we have a properly paired assembly and .config file. All settings will be inherited from this .config and will not be carried over from the default domain.&lt;/p&gt;
+
+&lt;p&gt;To validate we are loading from the proper directory we can review the Fusion Log. You must turn on the fusion log before you execute a query that uses the MySQL plugin. Check out this MSDN page on the &lt;a href=&quot;http://msdn.microsoft.com/en-us/library/e74a18c4%28v=vs.110%29.aspx&quot;&gt;Assembly Binding Log Viewer&lt;/a&gt; to learn how to setup and use the tool.&lt;/p&gt;
+
+&lt;div class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code&gt;LOG: Attempting download of new URL file:///C:/Users/James/Source/BazaarRepos/mysql-server/mysql-5.5/sql/lib/plugin/MySQLCustomClass.DLL.
+LOG: Attempting download of new URL file:///C:/Users/James/Source/BazaarRepos/mysql-server/mysql-5.5/sql/lib/plugin/MySQLCustomClass/MySQLCustomClass.DLL.
+LOG: Assembly download was successful. Attempting setup of file: C:\Users\James\Source\BazaarRepos\mysql-server\mysql-5.5\sql\lib\plugin\MySQLCustomClass\MySQLCustomClass.dll
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+
+&lt;h2 id=&quot;wrapping-up&quot;&gt;Wrapping Up&lt;/h2&gt;
+&lt;p&gt;With all of the peices starting to fall in place we’re getting close to a release of this code. I will have a final part to clear up any miscellanea that didn’t make it into the first 8 posts. I will try to focus on performance testing the code and give some better examples. I will also get a proper installer out there for both 32bit and 64bit versions.&lt;/p&gt;
+
+</content>
+ </entry>
  
  <entry>
    <title>MySQL .NET Hosting Extension - Part 7 - AppDomain Pools</title>
@@ -1700,18 +1843,20 @@ mysql&amp;gt;
 &lt;p&gt;Like I said before in my opening, I wanted to use the blog as a way to hold myself accountable. The milestones are going to be lofty, changing and probably never fully realized. That being said, here is a short list of what I want to do in the coming weeks and months.&lt;/p&gt;
 
 &lt;ol&gt;
-  &lt;li&gt;Create a simple hello world application using the hosting API&lt;/li&gt;
-  &lt;li&gt;Create a simple &lt;a href=&quot;http://dev.mysql.com/doc/refman/5.1/en/adding-udf.html&quot;&gt;User Defined Function&lt;/a&gt; (UDF) for MySQL&lt;/li&gt;
-  &lt;li&gt;Send and retrieve data from the UDF&lt;/li&gt;
-  &lt;li&gt;Extend the simple UDF to load the CLR&lt;/li&gt;
-  &lt;li&gt;Implement a custom interface to interact with the UDF&lt;/li&gt;
-  &lt;li&gt;Load an assembly from the file system&lt;/li&gt;
-  &lt;li&gt;Allow dynamic loading of UDF based on parameters&lt;/li&gt;
-  &lt;li&gt;Implement Host Access Protection to protect MySQL&lt;/li&gt;
-  &lt;li&gt;Extend MySQL to include a BLOB table to install assemblies&lt;/li&gt;
-  &lt;li&gt;Load assemblies from BLOB table&lt;/li&gt;
-  &lt;li&gt;Write the same for &lt;a href=&quot;http://www.mono-project.com/&quot;&gt;Mono&lt;/a&gt;?&lt;/li&gt;
+  &lt;li&gt;&lt;del&gt;Create a simple hello world application using the hosting API&lt;/del&gt;&lt;/li&gt;
+  &lt;li&gt;&lt;del&gt;Create a simple &lt;a href=&quot;http://dev.mysql.com/doc/refman/5.1/en/adding-udf.html&quot;&gt;User Defined Function&lt;/a&gt; (UDF) for MySQL&lt;/del&gt;&lt;/li&gt;
+  &lt;li&gt;&lt;del&gt;Send and retrieve data from the UDF&lt;/del&gt;&lt;/li&gt;
+  &lt;li&gt;&lt;del&gt;Extend the simple UDF to load the CLR&lt;/del&gt;&lt;/li&gt;
+  &lt;li&gt;&lt;del&gt;Implement a custom interface to interact with the UDF&lt;/del&gt;&lt;/li&gt;
+  &lt;li&gt;&lt;del&gt;Load an assembly from the file system&lt;/del&gt;&lt;/li&gt;
+  &lt;li&gt;&lt;del&gt;Allow dynamic loading of UDF based on parameters&lt;/del&gt;&lt;/li&gt;
+  &lt;li&gt;&lt;del&gt;Implement Host Access Protection to protect MySQL&lt;/del&gt;&lt;/li&gt;
+  &lt;li&gt;&lt;del&gt;&lt;em&gt;Extend MySQL to include a BLOB table to install assemblies&lt;/em&gt;&lt;/del&gt;&lt;/li&gt;
+  &lt;li&gt;&lt;del&gt;&lt;em&gt;Load assemblies from BLOB table&lt;/em&gt;&lt;/del&gt;&lt;/li&gt;
+  &lt;li&gt;&lt;del&gt;&lt;em&gt;Write the same for &lt;a href=&quot;http://www.mono-project.com/&quot;&gt;Mono&lt;/a&gt;?&lt;/em&gt;&lt;/del&gt;&lt;/li&gt;
 &lt;/ol&gt;
+
+&lt;p&gt;&lt;strong&gt;[EDIT 12/16/2014] I struck out items 9, 10, and 11 even though they are not implemented. As I wrote the tool it was better to load the assemblies from a directory instead of a table for better features. Mono has no defined host integrations that I have found so it may never happen.&lt;/strong&gt;&lt;/p&gt;
 
 </content>
  </entry>

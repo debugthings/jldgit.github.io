@@ -1,0 +1,278 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en-us">
+
+<head>
+  <link href="http://gmpg.org/xfn/11" rel="profile">
+  <meta http-equiv="content-type" content="text/html; charset=utf-8">
+
+  <!-- Enable responsiveness on mobile devices-->
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1">
+
+  <title>
+    
+    MySQL .NET Hosting Extension - Part 8 - Mimicking IIS (Shadow Copy, Custom Configs) &middot; Debug Things
+    
+  </title>
+  <!--FONTS-->
+  <link href='http://fonts.googleapis.com/css?family=Lato&subset=latin,latin-ext' rel='stylesheet' type='text/css'>
+
+
+  <!-- CSS -->
+  <link rel="stylesheet" href="/public/css/monokai.css">
+  <link rel="stylesheet" href="/public/css/bootstrap.css">
+  <link rel="stylesheet" href="/public/css/poole.css">
+
+  
+
+  <!-- Icons -->
+  <link rel="apple-touch-icon-precomposed" sizes="144x144" href="/public/apple-touch-icon-precomposed.png">
+  <link rel="shortcut icon" href="/public/favicon.ico">
+
+  <!-- RSS -->
+  <link rel="alternate" type="application/rss+xml" title="RSS" href="/atom.xml">
+
+  <script>
+  (function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){
+  (i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),
+  m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)
+  })(window,document,'script','//www.google-analytics.com/analytics.js','ga');
+
+  ga('create', 'UA-56527114-1', 'auto');
+  ga('send', 'pageview');
+
+</script>
+
+</head>
+
+
+<body>
+  <nav class="navbar navbar-inverse navbar-fixed-top" role="navigation">
+  <div class="container">
+    <div class="navbar-header">
+      <button type="button" class="navbar-toggle collapsed" data-toggle="collapse" data-target="#navbar" aria-expanded="false" aria-controls="navbar">
+        <span class="sr-only">Toggle navigation</span>
+        <span class="icon-bar"></span>
+        <span class="icon-bar"></span>
+        <span class="icon-bar"></span>
+      </button>
+      <a href="/" class="navbar-brand" title="Home">DEBUG THINGS</a>
+    </div>
+    <div id="navbar" class="navbar-collapse collapse">
+      <ul class="nav navbar-nav">
+        <li><a href="/about/">About</a></li>
+        <li><a href="/projects">Projects</a></li>
+        <li><a href="/owasp/">OWASP Tampa</a></li>
+      </ul>
+    </div><!--/.navbar-collapse -->
+  </div>
+</nav>
+  <div class="container containerbg">
+   <div class="row rowoffset">
+    <div class="col-md-12">
+      <div class="post">
+  <h1 class="post-title">MySQL .NET Hosting Extension - Part 8 - Mimicking IIS (Shadow Copy, Custom Configs)</h1>
+  <span class="post-date">16 Dec 2014</span>
+  <a href="https://twitter.com/share" class="twitter-share-button" data-via="debugthings" data-size="large">Tweet</a>
+  <script>!function(d,s,id){var js,fjs=d.getElementsByTagName(s)[0],p=/^http:/.test(d.location)?'http':'https';if(!d.getElementById(id)){js=d.createElement(s);js.id=id;js.src=p+'://platform.twitter.com/widgets.js';fjs.parentNode.insertBefore(js,fjs);}}(document, 'script', 'twitter-wjs');</script>
+  <p>One of the coolest things about deploying to IIS is the shadow copy feature. This allows you to drop in a new DLL and when the application detects it, it will spin up a new AppDomain and send all new requests there. This “seamless” integration is great for achieving high availability. Web servers and SQL servers alike need to experience as little down time as possible. We will walk through adding shadow copy and implementing file watchers inside of the MySQLHostManager that will handle these conditions.</p>
+
+<h2 id="how-to-get-the-code">How to get the code</h2>
+
+<p>Enter the following commands in your GIT command prompt. It’s that simple. All code changes as I have shown them in this blog post should be there. If you come across this post at a way later date, try increasing the range from 5 to 10, and so on.</p>
+
+<div class="highlight"><pre><code>git clone https://github.com/jldgit/mysql_udf_dotnet.git -b wip-nextversion
+git log --abbrev-commit -n 5 --pretty=oneline
+
+4a0be76 Changes relating to post 8
+e9dc6de Changed relating to post 7
+91e2238 Changes relating to post 6
+6d017b0 Changes relating to post 5
+303d9cd Changes relating to post 4
+
+git checkout 4a0be76
+</code></pre></div>
+
+<h2 id="whats-changed">What’s Changed?</h2>
+<p>In this version we have a lot of code changes that support the new shadow copies as well as the filewatcher for the .config files. I have also updated some of the locking when creating an AppDomain. The change here is if the application can’t get a lock within 10ms it will continue on and create a new domain regardless of any domains that are in the pool.</p>
+
+<h3 id="mysqlhostmanager-implements-shadow-copy">MySQLHostManager implements Shadow Copy</h3>
+<p>As mentioned there is a one line change that enables the shadow copy feature it is the very appropriately named <a href="http://msdn.microsoft.com/en-us/library/system.appdomainsetup.shadowcopyfiles%28v=vs.110%29.aspx">AppDomainSetup.ShadowCopyFiles</a> property. This allows us to use the CLR download directory. See the MSDN article <a href="http://msdn.microsoft.com/en-us/library/ms404279(v=vs.110).aspx">“Shadow Copying Assemblies”</a> for an explanation of the process. Be aware I am not implementing a custom download directory as it requires us to maintain the cache.</p>
+
+<h3 id="mysqlhostmanager-implements-custom-configs">MySQLHostManager implements custom configs</h3>
+<p>As well with the shadow copy implementation I also left in a line of code from when I first started implementing my AppDomain manager in <a href="/2014/11/26/extending-mysql-server-part4/">part 4</a>. The <a href="http://msdn.microsoft.com/en-us/library/system.appdomainsetup.configurationfile(v=vs.110).aspx">AppDomainSetup.ConfigurationFile</a> property allows the newly created AppDomain to use a separate configuration file from the <code>mysqld.exe.config</code> file that sets up the default domains and lets the Hosting API know about our intentions to load files.</p>
+
+<h2 id="expanded-walkthrough">Expanded Walkthrough</h2>
+
+<h3 id="shadow-copying">Shadow Copying</h3>
+<p>The idea behind shadow copying files is simple; when an assembly is loaded the file is locked and cannot be altered. The only way it can be altered is by shutting down all of the AppDomains that have a hold on the file. The means you could be waiting a while. </p>
+
+<p>However, if shadow copying is enabled the file is copied to another location before being loaded and the copy is locked. This leaves the original free to be altered. This is important because you can replace this file and load it in a new AppDomain. This new file is ALSO copied to the shadow location which means you can also replace the copy with another copy. This can go on for ever.</p>
+
+<blockquote>
+  <p><strong>NOTE:</strong> One little caveat to this is the fact that if you use a strong name inside of the <code>mysqld.exe.config</code> file you must make sure your file is signed and has the exact version (unless you use a binding redirect).</p>
+</blockquote>
+
+<p>Let’s take a look at the simple code that enables shadow copying.</p>
+
+<div class="highlight"><pre><code class="language-Csharp"><div class="highlight"><pre><span id="line-1"><span class="n">AppDomainSetup</span> <span class="n">ads</span> <span class="p">=</span> <span class="k">new</span> <span class="n">AppDomainSetup</span><span class="p">();</span>
+</span><span id="line-2"><span class="c1">// .. removed for clarity ..</span>
+</span><span id="line-3"><span class="n">ads</span><span class="p">.</span><span class="n">ShadowCopyFiles</span> <span class="p">=</span> <span class="s">&quot;true&quot;</span><span class="p">;</span>
+</span></pre></div></code></pre></div>
+
+<p>This single line requires you to set the value to the string value <code>"true"</code> and not <code>true</code>. I dunno why, but that is how it has been for a while now. If you look in some of the Microsoft code that does things like <code>System.Web.Hosting.ApplicationManager::PopulateDomainBindings()</code> you will see the same code.</p>
+
+<p>With this set we can open up mysqld.exe in WinDbg, loading SOS and using the <code>!DumpDomain</code> command to  take a look at where the assembly is being loaded from. Look at the bottom of this listing and you can see the MySQLCustomClass assembly being loaded from <code>C:\Users\James\AppData\Local\assembly\dl3\XDO19CO6.93L\QWVBM69E.1HJ\05b42dd0\d00c85ba_2618d001\</code>. This indicates that the CLR copied this file to the download cache directory and is using it from there.</p>
+
+<div class="highlight"><pre><code>0:035&gt; !DumpDomain 
+&lt;&lt;&lt;&lt;&lt;&lt; DATA REMOVED FOR CLARITY &gt;&gt;&gt;&gt;&gt;&gt;
+--------------------------------------
+Domain 23:          0e0277d0
+LowFrequencyHeap:   0e027c3c
+HighFrequencyHeap:  0e027c88
+StubHeap:           0e027cd4
+Stage:              OPEN
+SecurityDescriptor: 0def63d0
+Name:               MySQLCustomClass.CustomMySQLClass||130631735636773794
+Assembly:           0df78388 [C:\Windows\Microsoft.Net\assembly\GAC_32\mscorlib\v4.0_4.0.0.0__b77a5c561934e089\mscorlib.dll]
+ClassLoader:        0e31ee60
+SecurityDescriptor: 00681c30
+  Module Name
+70871000    C:\Windows\Microsoft.Net\assembly\GAC_32\mscorlib\v4.0_4.0.0.0__b77a5c561934e089\mscorlib.dll
+
+Assembly:           0df79a08 [C:\Windows\Microsoft.Net\assembly\GAC_MSIL\MySQLHostManager\v4.0_4.0.0.0__71c4a5d4270bd29c\MySQLHostManager.dll]
+ClassLoader:        0067f610
+SecurityDescriptor: 00681878
+  Module Name
+0d4743f8    C:\Windows\Microsoft.Net\assembly\GAC_MSIL\MySQLHostManager\v4.0_4.0.0.0__71c4a5d4270bd29c\MySQLHostManager.dll
+
+Assembly:           0df79408 [C:\Windows\assembly\GAC_MSIL\MySQLHostManager\2.0.0.0__71c4a5d4270bd29c\MySQLHostManager.dll]
+ClassLoader:        0e5a88b8
+SecurityDescriptor: 00681f60
+  Module Name
+0d4749b8    C:\Windows\assembly\GAC_MSIL\MySQLHostManager\2.0.0.0__71c4a5d4270bd29c\MySQLHostManager.dll
+
+Assembly:           0df78d48 [C:\Users\James\AppData\Local\assembly\dl3\XDO19CO6.93L\QWVBM69E.1HJ\05b42dd0\d00c85ba_2618d001\MySQLCustomClass.dll]
+ClassLoader:        0e5a86b0
+SecurityDescriptor: 006805e0
+  Module Name
+0d475fcc    C:\Users\James\AppData\Local\assembly\dl3\XDO19CO6.93L\QWVBM69E.1HJ\05b42dd0\d00c85ba_2618d001\MySQLCustomClass.dll
+</code></pre></div>
+
+<h3 id="mysqldotnetconfig-file-changes">mysqldotnet.config file changes</h3>
+<p>In ASP.NET you can have multiple applications under multiple virtual directories. Each ASP.NET application can have it’s own <code>web.config</code>. I wanted to have a similar feature with each assembly having it’s own <code>mysqldotnet.config</code>. As well, I wanted to have the ability to make a change to either of the config files and have the default domain spin down the old domains and spin up new ones.</p>
+
+<p>In order to track when a config file changes, we need to use the <code>FileSystemWatcher</code> class. This class takes in a file path in the constructor and has you attach an event on specific file actions like Create, Changed or Deleted. In our case we are only attaching to the changed event.</p>
+
+<div class="highlight"><pre><code class="language-Csharp"><div class="highlight"><pre><span id="line-1"><span class="c1">// This free standing code snippet is located in the constructor.</span>
+</span><span id="line-2"><span class="p">{</span>
+</span><span id="line-3">    <span class="kt">var</span> <span class="n">configFileWatcher</span> <span class="p">=</span> <span class="k">new</span> <span class="n">System</span><span class="p">.</span><span class="n">IO</span><span class="p">.</span><span class="n">FileSystemWatcher</span><span class="p">(</span><span class="s">&quot;.\\mysqld.exe.config&quot;</span><span class="p">);</span>
+</span><span id="line-4">    <span class="n">configFileWatcher</span><span class="p">.</span><span class="n">Changed</span> <span class="p">+=</span> <span class="n">configFileWatcher_Changed</span><span class="p">;</span>
+</span><span id="line-5"><span class="p">}</span>
+</span><span id="line-6">
+</span><span id="line-7"><span class="c1">// This event sets the AppDomain manager private members to tell us when this event occured.</span>
+</span><span id="line-8"><span class="k">void</span> <span class="nf">configFileWatcher_Changed</span><span class="p">(</span><span class="kt">object</span> <span class="n">sender</span><span class="p">,</span> <span class="n">FileSystemEventArgs</span> <span class="n">e</span><span class="p">)</span>
+</span><span id="line-9"><span class="p">{</span>
+</span><span id="line-10">    <span class="n">System</span><span class="p">.</span><span class="n">Configuration</span><span class="p">.</span><span class="n">ConfigurationManager</span><span class="p">.</span><span class="n">RefreshSection</span><span class="p">(</span><span class="s">&quot;mysqlassemblies&quot;</span><span class="p">);</span>
+</span><span id="line-11">    <span class="n">fileWatcherPurge</span> <span class="p">=</span> <span class="n">DateTime</span><span class="p">.</span><span class="n">Now</span><span class="p">;</span>
+</span><span id="line-12"><span class="p">}</span>
+</span><span id="line-13">
+</span><span id="line-14"><span class="c1">// Upon any active application creation or unload we will check to see if it&#39;s created time is less than the purge</span>
+</span><span id="line-15"><span class="k">if</span> <span class="p">(</span><span class="n">mysqlhost</span><span class="p">.</span><span class="n">FirstAccessed</span> <span class="p">&lt;</span> <span class="n">fileWatcherPurge</span><span class="p">)</span>
+</span><span id="line-16"><span class="p">{</span>
+</span><span id="line-17">    <span class="c1">// Set Appdomain to die</span>
+</span><span id="line-18"><span class="p">}</span>
+</span></pre></div></code></pre></div>
+
+<p>With this event I tell the default domain to refresh the section under mysqlassemblies so it will jettison the cached version of the config file. I also set a date time to do a check when we create or unload an AppDomain that will remove it if it finds that the domain was created before the file change.</p>
+
+<h3 id="targeted-mysqldotnetconfig-files">Targeted mysqldotnet.config files</h3>
+<p>Another possibility to consider is you want to use specific configurable settings inside of your custom code. You could just plop your DLLs and .config file in the <code>MYSQLROOT\lib\plugins</code> directory but then you’d have the chance of overwriting any settings you may have for one particular assembly. The way to make this work properly is to set the <a href="http://msdn.microsoft.com/en-us/library/system.appdomainsetup.privatebinpath%28v=vs.110%29.aspx">AppDomainSetup.ApplicationBase</a>.</p>
+
+<p>With this path set, the assembly probing will begin at <code>MYSQLROOT\lib\plugins</code> and search for the assembly in the follwing pattern. Since we do not specify a culture we do not probe any culture directories.</p>
+
+<ol>
+  <li>MYSQLROOT\lib\plugins</li>
+  <li>MYSQLROOT\lib\plugins\MySQLCustomClass</li>
+  <li>MYSQLROOT\lib\plugins\bin\</li>
+  <li>MYSQLROOT\lib\plugins\bin\MySQLCustomClass</li>
+</ol>
+
+<p>We can now place our assembly and .config file inside of <code>MYSQLROOT\lib\plugins\MySQLCustomClass</code>. Now, we have a properly paired assembly and .config file. All settings will be inherited from this .config and will not be carried over from the default domain.</p>
+
+<p>To validate we are loading from the proper directory we can review the Fusion Log. You must turn on the fusion log before you execute a query that uses the MySQL plugin. Check out this MSDN page on the <a href="http://msdn.microsoft.com/en-us/library/e74a18c4%28v=vs.110%29.aspx">Assembly Binding Log Viewer</a> to learn how to setup and use the tool.</p>
+
+<div class="highlight"><pre><code>LOG: Attempting download of new URL file:///C:/Users/James/Source/BazaarRepos/mysql-server/mysql-5.5/sql/lib/plugin/MySQLCustomClass.DLL.
+LOG: Attempting download of new URL file:///C:/Users/James/Source/BazaarRepos/mysql-server/mysql-5.5/sql/lib/plugin/MySQLCustomClass/MySQLCustomClass.DLL.
+LOG: Assembly download was successful. Attempting setup of file: C:\Users\James\Source\BazaarRepos\mysql-server\mysql-5.5\sql\lib\plugin\MySQLCustomClass\MySQLCustomClass.dll
+</code></pre></div>
+
+<h2 id="wrapping-up">Wrapping Up</h2>
+<p>With all of the peices starting to fall in place we’re getting close to a release of this code. I will have a final part to clear up any miscellanea that didn’t make it into the first 8 posts. I will try to focus on performance testing the code and give some better examples. I will also get a proper installer out there for both 32bit and 64bit versions.</p>
+
+
+</div>
+
+ <div id="disqus_thread"></div>
+    <script type="text/javascript">
+        /* * * CONFIGURATION VARIABLES: EDIT BEFORE PASTING INTO YOUR WEBPAGE * * */
+        var disqus_shortname = 'debugthings'; // required: replace example with your forum shortname
+        var disqus_url = 'http://www.debugthings.com/2014/12/16/extending-mysql-server-part8/';
+        var disqus_identifier = '/2014/12/16/extending-mysql-server-part8';
+
+
+        /* * * DON'T EDIT BELOW THIS LINE * * */
+        (function() {
+            var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
+            dsq.src = '//' + disqus_shortname + '.disqus.com/embed.js';
+            (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+        })();
+    </script>
+    <noscript>Please enable JavaScript to view the <a href="http://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
+    
+
+<div class="related">
+  <h2>Related Posts</h2>
+  <ul class="related-posts">
+    
+    <li>
+      <h3>
+        <a href="http://www.debugthings.com/2014/12/15/extending-mysql-server-part7/">
+          MySQL .NET Hosting Extension - Part 7 - AppDomain Pools
+          <small>15 Dec 2014</small>
+        </a>
+      </h3>
+    </li>
+    
+    <li>
+      <h3>
+        <a href="http://www.debugthings.com/2014/12/05/y-u-no-have-button/">
+          Y U NO HAVE BUTTON?
+          <small>05 Dec 2014</small>
+        </a>
+      </h3>
+    </li>
+    
+    <li>
+      <h3>
+        <a href="http://www.debugthings.com/2014/12/03/compiling-for-two/">
+          Compiling for Two (.NET versions)
+          <small>03 Dec 2014</small>
+        </a>
+      </h3>
+    </li>
+    
+  </ul>
+</div>
+
+      <div class="footer">
+        <p>
+          &copy; 2014. All rights reserved.
+        </p>
+      </div>
+    </div>
+  </div>
+</div>
+
+
+</body>
+</html>

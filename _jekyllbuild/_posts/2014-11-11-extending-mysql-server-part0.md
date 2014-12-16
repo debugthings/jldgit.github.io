@@ -24,17 +24,19 @@ No, probably never. I think the idea is great, but its too niche to be of any us
 ##Milestones
 Like I said before in my opening, I wanted to use the blog as a way to hold myself accountable. The milestones are going to be lofty, changing and probably never fully realized. That being said, here is a short list of what I want to do in the coming weeks and months.
 
-1. Create a simple hello world application using the hosting API
-2. Create a simple [User Defined Function][udf] (UDF) for MySQL
-3. Send and retrieve data from the UDF
-3. Extend the simple UDF to load the CLR
-4. Implement a custom interface to interact with the UDF
-5. Load an assembly from the file system
-6. Allow dynamic loading of UDF based on parameters
-7. Implement Host Access Protection to protect MySQL
-8. Extend MySQL to include a BLOB table to install assemblies
-9. Load assemblies from BLOB table
-10. Write the same for [Mono][mono]?
+1. <del>Create a simple hello world application using the hosting API</del>
+2. <del>Create a simple [User Defined Function][udf] (UDF) for MySQL</del>
+3. <del>Send and retrieve data from the UDF</del>
+3. <del>Extend the simple UDF to load the CLR</del>
+4. <del>Implement a custom interface to interact with the UDF</del>
+5. <del>Load an assembly from the file system</del>
+6. <del>Allow dynamic loading of UDF based on parameters</del>
+7. <del>Implement Host Access Protection to protect MySQL</del>
+8. <del>*Extend MySQL to include a BLOB table to install assemblies*</del>
+9. <del>*Load assemblies from BLOB table*</del>
+10. <del>*Write the same for [Mono][mono]?*</del>
+
+**[EDIT 12/16/2014] I struck out items 9, 10, and 11 even though they are not implemented. As I wrote the tool it was better to load the assemblies from a directory instead of a table for better features. Mono has no defined host integrations that I have found so it may never happen.**
 
 [clr]: http://msdn.microsoft.com/en-us/library/8bs2ecf4(v=vs.110).aspx
 [hst]: http://msdn.microsoft.com/en-us/library/dd380850(v=vs.110).aspx

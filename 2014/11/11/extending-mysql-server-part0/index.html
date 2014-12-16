@@ -92,18 +92,20 @@
 <p>Like I said before in my opening, I wanted to use the blog as a way to hold myself accountable. The milestones are going to be lofty, changing and probably never fully realized. That being said, here is a short list of what I want to do in the coming weeks and months.</p>
 
 <ol>
-  <li>Create a simple hello world application using the hosting API</li>
-  <li>Create a simple <a href="http://dev.mysql.com/doc/refman/5.1/en/adding-udf.html">User Defined Function</a> (UDF) for MySQL</li>
-  <li>Send and retrieve data from the UDF</li>
-  <li>Extend the simple UDF to load the CLR</li>
-  <li>Implement a custom interface to interact with the UDF</li>
-  <li>Load an assembly from the file system</li>
-  <li>Allow dynamic loading of UDF based on parameters</li>
-  <li>Implement Host Access Protection to protect MySQL</li>
-  <li>Extend MySQL to include a BLOB table to install assemblies</li>
-  <li>Load assemblies from BLOB table</li>
-  <li>Write the same for <a href="http://www.mono-project.com/">Mono</a>?</li>
+  <li><del>Create a simple hello world application using the hosting API</del></li>
+  <li><del>Create a simple <a href="http://dev.mysql.com/doc/refman/5.1/en/adding-udf.html">User Defined Function</a> (UDF) for MySQL</del></li>
+  <li><del>Send and retrieve data from the UDF</del></li>
+  <li><del>Extend the simple UDF to load the CLR</del></li>
+  <li><del>Implement a custom interface to interact with the UDF</del></li>
+  <li><del>Load an assembly from the file system</del></li>
+  <li><del>Allow dynamic loading of UDF based on parameters</del></li>
+  <li><del>Implement Host Access Protection to protect MySQL</del></li>
+  <li><del><em>Extend MySQL to include a BLOB table to install assemblies</em></del></li>
+  <li><del><em>Load assemblies from BLOB table</em></del></li>
+  <li><del><em>Write the same for <a href="http://www.mono-project.com/">Mono</a>?</em></del></li>
 </ol>
+
+<p><strong>[EDIT 12/16/2014] I struck out items 9, 10, and 11 even though they are not implemented. As I wrote the tool it was better to load the assemblies from a directory instead of a table for better features. Mono has no defined host integrations that I have found so it may never happen.</strong></p>
 
 
 </div>
@@ -132,6 +134,15 @@
     
     <li>
       <h3>
+        <a href="http://www.debugthings.com/2014/12/16/extending-mysql-server-part8/">
+          MySQL .NET Hosting Extension - Part 8 - Mimicking IIS (Shadow Copy, Custom Configs)
+          <small>16 Dec 2014</small>
+        </a>
+      </h3>
+    </li>
+    
+    <li>
+      <h3>
         <a href="http://www.debugthings.com/2014/12/15/extending-mysql-server-part7/">
           MySQL .NET Hosting Extension - Part 7 - AppDomain Pools
           <small>15 Dec 2014</small>
@@ -144,15 +155,6 @@
         <a href="http://www.debugthings.com/2014/12/05/y-u-no-have-button/">
           Y U NO HAVE BUTTON?
           <small>05 Dec 2014</small>
-        </a>
-      </h3>
-    </li>
-    
-    <li>
-      <h3>
-        <a href="http://www.debugthings.com/2014/12/03/compiling-for-two/">
-          Compiling for Two (.NET versions)
-          <small>03 Dec 2014</small>
         </a>
       </h3>
     </li>
