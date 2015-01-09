@@ -884,7 +884,7 @@ th {
 html {
   font-size: 10px;
   -webkit-tap-highlight-color: rgba(0, 0, 0, 0);
-  margin-top: 2em;
+  margin-top: .5em;
 }
 body {
   font-family: Lato, "Helvetica Neue", Helvetica, Arial, sans-serif;
@@ -1397,11 +1397,11 @@ pre code {
     width: 1170px;
   }
 }
-@media (min-width: 1700px) {
+@media (min-width: 1600px) {
   .container {
-    width: 1670px;
-    padding-left: 200px;
-    padding-right: 200px;
+    width: 1570px;
+    padding-left: 100px;
+    padding-right: 100px;
   }
 }
 .container-fluid {

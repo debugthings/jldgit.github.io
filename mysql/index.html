@@ -46,7 +46,7 @@
 
 
 <body>
-   <nav class="navbar navbar-inverse navbar-fixed-top" role="navigation">
+ <nav class="navbar navbar-inverse navbar-fixed-top" role="navigation">
   <div class="container">
     <div class="navbar-header">
       <button type="button" class="navbar-toggle collapsed" data-toggle="collapse" data-target="#navbar" aria-expanded="false" aria-controls="navbar">
@@ -61,19 +61,62 @@
       <ul class="nav navbar-nav">
         <li><a href="/about/">About</a></li>
         <li><a href="/projects">Projects</a></li>
+        <li><a href="/mysql/">MySQL .NET UDF</a></li>
         <li><a href="/owasp/">OWASP Tampa</a></li>
       </ul>
     </div><!--/.navbar-collapse -->
   </div>
 </nav>
-  <div class="container containerbg">
+ <div class="container containerbg">
    <div class="row rowoffset">
     <div class="col-md-9">
-      
+      <h2 id="download">Download</h2>
+<p><a href="/installer">Download 64-bit Installer</a>(includes 32-bit)</p>
+
+<p><a href="/installer">Download 32-bit Installer</a></p>
+
+<h2 id="whats-included">What’s Included?</h2>
+<p>Inside of ths installer you will have the following items to choose from. The source code is available.</p>
+
+<ul>
+  <li>MySQL .NET UDF
+    <ul>
+      <li>64-bit version of the plugin</li>
+      <li>32-bit version of the plugin</li>
+    </ul>
+  </li>
+  <li>Samples
+    <ul>
+      <li>MySQL scripts for registering plugin</li>
+      <li>Binaries for SimpleExtension</li>
+      <li>Binaries for ComplexExtension</li>
+    </ul>
+  </li>
+  <li>Simple Documentation to get you started</li>
+</ul>
+
+<h2 id="packaged-installation">Packaged Installation</h2>
+<ol>
+  <li>Download installer</li>
+  <li>Run installer</li>
+  <li>Select MySQL versions to install for</li>
+  <li>Select additional options</li>
+  <li>Done</li>
+</ol>
+
+<h2 id="mysql-net-udf-sql-installation-steps">MySQL .NET UDF SQL Installation Steps</h2>
+<ol>
+  <li>Copy .NET Samples (or your own) to the <code>lib\plugins</code> directory</li>
+  <li>Open your favorite MySQL client</li>
+  <li>Run <code>CREATE FUNCTION MYSQLDOTNET_INT RETURNS INTEGER SONAME "MySQLDotNet.dll";</code></li>
+  <li>Test installation by executing <code>SELECT MYSQLDOTNET_INT('MySQLCustomClass.CustomMySQLClass', 3);</code></li>
+  <li>Load Sample Applications using the provided Stored Procedure examples</li>
+</ol>
+
 
       <div class="footer">
         <p>
-          &copy; 2014. All rights reserved.
+          &copy; 2015. All rights reserved.
         </p>
       </div>
     </div>
@@ -90,9 +133,6 @@
           <a href="http://www.linkedin.com/in/debugthings/"><img src="https://dlc1-s.licdn.com/sites/default/files/InBug-60px-R.png" class="linked" /></a>
           <a href="http://www.twitter.com/debugthings"><div class="twitbox"><img src="https://g.twimg.com/Twitter_logo_white.png" /></div><span>@debugthings</span></a>
         </div>  
-      </div>
-      <div>
-
       </div>
     </div>
   </div>

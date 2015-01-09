@@ -1,0 +1,369 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en-us">
+
+<head>
+  <link href="http://gmpg.org/xfn/11" rel="profile">
+  <meta http-equiv="content-type" content="text/html; charset=utf-8">
+
+  <!-- Enable responsiveness on mobile devices-->
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1">
+
+  <title>
+    
+    MySQL .NET Hosting Extension - Part 9 - Strings, _bstr_t, SafeArrays, SysAllocString, SysFreeString &middot; Debug Things
+    
+  </title>
+  <!--FONTS-->
+  <link href='http://fonts.googleapis.com/css?family=Lato&subset=latin,latin-ext' rel='stylesheet' type='text/css'>
+
+
+  <!-- CSS -->
+  <link rel="stylesheet" href="/public/css/monokai.css">
+  <link rel="stylesheet" href="/public/css/bootstrap.css">
+  <link rel="stylesheet" href="/public/css/poole.css">
+
+  
+
+  <!-- Icons -->
+  <link rel="apple-touch-icon-precomposed" sizes="144x144" href="/public/apple-touch-icon-precomposed.png">
+  <link rel="shortcut icon" href="/public/favicon.ico">
+
+  <!-- RSS -->
+  <link rel="alternate" type="application/rss+xml" title="RSS" href="/atom.xml">
+
+  <script>
+  (function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){
+  (i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),
+  m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)
+  })(window,document,'script','//www.google-analytics.com/analytics.js','ga');
+
+  ga('create', 'UA-56527114-1', 'auto');
+  ga('send', 'pageview');
+
+</script>
+
+</head>
+
+
+<body>
+  <nav class="navbar navbar-inverse navbar-fixed-top" role="navigation">
+  <div class="container">
+    <div class="navbar-header">
+      <button type="button" class="navbar-toggle collapsed" data-toggle="collapse" data-target="#navbar" aria-expanded="false" aria-controls="navbar">
+        <span class="sr-only">Toggle navigation</span>
+        <span class="icon-bar"></span>
+        <span class="icon-bar"></span>
+        <span class="icon-bar"></span>
+      </button>
+      <a href="/" class="navbar-brand" title="Home">DEBUG THINGS</a>
+    </div>
+    <div id="navbar" class="navbar-collapse collapse">
+      <ul class="nav navbar-nav">
+        <li><a href="/about/">About</a></li>
+        <li><a href="/projects">Projects</a></li>
+        <li><a href="/mysql/">MySQL .NET UDF</a></li>
+        <li><a href="/owasp/">OWASP Tampa</a></li>
+      </ul>
+    </div><!--/.navbar-collapse -->
+  </div>
+</nav>
+  <div class="container containerbg">
+   <div class="row rowoffset">
+    <div class="col-md-12">
+      <div class="post">
+  <h1 class="post-title">MySQL .NET Hosting Extension - Part 9 - Strings, _bstr_t, SafeArrays, SysAllocString, SysFreeString</h1>
+  <span class="post-date">08 Jan 2015</span>
+  <a href="https://twitter.com/share" class="twitter-share-button" data-via="debugthings" data-size="large">Tweet</a>
+  <script>!function(d,s,id){var js,fjs=d.getElementsByTagName(s)[0],p=/^http:/.test(d.location)?'http':'https';if(!d.getElementById(id)){js=d.createElement(s);js.id=id;js.src=p+'://platform.twitter.com/widgets.js';fjs.parentNode.insertBefore(js,fjs);}}(document, 'script', 'twitter-wjs');</script>
+  <p>Up until now I’ve been dealing with integers and reals. This is great for a lot of statistical information but we all know that databases are used for more than just storing numbers. Depending on your type of database you will most likely have a number of text items that are used to describe or othewise identify some integer value. In order to work with these values we have to marshal the data to and fro. Let’s dive in to what’s happening.</p>
+
+<h2 id="how-to-get-the-code">How to get the code</h2>
+
+<p>Enter the following commands in your GIT command prompt. It’s that simple. All code changes as I have shown them in this blog post should be there. If you come across this post at a way later date, try increasing the range from 5 to 10, and so on.</p>
+
+<div class="highlight"><pre><code>git clone https://github.com/jldgit/mysql_udf_dotnet.git -b wip-nextversion
+git log --abbrev-commit -n 5 --pretty=oneline
+
+a790145 Changes relating to post 9
+dfcc022 Added Installer executables
+0956be5 Added Installers
+4a0be76 Changes relating to post 8
+e9dc6de Changed relating to post 7
+
+git checkout a790145
+</code></pre></div>
+
+<h2 id="whats-changed">What’s changed</h2>
+<p>A lot of code has changed in all of the function types. Most notably we have extended and enhanced all of the <code>mysqldotnet_string</code> functions. We have also added the ability to identify multipart functions with the keyword <strong>“MULTI”</strong> which is configurable (this is for <strong>all</strong> functions not just the for the string methods). As well to support international characters I have included an option for a code page by setting the first parameter of the string function to an integer.</p>
+
+<h3 id="multi-keyword">MULTI keyword</h3>
+<p>This configurable keyword tells the UDF that there are multiple values that need to be processed inside of our .NET function calls. For example:</p>
+
+<div class="highlight"><pre><code class="language-SQL"><div class="highlight"><pre><span id="line-1"><span class="k">select</span> <span class="n">mysqldotnet_real</span><span class="p">(</span><span class="ss">&quot;MySQLCustomClass.CustomMySQLClass&quot;</span><span class="p">,</span> <span class="ss">&quot;MULTI&quot;</span><span class="p">,</span> <span class="mi">4</span><span class="p">.</span><span class="mi">1235</span><span class="p">,</span> <span class="mi">5</span><span class="p">.</span><span class="mi">345</span><span class="p">);</span>
+</span></pre></div></code></pre></div>
+
+<div class="highlight"><pre><code class="language-SQL"><div class="highlight"><pre><span id="line-1"><span class="k">select</span> <span class="n">mysqldotnet_real</span><span class="p">(</span><span class="ss">&quot;MySQLCustomClass.GeoDistance&quot;</span><span class="p">,</span> <span class="ss">&quot;MULTI&quot;</span><span class="p">,</span> <span class="mi">47</span><span class="p">.</span><span class="mi">63958</span><span class="p">,</span> <span class="o">-</span><span class="mi">122</span><span class="p">.</span><span class="mi">12838</span><span class="p">,</span> <span class="mi">35</span><span class="p">.</span><span class="mi">14080</span><span class="p">,</span> <span class="o">-</span><span class="mi">80</span><span class="p">.</span><span class="mi">92012</span><span class="p">);</span>
+</span></pre></div></code></pre></div>
+
+<p>In the second SQL statement we see that we’re calling <strong>“MULTI”</strong> on the GeoDistance function. The implementation details are in the next section. In this case we’re expecting 4 values. These 4 values are coordinates on a map of two Microsoft campuses.</p>
+
+<h3 id="mysqldotnetstring-function">mysqldotnet_string function</h3>
+<p>Before, this was more of a hollow shell. It didn’t provide any correct argument parsing or string use. Now, we can take in and parse string values. There is a new reserved keword <strong>“MULTI”</strong> which tells the function that there is more than one parameter and to pass it to the function that takes in an array. This keyword is configurable in the app settings section in the <code>mysqld.exe.config</code> file; as well as the code page.</p>
+
+<div class="highlight"><pre><code class="language-XML"><div class="highlight"><pre><span id="line-1"><span class="nt">&lt;mysqlassemblies&gt;</span>
+</span><span id="line-2"><span class="nt">&lt;applicationDefaults</span>
+</span><span id="line-3"><span class="na">codepage=</span><span class="s">&quot;1252&quot;</span>
+</span><span id="line-4"><span class="na">multikeyword=</span><span class="s">&quot;MULTI&quot;</span> <span class="nt">/&gt;</span>
+</span><span id="line-5"><span class="nt">&lt;/mysqlassemblies&gt;</span>
+</span></pre></div></code></pre></div>
+
+<p>In order to pass a string along to our .NET functions we have to convert the string from a <a href="http://msdn.microsoft.com/en-us/library/4bb3e64h.aspx">multibyte</a> character to a Unicode character. Multibyte character buffers are used for anything that is not UTF-16 (which is <em>Unicode</em> inside Windows; code page 1200). The characters are still allowed to carry the extended character set, but they do not use a constant 2-byte representation. Read <a href="http://en.wikipedia.org/wiki/UTF-8">this wiki</a> entry for more detailed information about BOMs and code points.</p>
+
+<p>Unfortunately, there is no built in way to tell what MySQL is sending over in the function without inspecting the element. This gets tricky (tedious) because we have to check the values coming in to the UDF. The best way to do this is have the user supply a code page that corresponds to the Windows supported <a href="http://msdn.microsoft.com/en-us/library/windows/desktop/dd317756(v=vs.85).aspx">code pages</a>. So, this command now looks for a code page integer as the first argument; otherwise it assumes 1252 (Latin1) based off of the default setting.</p>
+
+<h2 id="expanded-walkthrough">Expanded Walkthrough</h2>
+
+<h3 id="multi-keyword-implementation">MULTI keyword implementation</h3>
+<p>As we started talking about in the previous section we have introduced the <strong>“MULTI”</strong> keyword for our GeoCoordinates .NET function. If we were to call the same function with out <strong>“MULTI”</strong> the application would error out because we haven’t implemented the single value function.</p>
+
+<div class="highlight"><pre><code class="language-Csharp"><div class="highlight"><pre><span id="line-1"><span class="k">public</span> <span class="kt">double</span> <span class="nf">RunReal</span><span class="p">(</span><span class="kt">double</span> <span class="k">value</span><span class="p">)</span>
+</span><span id="line-2"><span class="p">{</span>
+</span><span id="line-3">  <span class="k">throw</span> <span class="k">new</span> <span class="nf">NotImplementedException</span><span class="p">();</span>
+</span><span id="line-4"><span class="p">}</span>
+</span><span id="line-5">
+</span><span id="line-6"><span class="k">public</span> <span class="kt">double</span> <span class="nf">RunReals</span><span class="p">(</span><span class="kt">double</span><span class="p">[]</span> <span class="n">values</span><span class="p">)</span>
+</span><span id="line-7"><span class="p">{</span>
+</span><span id="line-8">  <span class="k">if</span> <span class="p">(</span><span class="n">values</span><span class="p">.</span><span class="n">Length</span> <span class="p">&gt;=</span> <span class="m">4</span><span class="p">)</span>
+</span><span id="line-9">  <span class="p">{</span>
+</span><span id="line-10">    <span class="kt">var</span> <span class="n">gc</span> <span class="p">=</span> <span class="k">new</span> <span class="n">System</span><span class="p">.</span><span class="n">Device</span><span class="p">.</span><span class="n">Location</span><span class="p">.</span><span class="n">GeoCoordinate</span><span class="p">(</span><span class="n">values</span><span class="p">[</span><span class="m">0</span><span class="p">],</span> <span class="n">values</span><span class="p">[</span><span class="m">1</span><span class="p">]);</span>
+</span><span id="line-11">    <span class="k">return</span> <span class="n">gc</span><span class="p">.</span><span class="n">GetDistanceTo</span><span class="p">(</span>
+</span><span id="line-12">      <span class="k">new</span> <span class="n">System</span><span class="p">.</span><span class="n">Device</span><span class="p">.</span><span class="n">Location</span><span class="p">.</span><span class="n">GeoCoordinate</span><span class="p">(</span><span class="n">values</span><span class="p">[</span><span class="m">2</span><span class="p">],</span> <span class="n">values</span><span class="p">[</span><span class="m">3</span><span class="p">]));</span>
+</span><span id="line-13">    <span class="p">}</span>
+</span><span id="line-14">  <span class="p">}</span>
+</span></pre></div></code></pre></div>
+
+<p>The way we’ve implemented this is simple. We check for an occurance of the keyword in the arguments being passed into the UDF. The code has been abridged, but the basic structure is:</p>
+
+<ol>
+  <li>Check for the occurence of a string that should be the <strong>“MULTI”</strong> keyword</li>
+  <li>Create an array of doubles using a custom templated function</li>
+  <li>Pass that to our <code>RunReals()</code> function.</li>
+  <li>Return the value directly from the function which should prevent any leaks.</li>
+</ol>
+
+<div class="highlight"><pre><code class="language-C"><div class="highlight"><pre><span id="line-1"><span class="k">switch</span> <span class="p">(</span><span class="n">args</span><span class="o">-&gt;</span><span class="n">arg_type</span><span class="p">[</span><span class="n">i</span><span class="p">])</span> <span class="p">{</span>
+</span><span id="line-2">  <span class="k">case</span> <span class="nl">STRING_RESULT</span><span class="p">:</span>         <span class="cm">/* Add string lengths */</span>
+</span><span id="line-3">  <span class="k">if</span> <span class="p">(</span><span class="n">strcmp</span><span class="p">((</span><span class="kt">char</span><span class="o">*</span><span class="p">)</span><span class="n">args</span><span class="o">-&gt;</span><span class="n">args</span><span class="p">[</span><span class="n">i</span><span class="p">],</span> <span class="s">&quot;MULTI&quot;</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">)</span>
+</span><span id="line-4">  <span class="p">{</span>
+</span><span id="line-5">    <span class="k">for</span> <span class="p">(</span><span class="kt">size_t</span> <span class="n">j</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span> <span class="n">j</span> <span class="o">&lt;</span> <span class="n">args</span><span class="o">-&gt;</span><span class="n">arg_count</span> <span class="o">-</span> <span class="mi">2</span><span class="p">;</span> <span class="n">j</span><span class="o">++</span><span class="p">)</span>
+</span><span id="line-6">    <span class="p">{</span>
+</span><span id="line-7">      <span class="n">longArray</span><span class="p">[</span><span class="n">j</span><span class="p">]</span> <span class="o">=</span> <span class="n">getIntegerForArray</span><span class="o">&lt;</span><span class="kt">double</span><span class="o">&gt;</span><span class="p">(</span><span class="n">args</span><span class="o">-&gt;</span><span class="n">args</span><span class="p">[</span><span class="n">j</span><span class="p">],</span> <span class="n">args</span><span class="o">-&gt;</span><span class="n">arg_type</span><span class="p">[</span><span class="n">j</span><span class="p">]);</span>
+</span><span id="line-8">    <span class="p">}</span>
+</span><span id="line-9">    <span class="n">val</span> <span class="o">=</span> <span class="n">RunReals</span><span class="p">(</span><span class="n">mhp</span><span class="p">,</span> <span class="kt">_bstr_t</span><span class="p">(</span><span class="n">argName</span><span class="p">),</span> <span class="n">longArray</span><span class="p">,</span> <span class="n">args</span><span class="o">-&gt;</span><span class="n">arg_count</span> <span class="o">-</span> <span class="mi">2</span><span class="p">);</span>
+</span><span id="line-10">    <span class="n">delete</span><span class="p">[]</span> <span class="n">longArray</span><span class="p">;</span>
+</span><span id="line-11">    <span class="k">return</span> <span class="n">val</span><span class="p">;</span>
+</span><span id="line-12">  <span class="p">}</span>
+</span><span id="line-13">  <span class="k">break</span><span class="p">;</span>
+</span><span id="line-14"><span class="p">}</span>
+</span></pre></div></code></pre></div>
+
+<p>Each function type (int, real, string) has it’s own implementation of the <strong>“MULTI”</strong> keyword check. However, the integer and real versions look very similar. One thing I should point out is the templated function to do a proper job of converting the data from the remainder of the values in the array that is passed in.</p>
+
+<div class="highlight"><pre><code class="language-Cpp"><div class="highlight"><pre><span id="line-1"><span class="k">template</span><span class="o">&lt;</span><span class="k">typename</span> <span class="n">_type</span><span class="o">&gt;</span>
+</span><span id="line-2"><span class="n">_type</span> <span class="n">getIntegerForArray</span><span class="p">(</span><span class="kt">char</span><span class="o">*</span> <span class="n">arg</span><span class="p">,</span> <span class="n">Item_result</span> <span class="n">type</span><span class="p">)</span>
+</span><span id="line-3"><span class="p">{</span>
+</span><span id="line-4">  <span class="k">switch</span> <span class="p">(</span><span class="n">type</span><span class="p">)</span> <span class="p">{</span>
+</span><span id="line-5">    <span class="k">case</span> <span class="nl">INT_RESULT</span><span class="p">:</span>            <span class="cm">/* Add numbers */</span>
+</span><span id="line-6">    <span class="k">return</span> <span class="p">(</span><span class="n">_type</span><span class="p">)</span><span class="o">*</span><span class="p">((</span><span class="n">longlong</span><span class="o">*</span><span class="p">)</span><span class="n">arg</span><span class="p">);</span>
+</span><span id="line-7">    <span class="k">break</span><span class="p">;</span>
+</span><span id="line-8">    <span class="k">case</span> <span class="nl">REAL_RESULT</span><span class="p">:</span>           <span class="cm">/* Add numers as longlong */</span>
+</span><span id="line-9">    <span class="k">return</span> <span class="p">(</span><span class="n">_type</span><span class="p">)</span><span class="o">*</span><span class="p">((</span><span class="kt">double</span><span class="o">*</span><span class="p">)</span><span class="n">arg</span><span class="p">);</span>
+</span><span id="line-10">    <span class="k">break</span><span class="p">;</span>
+</span><span id="line-11">    <span class="k">case</span> <span class="nl">STRING_RESULT</span><span class="p">:</span>
+</span><span id="line-12">    <span class="k">return</span> <span class="p">(</span><span class="n">_type</span><span class="p">)</span><span class="n">strlen</span><span class="p">(</span><span class="n">arg</span><span class="p">);</span>
+</span><span id="line-13">    <span class="k">break</span><span class="p">;</span>
+</span><span id="line-14">    <span class="k">default</span><span class="o">:</span>
+</span><span id="line-15">    <span class="k">return</span> <span class="mi">0</span><span class="p">;</span>
+</span><span id="line-16">    <span class="k">break</span><span class="p">;</span>
+</span><span id="line-17">  <span class="p">}</span>
+</span><span id="line-18"><span class="p">}</span>
+</span></pre></div></code></pre></div>
+
+<h3 id="mysqldotnetstring-function-1">mysqldotnet_string function</h3>
+<p>In order to support multiple languages we must use Unicode to work with our data. In most RDBMSs you can select a specific characterset and collation. Depending on your locale MySQL will most often use Latin1 (CP_1252) as the default characterset and collation. Latin is a very common and LARGE implmentation but it has some limitations. One of these limitations is it does not contain a definition for Cyrillic text. This presents a small problem if we wish to take this application to places other than the United States, Spain, France, or any other latin based character language.</p>
+
+<p>So, how do we inspect a string to see if it’s Unicode or Latin? Fortunately for us there is a built in Windows function that takes care of this for us. It is the aptly named <a href="http://msdn.microsoft.com/en-us/library/windows/desktop/dd318672(v=vs.85).aspx">IsTextUnicode</a> function. Here I will show how we pass in the <code>char*</code> to our function from the MySQL UDF.</p>
+
+<div class="highlight"><pre><code class="language-Cpp"><div class="highlight"><pre><span id="line-1"><span class="kt">_bstr_t</span> <span class="nf">RunString</span><span class="p">(</span><span class="n">IManagedHostPtr</span> <span class="o">&amp;</span><span class="n">pClr</span><span class="p">,</span> <span class="kt">_bstr_t</span> <span class="o">&amp;</span><span class="n">functionName</span><span class="p">,</span> <span class="kt">char</span> <span class="o">*</span><span class="n">input</span><span class="p">,</span> <span class="kt">int</span> <span class="n">size</span><span class="p">,</span> <span class="kt">int</span> <span class="o">*</span><span class="n">codepage</span><span class="p">)</span>
+</span><span id="line-2"><span class="p">{</span>
+</span><span id="line-3">  <span class="k">if</span> <span class="p">(</span><span class="o">*</span><span class="n">codepage</span> <span class="o">==</span> <span class="mi">0</span><span class="p">)</span>
+</span><span id="line-4">  <span class="p">{</span>
+</span><span id="line-5">    <span class="o">*</span><span class="n">codepage</span> <span class="o">=</span> <span class="n">g_codepage</span><span class="p">;</span>
+</span><span id="line-6">  <span class="p">}</span>
+</span><span id="line-7">  <span class="kt">int</span> <span class="n">sizeplusterm</span> <span class="o">=</span> <span class="n">size</span> <span class="o">+</span> <span class="mi">1</span><span class="p">;</span>
+</span><span id="line-8">  <span class="kt">wchar_t</span><span class="o">*</span> <span class="n">buffer</span> <span class="o">=</span> <span class="k">new</span> <span class="kt">wchar_t</span><span class="p">[</span><span class="n">sizeplusterm</span><span class="p">];</span>
+</span><span id="line-9">  <span class="n">ZeroMemory</span><span class="p">(</span><span class="n">buffer</span><span class="p">,</span> <span class="n">sizeplusterm</span> <span class="o">*</span> <span class="k">sizeof</span><span class="p">(</span><span class="kt">wchar_t</span><span class="p">));</span>
+</span><span id="line-10">  <span class="kt">int</span> <span class="n">unicodecheck</span> <span class="o">=</span> <span class="n">IS_TEXT_UNICODE_UNICODE_MASK</span> <span class="o">|</span> <span class="n">IS_TEXT_UNICODE_REVERSE_MASK</span><span class="p">;</span>
+</span><span id="line-11">  <span class="n">IsTextUnicode</span><span class="p">(</span><span class="n">input</span><span class="p">,</span> <span class="n">size</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">unicodecheck</span><span class="p">);</span>
+</span><span id="line-12">  <span class="k">if</span> <span class="p">(</span><span class="n">unicodecheck</span> <span class="o">&gt;</span> <span class="mi">0</span> <span class="o">|</span> <span class="o">*</span><span class="n">codepage</span> <span class="o">==</span> <span class="n">CP_WINUNICODE</span><span class="p">)</span>
+</span><span id="line-13">  <span class="p">{</span>
+</span><span id="line-14">    <span class="k">for</span> <span class="p">(</span><span class="kt">size_t</span> <span class="n">i</span> <span class="o">=</span> <span class="mi">0</span><span class="p">,</span> <span class="n">j</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span> <span class="n">i</span> <span class="o">&lt;</span> <span class="n">size</span> <span class="o">/</span> <span class="mi">2</span><span class="p">;</span> <span class="n">i</span><span class="o">++</span><span class="p">,</span> <span class="n">j</span> <span class="o">+=</span> <span class="mi">2</span><span class="p">)</span>
+</span><span id="line-15">    <span class="p">{</span>
+</span><span id="line-16">      <span class="n">buffer</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">|=</span> <span class="p">(((</span><span class="kt">wchar_t</span><span class="p">)</span><span class="n">input</span><span class="p">[</span><span class="n">j</span><span class="p">])</span> <span class="o">&lt;&lt;</span> <span class="mh">0x8</span><span class="p">)</span> <span class="o">|</span> <span class="p">((</span><span class="kt">wchar_t</span><span class="p">)(</span><span class="n">input</span><span class="p">[</span><span class="n">j</span> <span class="o">+</span> <span class="mi">1</span><span class="p">]));</span>
+</span><span id="line-17">    <span class="p">}</span>
+</span><span id="line-18">  <span class="p">}</span>
+</span><span id="line-19">  <span class="k">else</span> <span class="p">{</span>
+</span><span id="line-20">    <span class="n">MultiByteToWideChar</span><span class="p">(</span><span class="o">*</span><span class="n">codepage</span><span class="p">,</span> <span class="nb">NULL</span><span class="p">,</span> <span class="n">input</span><span class="p">,</span> <span class="n">size</span><span class="p">,</span> <span class="n">buffer</span><span class="p">,</span> <span class="n">sizeplusterm</span><span class="p">);</span>
+</span><span id="line-21">  <span class="p">}</span>
+</span><span id="line-22">  <span class="k">return</span> <span class="n">pClr</span><span class="o">-&gt;</span><span class="n">RunString</span><span class="p">(</span><span class="n">functionName</span><span class="p">,</span> <span class="n">buffer</span><span class="p">);</span>
+</span><span id="line-23"><span class="p">}</span>
+</span></pre></div></code></pre></div>
+
+<p>If you notice I am calling <code>pClr-&gt;RunString()</code> directly and I am not converting it to <code>_bstr_t</code>. This is because that constructor takes in types of <code>wchar_t*</code>. The downside to this is there is no Rvalue reference for the string so it is copied into the new <code>_bstr_t</code> object using <a href="http://msdn.microsoft.com/en-us/library/windows/desktop/ms221458(v=vs.85).aspx">SysAllocString</a>. However, the <code>_bstr_t</code> object does a simple copy of the pointer data when passing the bits around so the string is only copied once. Also since we’re using a Rvalue the <code>_bstr_t</code> object evaporates and calls <a href="http://msdn.microsoft.com/en-us/library/windows/desktop/ms221481(v=vs.85).aspx">SysFreeString</a>.</p>
+
+<p>For the <strong>“MULTI”</strong> valued version we have to do a bit more work and it requires us to create a <a href="http://msdn.microsoft.com/en-us/library/windows/desktop/ms221482%28v=vs.85%29.aspx">SafeArray</a> to pass data. This is true for <strong>ALL</strong> multi valued functions, but I will show the string implementation to stay on track. The SafeArray isn’t the only way to pass data, just as BSTR isn’t the only way to pass strings. However, the SafeArray simplfies a lot of steps and performs some helpful cleanup.  The <code>RunStrings()</code> code isn’t very complex. In short it does the following:</p>
+
+<ol>
+  <li>Check to see if we’re using a codepage</li>
+  <li>If so increase the start index from 2 to 3; otherwise set code page to the default</li>
+  <li>Create a new bounded safe array (see MSDN code example)</li>
+  <li>Create a new SafeArray with the proper number of elements</li>
+  <li>Loop through arguments and convert input if needed
+    <ul>
+      <li>I explicitly call MultiByteToWideChar() to honor our code pages</li>
+    </ul>
+  </li>
+  <li>Use SysAllocString() to create an OLECHAR to add to the array</li>
+  <li>Call our .NET function and pass in the array</li>
+  <li>Destroy the array</li>
+  <li>Return the <code>_bstr_t</code> created from the .NET function</li>
+</ol>
+
+<blockquote>
+  <p>See the <a href="https://github.com/jldgit/mysql_udf_dotnet/blob/wip-nextversion/mysql_udf.c#L259">mysqldotnet_string()</a> function to see how we are assigning the <code>_bstr_t</code> from the return of this method to the one on the stack. This will take care of freeing up the resources.</p>
+</blockquote>
+
+<div class="highlight"><pre><code class="language-Cpp"><div class="highlight"><pre><span id="line-1"><span class="kt">_bstr_t</span> <span class="nf">RunStrings</span><span class="p">(</span><span class="n">IManagedHostPtr</span> <span class="o">&amp;</span><span class="n">pClr</span><span class="p">,</span> <span class="kt">_bstr_t</span> <span class="o">&amp;</span><span class="n">functionName</span><span class="p">,</span> <span class="kt">char</span><span class="o">**</span> <span class="n">input</span><span class="p">,</span>
+</span><span id="line-2">  <span class="kt">unsigned</span> <span class="kt">long</span> <span class="o">*</span><span class="n">lengths</span><span class="p">,</span> <span class="n">uint</span> <span class="n">args</span><span class="p">,</span> <span class="kt">int</span> <span class="o">*</span><span class="n">codepage</span><span class="p">)</span>
+</span><span id="line-3"><span class="p">{</span>
+</span><span id="line-4">  <span class="kt">int</span> <span class="n">codepageIndex</span> <span class="o">=</span> <span class="mi">2</span><span class="p">;</span>
+</span><span id="line-5">  <span class="k">if</span> <span class="p">(</span><span class="o">*</span><span class="n">codepage</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">)</span>
+</span><span id="line-6">  <span class="p">{</span>
+</span><span id="line-7">    <span class="o">++</span><span class="n">codepageIndex</span><span class="p">;</span> <span class="c1">// Increase index if we have an explicit code page.</span>
+</span><span id="line-8">  <span class="p">}</span>
+</span><span id="line-9">  <span class="k">else</span>
+</span><span id="line-10">  <span class="p">{</span>
+</span><span id="line-11">    <span class="o">*</span><span class="n">codepage</span> <span class="o">=</span> <span class="n">g_codepage</span><span class="p">;</span> <span class="c1">// If there is no code page we fall back to the default.</span>
+</span><span id="line-12">  <span class="p">}</span>
+</span><span id="line-13">
+</span><span id="line-14">
+</span><span id="line-15">  <span class="n">SAFEARRAYBOUND</span> <span class="n">rgsabound</span><span class="p">[</span><span class="mi">1</span><span class="p">];</span>
+</span><span id="line-16">  <span class="n">rgsabound</span><span class="p">[</span><span class="mi">0</span><span class="p">].</span><span class="n">lLbound</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>
+</span><span id="line-17">  <span class="n">rgsabound</span><span class="p">[</span><span class="mi">0</span><span class="p">].</span><span class="n">cElements</span> <span class="o">=</span> <span class="n">args</span> <span class="o">-</span> <span class="p">(</span><span class="n">codepageIndex</span> <span class="o">-</span> <span class="mi">1</span><span class="p">);</span>
+</span><span id="line-18">  <span class="n">SAFEARRAY</span><span class="o">*</span> <span class="n">sa</span> <span class="o">=</span> <span class="n">SafeArrayCreate</span><span class="p">(</span><span class="n">VT_BSTR</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="n">rgsabound</span><span class="p">);</span>
+</span><span id="line-19">  <span class="n">HRESULT</span> <span class="n">hr</span> <span class="o">=</span> <span class="n">SafeArrayLock</span><span class="p">(</span><span class="n">sa</span><span class="p">);</span>
+</span><span id="line-20">  <span class="k">for</span> <span class="p">(</span><span class="n">uint</span> <span class="n">ix</span> <span class="o">=</span> <span class="n">codepageIndex</span><span class="p">;</span> <span class="n">ix</span> <span class="o">&lt;=</span> <span class="n">args</span><span class="p">;</span> <span class="n">ix</span><span class="o">++</span><span class="p">)</span>
+</span><span id="line-21">  <span class="p">{</span>
+</span><span id="line-22">    <span class="kt">int</span> <span class="n">txtLen</span> <span class="o">=</span> <span class="n">lengths</span><span class="p">[</span><span class="n">ix</span><span class="p">]</span> <span class="o">+</span> <span class="mi">1</span><span class="p">;</span>
+</span><span id="line-23">    <span class="k">auto</span> <span class="n">txt</span> <span class="o">=</span> <span class="k">new</span> <span class="kt">wchar_t</span><span class="p">[</span><span class="n">txtLen</span><span class="p">]</span> <span class="p">{};</span>
+</span><span id="line-24">      <span class="kt">int</span> <span class="n">unicodecheck</span> <span class="o">=</span> <span class="n">IS_TEXT_UNICODE_UNICODE_MASK</span> <span class="o">|</span> <span class="n">IS_TEXT_UNICODE_REVERSE_MASK</span><span class="p">;</span>
+</span><span id="line-25">      <span class="n">IsTextUnicode</span><span class="p">(</span><span class="n">input</span><span class="p">[</span><span class="n">ix</span><span class="p">],</span> <span class="n">lengths</span><span class="p">[</span><span class="n">ix</span><span class="p">],</span> <span class="o">&amp;</span><span class="n">unicodecheck</span><span class="p">);</span>
+</span><span id="line-26">      <span class="k">if</span> <span class="p">((</span><span class="n">unicodecheck</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">)</span> <span class="o">|</span> <span class="p">(</span><span class="o">*</span><span class="n">codepage</span> <span class="o">==</span> <span class="n">CP_WINUNICODE</span><span class="p">))</span>
+</span><span id="line-27">      <span class="p">{</span>
+</span><span id="line-28">        <span class="k">for</span> <span class="p">(</span><span class="kt">size_t</span> <span class="n">i</span> <span class="o">=</span> <span class="mi">0</span><span class="p">,</span> <span class="n">j</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span> <span class="n">i</span> <span class="o">&lt;</span> <span class="n">lengths</span><span class="p">[</span><span class="n">ix</span><span class="p">]</span> <span class="o">/</span> <span class="mi">2</span><span class="p">;</span> <span class="n">i</span><span class="o">++</span><span class="p">,</span> <span class="n">j</span> <span class="o">+=</span> <span class="mi">2</span><span class="p">)</span>
+</span><span id="line-29">        <span class="p">{</span>
+</span><span id="line-30">          <span class="n">txt</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">|=</span> <span class="p">(((</span><span class="kt">wchar_t</span><span class="p">)</span><span class="n">input</span><span class="p">[</span><span class="n">j</span><span class="p">])</span> <span class="o">&lt;&lt;</span> <span class="mh">0x8</span><span class="p">)</span> <span class="o">|</span> <span class="p">((</span><span class="kt">wchar_t</span><span class="p">)(</span><span class="n">input</span><span class="p">[</span><span class="n">j</span> <span class="o">+</span> <span class="mi">1</span><span class="p">]));</span>
+</span><span id="line-31">        <span class="p">}</span>
+</span><span id="line-32">      <span class="p">}</span>
+</span><span id="line-33">      <span class="k">else</span> <span class="p">{</span>
+</span><span id="line-34">        <span class="n">MultiByteToWideChar</span><span class="p">(</span><span class="o">*</span><span class="n">codepage</span><span class="p">,</span> <span class="nb">NULL</span><span class="p">,</span> <span class="n">input</span><span class="p">[</span><span class="n">ix</span><span class="p">],</span> <span class="n">lengths</span><span class="p">[</span><span class="n">ix</span><span class="p">],</span> <span class="n">txt</span><span class="p">,</span> <span class="n">txtLen</span><span class="p">);</span>
+</span><span id="line-35">      <span class="p">}</span>
+</span><span id="line-36">      <span class="p">((</span><span class="n">BSTR</span><span class="o">*</span><span class="p">)</span><span class="n">sa</span><span class="o">-&gt;</span><span class="n">pvData</span><span class="p">)[</span><span class="n">ix</span> <span class="o">-</span> <span class="n">codepageIndex</span><span class="p">]</span> <span class="o">=</span> <span class="n">SysAllocString</span><span class="p">(</span><span class="n">txt</span><span class="p">);</span>
+</span><span id="line-37">      <span class="k">delete</span> <span class="n">txt</span><span class="p">;</span>
+</span><span id="line-38">    <span class="p">}</span>
+</span><span id="line-39">    <span class="n">hr</span> <span class="o">=</span> <span class="n">SafeArrayUnlock</span><span class="p">(</span><span class="n">sa</span><span class="p">);</span>
+</span><span id="line-40">    <span class="k">auto</span> <span class="n">retstring</span> <span class="o">=</span> <span class="n">pClr</span><span class="o">-&gt;</span><span class="n">RunStrings</span><span class="p">(</span><span class="n">functionName</span><span class="p">,</span> <span class="n">sa</span><span class="p">);</span>
+</span><span id="line-41">    <span class="n">SafeArrayDestroy</span><span class="p">(</span><span class="n">sa</span><span class="p">);</span>
+</span><span id="line-42">    <span class="k">return</span> <span class="n">retstring</span><span class="p">;</span>
+</span><span id="line-43"><span class="p">}</span>
+</span></pre></div></code></pre></div>
+
+<p>This set of code has demonstrated how we implement SafeArrays, <code>BSTR</code> and <code>_bstr_t</code> to marshal data between our code bases. You have the ability to marshal your data at <code>WCSTR</code> and <code>CSTR</code>, but the problem with this is you must define a MAX buffer size. As well you have to remember to delete your string data once you’re done.</p>
+
+<h2 id="some-notes-on-bstrt-bstr-olechar-sysallocstring-and-sysfreestring">Some notes on _bstr_t_, BSTR, OLECHAR, SysAllocString and SysFreeString</h2>
+
+<p>When I started working with the <code>_bstr_t</code> COM helper I noticed I had a lot of memory leaks. So, I set about figuring out why this was happening. In a couple of places, namely the RunStrings() code I was newing up a <code>_bstr_t</code> and casting it to a BSTR inside of my safe array. When looking at the MSDN definition of the function it clearly states <strong>“psz [in, optional] The string to copy.”</strong> So, when my code would call <a href="http://msdn.microsoft.com/en-us/library/windows/desktop/ms221702%28v=vs.85%29.aspx">SafeArrayDestroy</a> it would clear out the SafeArray just fine, but it would leave my <code>_bstr_t</code> hanging. This also had the added perk of duplicating the string a couple of extra times.</p>
+
+<h2 id="finishing-up">Finishing Up</h2>
+
+<p>One thing I can say for sure is strings are dumb; mainly because I am dumb. It’s not often that I deal with special characters since English drops a lot of the accents and diacritial marks, but a lot of folks do. This gets doubly tough if the language is Indo-Asian and deals with glyphs, accents, punctiation all rolled into one symbol. But, truth be told, once you get the hang of it all it’s not so bad.</p>
+
+<p>A constant challenge for me was cleaning up the strings as I was moving along. I wasn’t used to dealing with referenced counted objects and would prematurely delete some data. Some helpers create copies, while others try to convert your character set if you’re not using wide characters; which also creates copies. Some use the standard new operator and some would use SysAllocString. I have blog post coming up that shows how to use WinDbg to debug heap leaks and using VMMap to see where and when my data grows when messing around with strings, <em>bstr_t</em> and BSTR.</p>
+
+
+</div>
+
+ <div id="disqus_thread"></div>
+    <script type="text/javascript">
+        /* * * CONFIGURATION VARIABLES: EDIT BEFORE PASTING INTO YOUR WEBPAGE * * */
+        var disqus_shortname = 'debugthings'; // required: replace example with your forum shortname
+        var disqus_url = 'http://www.debugthings.com/2015/01/08/extending-mysql-server-part9/';
+        var disqus_identifier = '/2015/01/08/extending-mysql-server-part9';
+
+
+        /* * * DON'T EDIT BELOW THIS LINE * * */
+        (function() {
+            var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
+            dsq.src = '//' + disqus_shortname + '.disqus.com/embed.js';
+            (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+        })();
+    </script>
+    <noscript>Please enable JavaScript to view the <a href="http://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
+    
+
+<div class="related">
+  <h2>Related Posts</h2>
+  <ul class="related-posts">
+    
+    <li>
+      <h3>
+        <a href="http://www.debugthings.com/2014/12/16/extending-mysql-server-part8/">
+          MySQL .NET Hosting Extension - Part 8 - Mimicking IIS (Shadow Copy, Custom Configs)
+          <small>16 Dec 2014</small>
+        </a>
+      </h3>
+    </li>
+    
+    <li>
+      <h3>
+        <a href="http://www.debugthings.com/2014/12/15/extending-mysql-server-part7/">
+          MySQL .NET Hosting Extension - Part 7 - AppDomain Pools
+          <small>15 Dec 2014</small>
+        </a>
+      </h3>
+    </li>
+    
+    <li>
+      <h3>
+        <a href="http://www.debugthings.com/2014/12/05/y-u-no-have-button/">
+          Y U NO HAVE BUTTON?
+          <small>05 Dec 2014</small>
+        </a>
+      </h3>
+    </li>
+    
+  </ul>
+</div>
+
+      <div class="footer">
+        <p>
+          &copy; 2015. All rights reserved.
+        </p>
+      </div>
+    </div>
+  </div>
+</div>
+
+
+</body>
+</html>
