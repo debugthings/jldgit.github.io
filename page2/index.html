@@ -74,6 +74,20 @@
   
   <div class="post">
     <h1 class="post-title">
+      <a href="/2014/12/03/compiling-for-two/">
+        Compiling for Two (.NET versions)
+      </a>
+    </h1>
+
+    <span class="post-date">03 Dec 2014</span>
+
+    While writing the <a href="https://github.com/jldgit/mysql_udf_dotnet">MySQL plugin</a> I found a strange need to compile two versions of my AppDomain Manager. Mainly it was for future compatibility. Plus I figured as long as my Interfaces didn&#8217;t change, everything would be great. But it left me with a sucking hole in my project solution. I was going to have to maintain two versions of source code <strong>FOR THE EXACT SAME THING</strong>. I didn&#8217;t like that.
+
+
+  </div>
+  
+  <div class="post">
+    <h1 class="post-title">
       <a href="/2014/12/02/extending-mysql-server-part6/">
         MySQL .NET Hosting Extension - Part 6 - Supporting Side-by-Side .NET CLRs
       </a>
@@ -124,20 +138,6 @@
     <span class="post-date">18 Nov 2014</span>
 
     Now that we’ve walked through the basics of a UDF, let’s start bolting on an AppDomain Manager. As I mentioned before in <a href="(/2014/11/16/extending-mysql-server-part2/)">part 2</a> my example is based off of the <a href="http://www.microsoft.com/en-us/download/details.aspx?id=7325">ADMHost</a> sample provided by Microsoft. The code is used as a jump off point, but we will be extending it as these posts progress. This part of the series will focus on the insertion points rather than the actual code. That will be in the next part. For some extra information on the hosting API check out <a href="http://www.amazon.com/gp/product/0735619883/">Customizing the Microsoft® .NET Framework</a> by <a href="http://blogs.msdn.com/b/stevenpr/">Steven Pratschner</a>. Also check out <a href="http://msdn.microsoft.com/en-us/library/ms404385(v=vs.110).aspx">MSDN</a> for update information on the APIs.
-
-
-  </div>
-  
-  <div class="post">
-    <h1 class="post-title">
-      <a href="/2014/11/16/extending-mysql-server-part2/">
-        MySQL .NET Hosting Extension - Part 2 - UDF Deep Dive
-      </a>
-    </h1>
-
-    <span class="post-date">16 Nov 2014</span>
-
-    After I worked through compiling the sources, the next step was to get .NET hosting working at a basic level. I used source from another project called <a href="http://www.microsoft.com/en-us/download/details.aspx?id=7325">ADMHost</a> (App Domain Manager) to base my code on. This code allows you to specify and create a managed AppDomain manager and use it to manage and run your .NET assemblies.
 
 
   </div>
