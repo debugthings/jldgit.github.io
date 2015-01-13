@@ -71,9 +71,9 @@
    <div class="row rowoffset">
     <div class="col-md-9">
       <h2 id="download">Download</h2>
-<p><a href="/installer">Download 64-bit Installer</a>(includes 32-bit)</p>
+<p><a href="https://github.com/jldgit/mysql_udf_dotnet/releases/download/v1.0-rc1/mysql_dotnet_udf_x86_installer_v1.0.msi">Download 64-bit Installer</a>(includes 32-bit)</p>
 
-<p><a href="/installer">Download 32-bit Installer</a></p>
+<p><a href="https://github.com/jldgit/mysql_udf_dotnet/releases/download/v1.0-rc1/mysql_dotnet_udf_x64_installer_v1.0.msi">Download 32-bit Installer</a></p>
 
 <h2 id="whats-included">What’s Included?</h2>
 <p>Inside of ths installer you will have the following items to choose from. The source code is available.</p>
@@ -104,14 +104,42 @@
   <li>Done</li>
 </ol>
 
-<h2 id="mysql-net-udf-sql-installation-steps">MySQL .NET UDF SQL Installation Steps</h2>
+<h2 id="quickstart">QUICKSTART</h2>
+
+<p>If you want to jump in using the included examples here is what you need to do.</p>
+
 <ol>
-  <li>Copy .NET Samples (or your own) to the <code>lib\plugins</code> directory</li>
-  <li>Open your favorite MySQL client</li>
-  <li>Run <code>CREATE FUNCTION MYSQLDOTNET_INT RETURNS INTEGER SONAME "MySQLDotNet.dll";</code></li>
-  <li>Test installation by executing <code>SELECT MYSQLDOTNET_INT('MySQLCustomClass.CustomMySQLClass', 3);</code></li>
-  <li>Load Sample Applications using the provided Stored Procedure examples</li>
+  <li>Verify mysqld.exe.config is in the %MYSQLHOME%\bin\ directory</li>
+  <li>Copy Samples\MySQLCustomClass.dll to %MYSQLHOME%\lib\plugins\
+    <ul>
+      <li>You may also copy it to %MYSQLHOME%\lib\plugins\MySQLCustomClass\</li>
+    </ul>
+  </li>
+  <li>Execute sql_install.sql from the command line or your favorite client</li>
 </ol>
+
+<p>That’s it!</p>
+
+<p>Execute one of the following stored procedures. Descriptions included.</p>
+
+<p><strong>simple_add3toint(int)</strong> — Adds 3 to the input number</p>
+
+<p><strong>simple_add3toreal(real)</strong> — Adds 3 to the input number</p>
+
+<p><strong>simple_addtostring(string)</strong> — Adds “SIMPLE EXAMPLE” to the end of the input</p>
+
+<p><strong>adv_isinradius(LatCenter, LongCenter, LatPoint, LongPoint, radius)</strong> — Calculates to see if the point is inside of the specified radius from the center.</p>
+
+<p><strong>adv_distance(LatStart, LongStart, LatEnd, LongEnd)</strong> — Calculates the distance in meters between the two points.</p>
+
+<p><strong>adv_getwebpage(webpage)</strong> — Uses System.WebClient to pull the raw HTML back from the URL in the function.</p>
+
+<p>Examples:</p>
+
+<div class="highlight"><pre><code class="language-SQL"><div class="highlight"><pre><span id="line-1"><span class="k">SELECT</span> <span class="n">dotnet_schema</span><span class="p">.</span><span class="n">adv_isinradius</span><span class="p">(</span><span class="mi">28</span><span class="p">.</span><span class="mi">03</span><span class="p">,</span> <span class="mi">81</span><span class="p">.</span><span class="mi">95</span><span class="p">,</span> <span class="mi">28</span><span class="p">.</span><span class="mi">43</span><span class="p">,</span> <span class="mi">81</span><span class="p">.</span><span class="mi">32</span><span class="p">,</span> <span class="mi">80000</span><span class="p">.</span><span class="mi">0</span><span class="p">);</span>
+</span><span id="line-2"><span class="k">SELECT</span> <span class="n">dotnet_schema</span><span class="p">.</span><span class="n">adv_distance</span><span class="p">(</span><span class="mi">28</span><span class="p">.</span><span class="mi">03</span><span class="p">,</span> <span class="mi">81</span><span class="p">.</span><span class="mi">95</span><span class="p">,</span> <span class="mi">28</span><span class="p">.</span><span class="mi">43</span><span class="p">,</span> <span class="mi">81</span><span class="p">.</span><span class="mi">32</span><span class="p">);</span>
+</span><span id="line-3"><span class="k">SELECT</span> <span class="n">dotnet_schema</span><span class="p">.</span><span class="n">adv_getwebpage</span><span class="p">(</span><span class="ss">&quot;http://www.google.com&quot;</span><span class="p">);</span>
+</span></pre></div></code></pre></div>
 
 
       <div class="footer">

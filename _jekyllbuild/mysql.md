@@ -25,13 +25,38 @@ Inside of ths installer you will have the following items to choose from. The so
  4. Select additional options
  5. Done
 
-##MySQL .NET UDF SQL Installation Steps
- 1. Copy .NET Samples (or your own) to the `lib\plugins` directory
- 2. Open your favorite MySQL client
- 2. Run `CREATE FUNCTION MYSQLDOTNET_INT RETURNS INTEGER SONAME "MySQLDotNet.dll";`
- 3. Test installation by executing `SELECT MYSQLDOTNET_INT('MySQLCustomClass.CustomMySQLClass', 3);`
- 4. Load Sample Applications using the provided Stored Procedure examples
+##QUICKSTART
 
-[32bit]: /installer
-[64bit]: /installer
+If you want to jump in using the included examples here is what you need to do.
 
+ 1. Verify mysqld.exe.config is in the %MYSQLHOME%\bin\ directory
+ 2. Copy Samples\MySQLCustomClass.dll to %MYSQLHOME%\lib\plugins\
+ - You may also copy it to %MYSQLHOME%\lib\plugins\MySQLCustomClass\
+ 3. Execute sql_install.sql from the command line or your favorite client
+
+That's it!
+
+Execute one of the following stored procedures. Descriptions included.
+
+**simple_add3toint(int)** --- Adds 3 to the input number
+
+**simple_add3toreal(real)** --- Adds 3 to the input number
+
+**simple_addtostring(string)** --- Adds "SIMPLE EXAMPLE" to the end of the input
+
+**adv_isinradius(LatCenter, LongCenter, LatPoint, LongPoint, radius)** --- Calculates to see if the point is inside of the specified radius from the center.
+
+**adv_distance(LatStart, LongStart, LatEnd, LongEnd)** --- Calculates the distance in meters between the two points.
+
+**adv_getwebpage(webpage)** --- Uses System.WebClient to pull the raw HTML back from the URL in the function.
+
+Examples:
+
+~~~SQL
+SELECT dotnet_schema.adv_isinradius(28.03, 81.95, 28.43, 81.32, 80000.0);
+SELECT dotnet_schema.adv_distance(28.03, 81.95, 28.43, 81.32);
+SELECT dotnet_schema.adv_getwebpage("http://www.google.com");
+~~~
+
+[32bit]: https://github.com/jldgit/mysql_udf_dotnet/releases/download/v1.0-rc1/mysql_dotnet_udf_x86_installer_v1.0.msi
+[64bit]: https://github.com/jldgit/mysql_udf_dotnet/releases/download/v1.0-rc1/mysql_dotnet_udf_x64_installer_v1.0.msi
