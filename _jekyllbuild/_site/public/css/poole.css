@@ -506,7 +506,7 @@ margin-bottom: 1.25em;
   counter-reset: linenumbers;
   border: 0;
   padding: 0;
-  
+
 }
 
 pre > code
@@ -536,4 +536,40 @@ pre > code
 
 .highlight pre > span > span:first-child {
   padding-left: 2.5em;
+}
+
+.floatleftimg
+{
+  float: left;
+  margin-right: 1.2rem;
+}
+
+.clearthis
+{
+  clear: both;
+}
+
+
+.gitimg
+{
+  margin-right: 1em;
+  }
+
+.postlist
+{
+  margin-left: .5rem;
+  font-size: .75rem;
+  cursor: pointer;
+
+}
+
+.postlistfirst
+{
+  position: relative;
+  left: .8rem;
+}
+
+.lipad
+{
+  padding-right: 1em;
 }
