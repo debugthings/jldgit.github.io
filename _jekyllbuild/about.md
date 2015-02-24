@@ -2,7 +2,7 @@
 layout: default
 title: About Debug Things (Me)
 ---
-![Me](/images/casual.jpg){: .floatleftimg}
+![Me](/images/casual.JPG){: .floatleftimg}
 
 ## ABOUT
 Not to long ago I started writing down some things I did while at my day job. I shared these stories with people both in and out of work and had great feed back. A lot of the things I write about center around debugging, or at the very least the guts of applications.

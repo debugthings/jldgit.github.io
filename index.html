@@ -22,19 +22,9 @@
   <link rel="stylesheet" href="/public/css/bootstrap.css" />
   <link rel="stylesheet" href="//maxcdn.bootstrapcdn.com/font-awesome/4.3.0/css/font-awesome.min.css">
   <link rel="stylesheet" href="/public/css/poole.css" />
-  
 
 
   <script type="text/javascript" src="http://code.jquery.com/jquery-2.1.3.min.js"></script>
-  <script type="text/javascript">
-(function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){
-  (i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),
-  m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)
-  })(window,document,'script','//www.google-analytics.com/analytics.js','ga');
-
-  ga('create', 'UA-56527114-1', 'auto');
-  ga('send', 'pageview');
-  </script>
 
 
   <!-- Icons -->
@@ -43,6 +33,18 @@
 
   <!-- RSS -->
   <link rel="alternate" type="application/rss+xml" title="RSS" href="/atom.xml" />
+
+
+
+  <script type="text/javascript">
+  (function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){
+  (i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),
+  m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)
+  })(window,document,'script','//www.google-analytics.com/analytics.js','ga');
+
+  ga('create', 'UA-56527114-1', 'auto');
+  ga('send', 'pageview');
+ </script>
 
 </head>
 
@@ -76,6 +78,20 @@
    <div class="row rowoffset">
     <div class="col-md-9">
       <div class="posts">
+  
+  <div class="post">
+    <h1 class="post-title">
+      <a href="/2015/02/24/visual-studio-ctrl-bracket/">
+        Visual Studio Productivity, you're doing it wrong (Ctrl+])
+      </a>
+    </h1>
+
+    <span class="post-date">24 Feb 2015</span>
+
+    So, I was working through an old project today and encountered a method that was about 200(!!) lines long. The code is in a dire need of refactoring and I set down the stupid path of doing so.
+
+
+  </div>
   
   <div class="post">
     <h1 class="post-title">
@@ -133,20 +149,6 @@
 
   </div>
   
-  <div class="post">
-    <h1 class="post-title">
-      <a href="/2015/01/08/extending-mysql-server-part9/">
-        MySQL .NET Hosting Extension - Part 9 - Strings, _bstr_t, SafeArrays, SysAllocString, SysFreeString
-      </a>
-    </h1>
-
-    <span class="post-date">08 Jan 2015</span>
-
-    Up until now I&#8217;ve been dealing with integers and reals. This is great for a lot of statistical information but we all know that databases are used for more than just storing numbers. Depending on your type of database you will most likely have a number of text items that are used to describe or othewise identify some integer value. In order to work with these values we have to marshal the data to and fro. Let&#8217;s dive in to what&#8217;s happening.
-
-
-  </div>
-  
 </div>
 
 <!-- <nav>
@@ -183,7 +185,7 @@
         </p>
         <div style="display: flex; padding-top: 0.5em">
           <a href="https://github.com/jldgit"><img src="/images/GitHub-Mark-32px.png"  class="gitimg" /></a>
-          <a href="http://www.linkedin.com/in/debugthings/"><img src="https://dlc1-s.licdn.com/sites/default/files/InBug-60px-R.png" class="linked" /></a>
+          <a href="http://www.linkedin.com/in/debugthings/"><img src="/images/In-2C-66px-R.png" class="linked" /></a>
           <a href="http://www.twitter.com/debugthings"><div class="twitbox"><img src="https://g.twimg.com/Twitter_logo_white.png" /></div><span>@debugthings</span></a>
         </div>
 
@@ -201,6 +203,24 @@
       <li id="2015-February-refmonth"><i class="fa-li fa fa-plus-square"></i>February
       <ul class="postlist fa-ul">
         
+
+    <li class="lipad"><i class="fa-li fa fa-link" ></i><a href="/2015/02/24/visual-studio-ctrl-bracket/">Visual Studio Productivity, you're doing it wrong (Ctrl+])</a></li>
+
+
+    
+
+    
+      
+    
+    
+
+
+    
+    
+    
+    
+
+    
 
     <li class="lipad"><i class="fa-li fa fa-link" ></i><a href="/2015/02/10/speaking-orlcc/">I'm speaking at Orlando Code Camp</a></li>
 
@@ -651,17 +671,12 @@ $(function() {
      $("[id$=refmonth]").children('ul').hide();
      $("[id$=refyear] ul:first").show();
      $("[id$=refyear] ul:first ul").show();
-      
 });
 
 $('li').click(function(e){
   $(this).children('ul').slideToggle();
   e.stopPropagation();
 });
-
-
-
- 
 
 </script>
 

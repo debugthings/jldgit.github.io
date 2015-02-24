@@ -24,7 +24,7 @@
   <link rel="stylesheet" href="/public/css/poole.css" />
 
 
-  <script type="text/javascript" src="http://code.jquery.com/jquery-2.1.3.min.js" />
+  <script type="text/javascript" src="http://code.jquery.com/jquery-2.1.3.min.js"></script>
 
 
   <!-- Icons -->
@@ -37,9 +37,6 @@
 
 
   <script type="text/javascript">
-
-
-
   (function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){
   (i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),
   m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)
@@ -47,10 +44,7 @@
 
   ga('create', 'UA-56527114-1', 'auto');
   ga('send', 'pageview');
-
-
-
-</script>
+ </script>
 
 </head>
 
@@ -84,6 +78,20 @@
    <div class="row rowoffset">
     <div class="col-md-9">
       <div class="posts">
+  
+  <div class="post">
+    <h1 class="post-title">
+      <a href="/2014/12/02/extending-mysql-server-part6/">
+        MySQL .NET Hosting Extension - Part 6 - Supporting Side-by-Side .NET CLRs
+      </a>
+    </h1>
+
+    <span class="post-date">02 Dec 2014</span>
+
+    So far, we&#8217;ve done a lot to the CLR hosting engine to properly handle type loading, type safety and custom assemblies. Now we have the task to support some desired functionality supplied with the CLR. Namely being able to support, or not support side-by-side CLR loading. We will take a look at what code changes are involved and what we can do to ensure proper loading.
+
+
+  </div>
   
   <div class="post">
     <h1 class="post-title">
@@ -141,20 +149,6 @@
 
   </div>
   
-  <div class="post">
-    <h1 class="post-title">
-      <a href="/2014/11/11/extending-mysql-server-part1/">
-        MySQL .NET Hosting Extension - Part 1 - Compile Sample UDF
-      </a>
-    </h1>
-
-    <span class="post-date">11 Nov 2014</span>
-
-    So, the first thing I had to do was compile the MySQL sample UDF which is included in the source tree. While it seems like a simple thing to do with CMake and all of the proper tools installed, there are a few things not documented. The steps to compile <a href="http://dev.mysql.com/doc/refman/5.5/en/udf-compiling.html">can be found here</a>. The steps are really straight forward, but there is a catch. In order to build on Windows there are a few steps you will need to do in order to fully get the example working.
-
-
-  </div>
-  
 </div>
 
 <!-- <nav>
@@ -193,7 +187,7 @@
         </p>
         <div style="display: flex; padding-top: 0.5em">
           <a href="https://github.com/jldgit"><img src="/images/GitHub-Mark-32px.png"  class="gitimg" /></a>
-          <a href="http://www.linkedin.com/in/debugthings/"><img src="https://dlc1-s.licdn.com/sites/default/files/InBug-60px-R.png" class="linked" /></a>
+          <a href="http://www.linkedin.com/in/debugthings/"><img src="/images/In-2C-66px-R.png" class="linked" /></a>
           <a href="http://www.twitter.com/debugthings"><div class="twitbox"><img src="https://g.twimg.com/Twitter_logo_white.png" /></div><span>@debugthings</span></a>
         </div>
 
@@ -211,6 +205,24 @@
       <li id="2015-February-refmonth"><i class="fa-li fa fa-plus-square"></i>February
       <ul class="postlist fa-ul">
         
+
+    <li class="lipad"><i class="fa-li fa fa-link" ></i><a href="/2015/02/24/visual-studio-ctrl-bracket/">Visual Studio Productivity, you're doing it wrong (Ctrl+])</a></li>
+
+
+    
+
+    
+      
+    
+    
+
+
+    
+    
+    
+    
+
+    
 
     <li class="lipad"><i class="fa-li fa fa-link" ></i><a href="/2015/02/10/speaking-orlcc/">I'm speaking at Orlando Code Camp</a></li>
 
