@@ -21,4 +21,4 @@ I'm not saying I don't do this for some boiler plate stuff. But, there are deep 
 All of my code examples are free to use for work or play. I don't have any license disclaimers to add in so feel free to rip if it's useful. The only thing I hope is that you take the time to understand why something works; it's kind of my thing.
 
 ## Speaking
-I'm always open for speaking events, paid or unpaid. I truly enjoy getting out there in the community and inspiring and mentoring who I can. Feel free to contact me via Twitter or LinkedIn to schedule me. Check out my [Speaking Schedule][/speaking/] to see if I may be booked that day or weekend.
+I'm always open for speaking events, paid or unpaid. I truly enjoy getting out there in the community and inspiring and mentoring who I can. Feel free to contact me via Twitter or LinkedIn to schedule me. Check out my [Speaking Schedule](/speaking/) to see if I may be booked that day or weekend.
