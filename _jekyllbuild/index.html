@@ -1,0 +1,45 @@
+---
+layout: default
+title: debugthings.com
+---
+
+<div class="posts">
+  {% for post in paginator.posts %}
+  <div class="post">
+    <h1 class="post-title">
+      <a href="{{ post.url }}">
+        {{ post.title }}
+      </a>
+    </h1>
+
+    <span class="post-date">{{ post.date | date_to_string }}</span>
+
+    {{ post.excerpt | remove: '<p>' | remove: '</p>' }}
+  </div>
+  {% endfor %}
+</div>
+
+<!-- <nav>
+  <ul class="pager">
+    <li class="previous"><a href="#">&larr; Older</a></li>
+    <li class="next"><a href="#">Newer &rarr;</a></li>
+  </ul>
+</nav> -->
+<nav>
+  <ul class="pager">
+    {% if paginator.next_page %}
+    <li class="previous"><a  href="{{ site.baseurl }}page{{paginator.next_page}}">Previous Posts</a></li>
+    {% else %}
+    <li class="previous disabled"><a href="#">Previous Posts</a></li>
+    {% endif %}
+    {% if paginator.previous_page %}
+    {% if paginator.page == 2 %}
+    <li class="next"><a href="{{ site.baseurl }}">Newer Posts</a></li>
+    {% else %}
+    <li class="next"><a href="{{ site.baseurl }}page{{paginator.previous_page}}">Newer Posts</a></li>
+    {% endif %}
+    {% else %}
+    <li class="next disabled"><a  href="#">Newer Posts</a></li>
+    {% endif %}
+  </ul>
+</nav>
