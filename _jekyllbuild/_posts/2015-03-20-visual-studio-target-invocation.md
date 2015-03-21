@@ -169,7 +169,7 @@ HResult: 80131537
 
 The first 2 breaks were not actually managed threads. The first exception is encountered when devenv starts to host the CLR. The second exception is when the AppDomainManager is firing up.
 
-The third break is when we start getting into the .NET exceptions. I did some investigating and found that all of the exceptions thrown after the third exception were parent exceptions. The exception that causes This first exception is the inner most exception of these parents. This may not always be the case when debugging, but in this case it was.
+The third break is when we start getting into the .NET exceptions. I did some investigating and found that all of the exceptions thrown after the third exception were parent exceptions. The exception that causes this first exception is the inner most exception of these parents. This may not always be the case when debugging, but in this case it was.
 
 I could see there was a UriFormat exception. Alright, well what is throwing this exception? In this instance it's being thrown from the `MS.Internal.FontCache.Util..cctor()` when calling `System.Uri::.ctor`. `System.Uri.CreateThis(System.String, Boolean, System.UriKind)` is a helper method inside of the constructor. Well that's odd. Let's see what this guy is doing. In the stack trace I can see the instruction pointer and can use the [SOS][sosmsdn] method `!IP2MD` to find it's MethodDescription. Using the MethodDescription I can dump the IL.
 
