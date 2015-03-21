@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en-us">
+
+<head>
+  <link href="http://gmpg.org/xfn/11" rel="profile" />
+  <meta http-equiv="content-type" content="text/html; charset=utf-8" />
+
+  <!-- Enable responsiveness on mobile devices-->
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1" />
+
+  <title>
+    
+    VB6 and 482 Printer errors (Hello 1998) &middot; Debug Things
+    
+  </title>
+  <!--FONTS-->
+  <link href='http://fonts.googleapis.com/css?family=Lato&subset=latin,latin-ext' rel='stylesheet' type='text/css' />
+
+
+  <!-- CSS -->
+  <link rel="stylesheet" href="/public/css/monokai.css" />
+  <link rel="stylesheet" href="/public/css/bootstrap.css" />
+  <link rel="stylesheet" href="//maxcdn.bootstrapcdn.com/font-awesome/4.3.0/css/font-awesome.min.css">
+  <link rel="stylesheet" href="/public/css/poole.css" />
+
+
+  <script type="text/javascript" src="http://code.jquery.com/jquery-2.1.3.min.js"></script>
+
+
+  <!-- Icons -->
+  <link rel="apple-touch-icon-precomposed" sizes="144x144" href="/public/apple-touch-icon-precomposed.png" />
+  <link rel="shortcut icon" href="/public/favicon.ico" />
+
+  <!-- RSS -->
+  <link rel="alternate" type="application/rss+xml" title="RSS" href="/atom.xml" />
+
+
+
+  <script type="text/javascript">
+  (function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){
+  (i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),
+  m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)
+  })(window,document,'script','//www.google-analytics.com/analytics.js','ga');
+
+  ga('create', 'UA-56527114-1', 'auto');
+  ga('send', 'pageview');
+ </script>
+
+</head>
+
+
+<body>
+  <nav class="navbar navbar-inverse navbar-fixed-top" role="navigation">
+  <div class="container">
+    <div class="navbar-header">
+      <button type="button" class="navbar-toggle collapsed" data-toggle="collapse" data-target="#navbar" aria-expanded="false" aria-controls="navbar">
+        <span class="sr-only">Toggle navigation</span>
+        <span class="icon-bar"></span>
+        <span class="icon-bar"></span>
+        <span class="icon-bar"></span>
+      </button>
+      <a href="/" class="navbar-brand" title="Home">DEBUG THINGS</a>
+    </div>
+    <div id="navbar" class="navbar-collapse collapse">
+      <ul class="nav navbar-nav">
+        <li><a href="/about/">About</a></li>
+        <li><a href="/projects">Projects</a></li>
+        <li><a href="/mysql/">MySQL .NET UDF</a></li>
+        <li><a href="/speaking/">Speaking</a></li>
+        <li><a href="/owasp/">OWASP</a></li>
+
+      </ul>
+    </div><!--/.navbar-collapse -->
+  </div>
+</nav>
+
+  <div class="container containerbg">
+   <div class="row rowoffset">
+    <div class="col-md-12">
+      <div class="post">
+  <h1 class="post-title">VB6 and 482 Printer errors (Hello 1998)</h1>
+  <span class="post-date">09 Mar 2015</span>
+  <a href="https://twitter.com/share" class="twitter-share-button" data-via="debugthings" data-size="large">Tweet</a>
+  <script>!function(d,s,id){var js,fjs=d.getElementsByTagName(s)[0],p=/^http:/.test(d.location)?'http':'https';if(!d.getElementById(id)){js=d.createElement(s);js.id=id;js.src=p+'://platform.twitter.com/widgets.js';fjs.parentNode.insertBefore(js,fjs);}}(document, 'script', 'twitter-wjs');</script>
+  <p>Recently at my day job I was called in to check out an issue that sprung up after a new printer driver was installed. My first thoughts were <em>“Oh, they can’t print now; let’s back-level the drivers.”</em> Of course, I work with a great bunch of folks, and that had already been tried and the problem was still there. Ah, well that mea.. what?</p>
+
+<h2 id="background">Background</h2>
+<p>This is an old school VB6 application that does little more than update a local SQL instance and print out some reports. There is a new application replacing it, but they have to live side-by-side for a few weeks. After that, all work is shifted to the new system. In order for the new system to work a new printer is being used. This is where the print driver comes in.</p>
+
+<p>This application is old. It’s no longer maintained. It’s going away in a few weeks. Why are we fixing it? Turns out one of the reports—the only report that’s broken mind you—is needed for daily operations. As the application is rolled out the report will be used for two weeks and eventually be replaced by the new. This means we need to have that report working.</p>
+
+<h2 id="what-caused-it">What Caused It?</h2>
+<p>As with any strange issue, it could only be reproduced under certain conditions. In our case some of the details were flaky but boiled down to this:</p>
+
+<ol>
+  <li>Only happened on one specific report</li>
+  <li>Wouldn’t happen with the running user had Admin rights</li>
+  <li>Would throw a 482 error in the log</li>
+</ol>
+
+<p>The interesting thing here was the 482 error and the fact it worked for Administrators. I had the code available and we could see that it was using the simple <code>PrintForm</code> VB6 function. This function was being called inside of an old Crystal Reports control. The problem came up because before it would print it would check some properties. This would usually be fine, but since the application was written to simplify user interaction a lot of values were pulled from registry settings. Below I have a screen shot of the <a href="https://technet.microsoft.com/en-us/library/bb896645.aspx">procmon</a> capture, this shows the spool service trying to call the <strong>EPSON TM-L90 Label</strong> printer.</p>
+
+<p>As it turns out, part of the driver install is to remove the old printer names and unify them under one unique name. This unfortunately broke this specific part of the application because it would call out to the spooler and it would return an unknown error code.</p>
+
+<p><img src="/images/procmonprinter.png" alt="procmon" /></p>
+
+<h2 id="the-fix">The fix</h2>
+<p>Well in this instance we were able to change our registry setting inside of the application to a printer that existed and it allowed the application to press on. But, if you run into this issue your self you can use <a href="https://technet.microsoft.com/en-us/library/bb896645.aspx">procmon</a> to see what your spoolsv.exe is trying to contact.</p>
+
+
+</div>
+
+ <div id="disqus_thread"></div>
+    <script type="text/javascript">
+        /* * * CONFIGURATION VARIABLES: EDIT BEFORE PASTING INTO YOUR WEBPAGE * * */
+        var disqus_shortname = 'debugthings'; // required: replace example with your forum shortname
+        var disqus_url = 'http://www.debugthings.com/2015/03/09/vb6-482-error/';
+        var disqus_identifier = '/2015/03/09/vb6-482-error';
+
+
+        /* * * DON'T EDIT BELOW THIS LINE * * */
+        (function() {
+            var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
+            dsq.src = '//' + disqus_shortname + '.disqus.com/embed.js';
+            (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+        })();
+    </script>
+    <noscript>Please enable JavaScript to view the <a href="http://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
+    
+
+<div class="related">
+  <h2>Related Posts</h2>
+  <ul class="related-posts">
+    
+    <li>
+      <h3>
+        <a href="http://www.debugthings.com/2015/03/20/visual-studio-target-invocation/">
+          Debugging - "Exception has been thrown by the target of an invocation"
+          <small>20 Mar 2015</small>
+        </a>
+      </h3>
+    </li>
+    
+    <li>
+      <h3>
+        <a href="http://www.debugthings.com/2015/02/24/visual-studio-ctrl-bracket/">
+          Visual Studio Productivity, you're doing it wrong (Ctrl+])
+          <small>24 Feb 2015</small>
+        </a>
+      </h3>
+    </li>
+    
+    <li>
+      <h3>
+        <a href="http://www.debugthings.com/2015/02/10/speaking-orlcc/">
+          I'm speaking at Orlando Code Camp
+          <small>10 Feb 2015</small>
+        </a>
+      </h3>
+    </li>
+    
+  </ul>
+</div>
+
+      <div class="footer">
+        <p>
+          &copy; 2015. All rights reserved.
+        </p>
+      </div>
+    </div>
+  </div>
+</div>
+
+
+</body>
+</html>

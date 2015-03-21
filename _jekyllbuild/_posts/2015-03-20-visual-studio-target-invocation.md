@@ -19,7 +19,7 @@ Visual Studio failed to load. I would see the splash screen and then a few secon
 ## The Diagnosis
 I decided to use a hammer and fired up WinDbg. When executing the application I could see a number of exceptions being fired before the application would fail.
 
-```
+~~~
 Executable search path is:
 (25e8.25ec): Break instruction exception - code 80000003 (first chance)
 eax=00000000 ebx=00000000 ecx=e15b0000 edx=001ee018 esi=fffffffe edi=00000000
@@ -53,11 +53,11 @@ eip=7740fcc2 esp=002ef984 ebp=002ef9a0 iopl=0         nv up ei pl zr na pe nc
 cs=0023  ss=002b  ds=002b  es=002b  fs=0053  gs=002b             efl=00000246
 ntdll!NtTerminateProcess+0x12:
 7740fcc2 83c404          add     esp,4
-```
+~~~
 
 The `Unknown exception - code e0434352 (first chance)` is a big clue here. If you look at the error you might see some hex that looks familiar '0x43' '0x43' '0x52' or 'C' 'C' 'R'. No, this isn't a homage to Creedence and doesn't mean there is a bad moon rising. This tells me the errors are being thrown from the CLR runtime. Sweet. Things just got a bit easier.
 
-```
+~~~
 0:000> .formats e0434352
 Evaluate expression:
   Hex:     e0434352
@@ -68,17 +68,17 @@ Evaluate expression:
   Time:    ***** Invalid
   Float:   low -5.62807e+019 high 0
   Double:  1.85892e-314
-```
+~~~
 
-Now that I knew the CLR was involved I could use SOS or PSSCOR. The first thing I did before restarting the application was turned on breaking for first chance exceptions for the "Unknown" exception type. You can get here by going to the Debug menu and selecting Event Filters. Set the Unknown exception properties as they are in the image.
+Now that I knew the CLR was involved I could use [SOS][sosmsdn] or [PSSCOR][psscordl]. The first thing I did before restarting the application was turned on breaking for first chance exceptions for the "Unknown" exception type. You can get here by going to the Debug menu and selecting Event Filters. Set the Unknown exception properties as they are in the image.
 
 ![target_invocation](/images/unknown_exception.png)
 
-After I turned that on I fired up the application again and I told the debugger to break when the clr loaded. Using `sxe ld clr` I am able to break on the module load and load SOS by using `.loadby sos clr`. Since I was breaking on unknown exceptions I knew I could use the `g` command and it would execute all code until the next exception.
+After I turned that on I fired up the application again and I told the debugger to break when the clr loaded. Using `sxe ld clr` I am able to break on the module load and load [SOS][sosmsdn] by using `.loadby sos clr`. Since I was breaking on unknown exceptions I knew I could use the `g` command and it would execute all code until the next exception.
 
 >NOTE: clr.dll is for v4.0 and up. If you happen to be debugging a lower versions you use mscorwks.dll.
 
-```
+~~~
 CommandLine: "C:\Program Files (x86)\Microsoft Visual Studio 11.0\Common7\IDE\devenv.exe"
 =========================================================================================
  ProcDumpExt v6.4 - Copyright 2013 Andrew Richards
@@ -165,16 +165,17 @@ StackTrace (generated):
 StackTraceString: <none>
 HResult: 80131537
 
-```
+~~~
 
 The first 2 breaks were not actually managed threads. The first exception is encountered when devenv starts to host the CLR. The second exception is when the AppDomainManager is firing up.
 
-The 3 break is when our real exception is thrown. I did some investigating and found that all of the exceptions thrown after this one were parent exceptions. This first exception is the inner most exception. This may not always be the case when debugging, but in this case it was.
+The third break is when we start getting into the .NET exceptions. I did some investigating and found that all of the exceptions thrown after the third exception were parent exceptions. The exception that causes This first exception is the inner most exception of these parents. This may not always be the case when debugging, but in this case it was.
 
-I could see there was a UriFormat exception. Alright, well what is throwing this exception? In this instance it being thrown from the `MS.Internal.FontCache.Util..cctor()` when calling `System.Uri::.ctor`. Well that's odd. Let's see what this guy is doing. In the stack trace I can see the instruction pointer and can use the SOS method `!IP2MD` to find it's MethodDescription. Using the MethodDescription I can dump the IL.
+I could see there was a UriFormat exception. Alright, well what is throwing this exception? In this instance it's being thrown from the `MS.Internal.FontCache.Util..cctor()` when calling `System.Uri::.ctor`. `System.Uri.CreateThis(System.String, Boolean, System.UriKind)` is a helper method inside of the constructor. Well that's odd. Let's see what this guy is doing. In the stack trace I can see the instruction pointer and can use the [SOS][sosmsdn] method `!IP2MD` to find it's MethodDescription. Using the MethodDescription I can dump the IL.
 
+>NOTE: You may notice that I focus on the font cache constructor and not the Uri methods inside of the constructor (which is what actually throws the exception). I do this because I want to see what is being passed into the constructor instead of working backwards. The exception says there is something wrong with the Uri which means there was a problem with the parameters passed in.
 
-```
+~~~
 0:000> !CLRStack
 OS Thread Id: 0xcd8 (0)
 Child SP       IP Call Site
@@ -188,19 +189,19 @@ Child SP       IP Call Site
 ...
 <<< REMOVED FOR CLARITY >>>
 
-0:000> !ip2md 5dd1d866
-MethodDesc:   5dbb80a8
-Method Name:  System.Uri..ctor(System.String, System.UriKind)
-Class:        5db73088
-MethodTable:  5ddcd270
+0:000> !ip2md 5b53b42e
+MethodDesc:   5bbb80a8
+Method Name:  MS.Internal.FontCache.Util..cctor()
+Class:        5bb73088
+MethodTable:  5bdcd270
 mdToken:      06001c69
-Module:       5db71000
+Module:       5bb71000
 IsJitted:     yes
-CodeAddr:     5dd1d850
+CodeAddr:     5bd1d850
 Transparency: Safe critical
-```
+~~~
 
-```
+~~~
 0:000> !dumpil 5dbb80a8
 ilAddr = 5dbb80a8
 IL_0000: ldc.i4.5
@@ -267,11 +268,11 @@ IL_00a0: ldc.i4.3
 IL_00a1: callvirt System.Uri::GetComponents
 IL_00a6: stsfld MS.Internal.FontCache.Util::_windowsFontsUriString
 IL_00ab: ret
-```
+~~~
 
-Scanning the IL there is only one place that tries to construct a new Uri, `IL_008f: newobj System.Uri::.ctor` so now we see whats going on. If you look at the try block the code is trying to load up the fonts directory. It does this by concatenating two strings the expanded version of "windir" and "\Fonts\". So, I decided to look at what was on the stack to see what might have been passed into this function
+Scanning the IL there is only one place that tries to construct a new Uri, `IL_008f: newobj System.Uri::.ctor` so now we see whats going on. If you look at the try block the code is trying to load up the fonts directory. It does this by concatenating two strings the expanded version of "windir" and "\Fonts\\". So, I decided to look at what was on the stack to see what might have been passed into this function
 
-```
+~~~
 0:000> !dso
 OS Thread Id: 0xcd8 (0)
 ESP/REG  Object   Name
@@ -292,11 +293,11 @@ ESP/REG  Object   Name
 003ABF90 03d47980 System.Windows.DependencyProperty
 003AC00C 03d47778 MS.Win32.NativeMethods+LOGFONT
 
-```
+~~~
 
-Ah-ha! Only the "\Fonts\" string is present; this of course is an invalid Uri. But, why isn't it expanded? Using `!peb` you can see all of the environment variables and other useful information.
+Ah-ha! Only the "\Fonts\" string is present; this of course is an invalid Uri. But, why isn't it expanded? Let's look at our environment variables. Using `!peb` you can see all of the environment variables and other useful information.
 
-```
+~~~
 0:000> !peb
 PEB at fffde000
     InheritedAddressSpace:    No
@@ -324,7 +325,7 @@ PEB at fffde000
         WINDBG_DIR=C:\Program Files (x86)\Debugging Tools for Windows (x86)
         _NT_DEBUGGER_EXTENSION_PATH="C:\Program Files (x86)\Debugging Tools for Windows (x86)\WINXP;C:\Program Files (x86)\Debugging Tools for Windows (x86)\winext;C:\Program Files (x86)\Debugging Tools for Windows (x86)\winext\arcade;C:\Program Files (x86)\Debugging Tools for Windows (x86)\pri;C:\Program Files (x86)\Debugging Tools for Windows (x86);C:\Program Files (x86)\Debugging Tools for Windows (x86)\winext\arcade;C:\Program Files (x86)\Debugging Tools for Windows (x86)\exts"
         _NT_SYMBOL_PATH=srv*c:\Symbols*http://msdl.microsoft.com/download/symbols
-```
+~~~
 Umm? Where is WINDIR? And, what is up with my PATH?! I went over to my system properties and attempted to look at my path to see if there was something wrong. I got an error I've never seen:
 
 ![cannot_find](/images/cannot_find_advprop.png)
@@ -342,7 +343,7 @@ But, it was caused by something I hadn't thought about. Since this is on my work
 
 Here is the `!peb` command after:
 
-```
+~~~
 0:000> !peb
 PEB at fffde000
     InheritedAddressSpace:    No
@@ -375,12 +376,12 @@ PEB at fffde000
         WIX=C:\Program Files (x86)\Windows Installer XML v3\
         _NT_DEBUGGER_EXTENSION_PATH="C:\Program Files (x86)\Debugging Tools for Windows (x86)\WINXP;C:\Program Files (x86)\Debugging Tools for Windows (x86)\winext;C:\Program Files (x86)\Debugging Tools for Windows (x86)\winext\arcade;C:\Program Files (x86)\Debugging Tools for Windows (x86)\pri;C:\Program Files (x86)\Debugging Tools for Windows (x86);C:\Program Files (x86)\Debugging Tools for Windows (x86)\winext\arcade;C:\Program Files (x86)\Debugging Tools for Windows (x86)\exts"
         _NT_SYMBOL_PATH=srv*c:\Symbols*http://msdl.microsoft.com/download/symbols
-```
+~~~
 
 And there we have it. The WINDIR environment variable is back.
 
 ## Conclusion
-I did Google the error and found a couple of posts about it. One of the links was from a microsoft form that just said to shorten the PATH. I was okay with that answer---but really, I had to know.
+I did Google the error and found a couple of posts about it. One of the links was from a Microsoft form that just said to shorten the PATH. I was okay with that answer---but really, I had to know.
 
 If you happen to run into this in your normal line of work, it may not always be so cut and dry as finding the answer online. I never hurts to dig in.
 
@@ -388,3 +389,5 @@ If you happen to run into this in your normal line of work, it may not always be
 
 
 [procmondl]: https://technet.microsoft.com/en-us/library/bb896645.aspx
+[psscordl]: http://www.microsoft.com/en-us/download/details.aspx?id=21255
+[sosmsdn]: https://msdn.microsoft.com/en-us/library/bb190764%28v=vs.110%29.aspx

@@ -4,13 +4,33 @@
  <title>Debug Things</title>
  <link href="http://www.debugthings.com/atom.xml" rel="self"/>
  <link href="http://www.debugthings.com/"/>
- <updated>2015-02-24T10:57:52-08:00</updated>
+ <updated>2015-03-21T07:46:15-07:00</updated>
  <id>http://www.debugthings.com</id>
  <author>
    <name>James Davis</name>
    <email>james.l.davis@outlook.com</email>
  </author>
 
+ 
+ <entry>
+   <title>Debugging - "Exception has been thrown by the target of an invocation"</title>
+   <link href="http://www.debugthings.com//2015/03/20/visual-studio-target-invocation/"/>
+   <updated>2015-03-20T00:00:00-07:00</updated>
+   <id>http://www.debugthings.com/2015/03/20/visual-studio-target-invocation</id>
+   <content type="html">&lt;p&gt;The other day I had some issues starting up Visual Studio. I got presented with a modal dialog that said &lt;code&gt;&quot;Exception has been thrown by the target of an invocation&quot;&lt;/code&gt;. I wasn&amp;#8217;t sure why, so I tried it again, and again, and the once more for good measure. Turns out, it wasn&amp;#8217;t the way I was clicking the shortcut link. Of course, this is a problem as Visual Studio is my primary tool. Let&amp;#8217;s see what was causing this.&lt;/p&gt;
+
+</content>
+ </entry>
+ 
+ <entry>
+   <title>VB6 and 482 Printer errors (Hello 1998)</title>
+   <link href="http://www.debugthings.com//2015/03/09/vb6-482-error/"/>
+   <updated>2015-03-09T00:00:00-07:00</updated>
+   <id>http://www.debugthings.com/2015/03/09/vb6-482-error</id>
+   <content type="html">&lt;p&gt;Recently at my day job I was called in to check out an issue that sprung up after a new printer driver was installed. My first thoughts were &lt;em&gt;&amp;#8220;Oh, they can&amp;#8217;t print now; let&amp;#8217;s back-level the drivers.&amp;#8221;&lt;/em&gt; Of course, I work with a great bunch of folks, and that had already been tried and the problem was still there. Ah, well that mea.. what?&lt;/p&gt;
+
+</content>
+ </entry>
  
  <entry>
    <title>Visual Studio Productivity, you're doing it wrong (Ctrl+])</title>
