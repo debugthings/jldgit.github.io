@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en-us">
+
+<head>
+  <link href="http://gmpg.org/xfn/11" rel="profile" />
+  <meta http-equiv="content-type" content="text/html; charset=utf-8" />
+
+  <!-- Enable responsiveness on mobile devices-->
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1" />
+
+  <title>
+    
+    Test in Production (with Fiddler)! &middot; Debug Things
+    
+  </title>
+  <!--FONTS-->
+  <link href='http://fonts.googleapis.com/css?family=Lato&subset=latin,latin-ext' rel='stylesheet' type='text/css' />
+
+
+  <!-- CSS -->
+  <link rel="stylesheet" href="/public/css/monokai.css" />
+  <link rel="stylesheet" href="/public/css/bootstrap.css" />
+  <link rel="stylesheet" href="//maxcdn.bootstrapcdn.com/font-awesome/4.3.0/css/font-awesome.min.css">
+  <link rel="stylesheet" href="/public/css/poole.css" />
+
+
+  <script type="text/javascript" src="http://code.jquery.com/jquery-2.1.3.min.js"></script>
+
+
+  <!-- Icons -->
+  <link rel="apple-touch-icon-precomposed" sizes="144x144" href="/public/apple-touch-icon-precomposed.png" />
+  <link rel="shortcut icon" href="/public/favicon.ico" />
+
+  <!-- RSS -->
+  <link rel="alternate" type="application/rss+xml" title="RSS" href="/atom.xml" />
+
+
+
+  <script type="text/javascript">
+  (function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){
+  (i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),
+  m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)
+  })(window,document,'script','//www.google-analytics.com/analytics.js','ga');
+
+  ga('create', 'UA-56527114-1', 'auto');
+  ga('send', 'pageview');
+ </script>
+
+</head>
+
+
+<body>
+  <nav class="navbar navbar-inverse navbar-fixed-top" role="navigation">
+  <div class="container">
+    <div class="navbar-header">
+      <button type="button" class="navbar-toggle collapsed" data-toggle="collapse" data-target="#navbar" aria-expanded="false" aria-controls="navbar">
+        <span class="sr-only">Toggle navigation</span>
+        <span class="icon-bar"></span>
+        <span class="icon-bar"></span>
+        <span class="icon-bar"></span>
+      </button>
+      <a href="/" class="navbar-brand" title="Home">DEBUG THINGS</a>
+    </div>
+    <div id="navbar" class="navbar-collapse collapse">
+      <ul class="nav navbar-nav">
+        <li><a href="/about/">About</a></li>
+        <li><a href="/projects">Projects</a></li>
+        <li><a href="/mysql/">MySQL .NET UDF</a></li>
+        <li><a href="/speaking/">Speaking</a></li>
+        <li><a href="/owasp/">OWASP</a></li>
+
+      </ul>
+    </div><!--/.navbar-collapse -->
+  </div>
+</nav>
+
+  <div class="container containerbg">
+   <div class="row rowoffset">
+    <div class="col-md-12">
+      <div class="post">
+  <h1 class="post-title">Test in Production (with Fiddler)!</h1>
+  <span class="post-date">01 Apr 2015</span>
+  <a href="https://twitter.com/share" class="twitter-share-button" data-via="debugthings" data-size="large">Tweet</a>
+  <script>!function(d,s,id){var js,fjs=d.getElementsByTagName(s)[0],p=/^http:/.test(d.location)?'http':'https';if(!d.getElementById(id)){js=d.createElement(s);js.id=id;js.src=p+'://platform.twitter.com/widgets.js';fjs.parentNode.insertBefore(js,fjs);}}(document, 'script', 'twitter-wjs');</script>
+  <p>While this does seem like an April fools joke, that wasn’t the intention. However, that doesn’t stop me from feeling somewhat clever. Anyway, one of our internal teams started complaining about their web pages being slow. Well, yeah, okay; what do you mean by slow? Just slow or SLOOOOOW. Turns out it was the latter. Using the IE and Chrome profiling tools I could see that there was a lot of time being spent in a jQGrid selector. We wanted to test out some code changes, but had to wait to cut a change record. This would have cost us a few days.</p>
+
+<p>As always, change management is a great thing because it keeps track of what you change. But, as always, change management can hinder progress. It can turn a 2 hour engagement into a 2 day engagement or worse. For sake of transparency we were already in our pre-production environment for this test; but we still couldn’t just up and change code as we pleased. We also couldn’t get a data load on our development environment. There has to be a better way to test UI code changes.</p>
+
+<h2 id="the-issues-and-solutions">The Issues and Solutions</h2>
+<p>Let’s look over the problem we have. We did some initial testing with the browser profiling tools and know it’s all on the client side.</p>
+
+<ol>
+  <li>Identified slow UI</li>
+  <li>Identified slow selector</li>
+  <li>It’s part of a library</li>
+  <li>We have <em>some</em> code we can change</li>
+</ol>
+
+<p>With this list we can go down a couple of roads. Each one would require us to jump on the server and at the very least open notepad. But, as we know, this isn’t allowed and it’s really not an emergency.</p>
+
+<ol>
+  <li>Replace jQuery</li>
+  <li>Replace jQGrid</li>
+  <li>Change our code</li>
+</ol>
+
+<h2 id="fiddler-to-the-rescue">Fiddler to the Rescue!</h2>
+<p>Seriously, how awesome is this tool. Let’s just take a moment and understand the power of a GUI based proxy that allows us to “fiddle” with the requests and responses of an application. Go on. Take a moment. Back? Great.</p>
+
+<p>How can Fiddler help in this situation? We all know that it allows us to change our outgoing requests by using the <a href="http://docs.telerik.com/fiddler/Modify-Traffic/Tasks/CustomizeRequest">Composer</a> and <a href="http://docs.telerik.com/fiddler/KnowledgeBase/FiddlerScript/ModifyRequestOrResponse">rules</a>. But have you spent much time looking at the <a href="http://docs.telerik.com/fiddler/KnowledgeBase/AutoResponder">AutoResponder</a>? This little gem allows us to change the file the browser is requesting to what ever we want; as a side note it also allows us to change the response codes as well.</p>
+
+<blockquote>
+  <p>This same behavior <strong>could</strong> be achieved with rules, but that way is a bit harder to implement.</p>
+</blockquote>
+
+<h2 id="steps-and-process">Steps and Process</h2>
+
+<h3 id="step-1---select-the-target-request">Step 1 - Select the target request</h3>
+<p><img src="/images/fiddler_step1_select_session.png" alt="Step 1" /></p>
+
+<blockquote>
+  <p>Simply highlight the session</p>
+</blockquote>
+
+<h3 id="step-2---click-add-rule-on-auto-responders-tab">Step 2 - Click “Add Rule” on Auto Responders Tab</h3>
+<p><img src="/images/fiddler_step2__add_rule.png" alt="Step 2" /></p>
+
+<blockquote>
+  <p>This will create a rule for the selected session(s)</p>
+</blockquote>
+
+<h3 id="step-3---check-the-check-boxes-to-enable">Step 3 - Check the check boxes to enable</h3>
+<p><img src="/images/fiddler_step3_add_rule_selectboxes.png" alt="Step 3" /></p>
+
+<blockquote>
+  <p>This is required to serve the requests</p>
+</blockquote>
+
+<h3 id="step-4---select-the-file-drop-down">Step 4 - Select the file drop down</h3>
+<p><img src="/images/fiddler_step4_add_rule_selectfile.png" alt="Step 4" /></p>
+
+<blockquote>
+  <p>This is required to serve the requests</p>
+</blockquote>
+
+<h3 id="step-5---reissue-the-request">Step 5 - Reissue the request</h3>
+<p><img src="/images/fiddler_step5_result.png" alt="Step 5" /></p>
+
+<blockquote>
+  <p>Depending on your browser and the cache settings of your file, you may want to force a full reload.</p>
+</blockquote>
+
+<h2 id="wrap-up">Wrap Up</h2>
+<p>The process is pretty simple to execute. If you noticed in Step 5 I highlighted the version requested from the server and the version fiddler returned. I was able to use this technique to replace a couple of other JavaScript files as well and see if upgrading the code helped. In this case we had to make some changes to our code and we were able to test and validate them rather quickly using this method.</p>
+
+<p>While testing in production for server side code is <strong><em>NOT RECOMMENDED</em></strong> by any means. This type of testing in production is okay and, of course, will only affect the client machine. Happy hacking.</p>
+
+
+</div>
+
+ <div id="disqus_thread"></div>
+    <script type="text/javascript">
+        /* * * CONFIGURATION VARIABLES: EDIT BEFORE PASTING INTO YOUR WEBPAGE * * */
+        var disqus_shortname = 'debugthings'; // required: replace example with your forum shortname
+        var disqus_url = 'http://www.debugthings.com/2015/04/01/fiddler-test-in-production/';
+        var disqus_identifier = '/2015/04/01/fiddler-test-in-production';
+
+
+        /* * * DON'T EDIT BELOW THIS LINE * * */
+        (function() {
+            var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
+            dsq.src = '//' + disqus_shortname + '.disqus.com/embed.js';
+            (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+        })();
+    </script>
+    <noscript>Please enable JavaScript to view the <a href="http://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
+    
+
+<div class="related">
+  <h2>Related Posts</h2>
+  <ul class="related-posts">
+    
+    <li>
+      <h3>
+        <a href="http://www.debugthings.com/2015/03/31/netext-windbg/">
+          Debugging - NetExt WinDbg Extension
+          <small>31 Mar 2015</small>
+        </a>
+      </h3>
+    </li>
+    
+    <li>
+      <h3>
+        <a href="http://www.debugthings.com/2015/03/20/visual-studio-target-invocation/">
+          Debugging - "Exception has been thrown by the target of an invocation"
+          <small>20 Mar 2015</small>
+        </a>
+      </h3>
+    </li>
+    
+    <li>
+      <h3>
+        <a href="http://www.debugthings.com/2015/03/09/vb6-482-error/">
+          VB6 and 482 Printer errors (Hello 1998)
+          <small>09 Mar 2015</small>
+        </a>
+      </h3>
+    </li>
+    
+  </ul>
+</div>
+
+      <div class="footer">
+        <p>
+          &copy; 2015. All rights reserved.
+        </p>
+      </div>
+    </div>
+  </div>
+</div>
+
+
+</body>
+</html>
