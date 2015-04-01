@@ -244,7 +244,7 @@ HResult: 80131537
 
 <p>The first 2 breaks were not actually managed threads. The first exception is encountered when devenv starts to host the CLR. The second exception is when the AppDomainManager is firing up.</p>
 
-<p>The third break is when we start getting into the .NET exceptions. I did some investigating and found that all of the exceptions thrown after the third exception were parent exceptions. The exception that causes This first exception is the inner most exception of these parents. This may not always be the case when debugging, but in this case it was.</p>
+<p>The third break is when we start getting into the .NET exceptions. I did some investigating and found that all of the exceptions thrown after the third exception were parent exceptions. The exception that causes this first exception is the inner most exception of these parents. This may not always be the case when debugging, but in this case it was.</p>
 
 <p>I could see there was a UriFormat exception. Alright, well what is throwing this exception? In this instance it’s being thrown from the <code>MS.Internal.FontCache.Util..cctor()</code> when calling <code>System.Uri::.ctor</code>. <code>System.Uri.CreateThis(System.String, Boolean, System.UriKind)</code> is a helper method inside of the constructor. Well that’s odd. Let’s see what this guy is doing. In the stack trace I can see the instruction pointer and can use the <a href="https://msdn.microsoft.com/en-us/library/bb190764%28v=vs.110%29.aspx">SOS</a> method <code>!IP2MD</code> to find it’s MethodDescription. Using the MethodDescription I can dump the IL.</p>
 
@@ -484,6 +484,15 @@ PEB at fffde000
     
     <li>
       <h3>
+        <a href="http://www.debugthings.com/2015/03/31/netext-windbg/">
+          Debugging - NetExt WinDbg Extension
+          <small>31 Mar 2015</small>
+        </a>
+      </h3>
+    </li>
+    
+    <li>
+      <h3>
         <a href="http://www.debugthings.com/2015/03/09/vb6-482-error/">
           VB6 and 482 Printer errors (Hello 1998)
           <small>09 Mar 2015</small>
@@ -496,15 +505,6 @@ PEB at fffde000
         <a href="http://www.debugthings.com/2015/02/24/visual-studio-ctrl-bracket/">
           Visual Studio Productivity, you're doing it wrong (Ctrl+])
           <small>24 Feb 2015</small>
-        </a>
-      </h3>
-    </li>
-    
-    <li>
-      <h3>
-        <a href="http://www.debugthings.com/2015/02/10/speaking-orlcc/">
-          I'm speaking at Orlando Code Camp
-          <small>10 Feb 2015</small>
         </a>
       </h3>
     </li>

@@ -9,7 +9,7 @@ If you want to contact me directly about a speaking opportunity or know of any t
 
 ## Upcoming Sessions
 
-03/28/2015 - [Orlando Code Camp 2015][orlcc]
+08/07/2015 - [Code on the Beach][cotb]
 
 ## Past Sessions
 
@@ -17,8 +17,10 @@ If you want to contact me directly about a speaking opportunity or know of any t
 
 02/10/2015 - [South Florida Code Camp 2015][sflcc]
 
+03/28/2015 - [Orlando Code Camp 2015][orlcc]
 
 
 [owasp]: https://www.owasp.org/index.php/Tampa
 [sflcc]: http://www.fladotnet.com/codecamp/
 [orlcc]: http://www.orlandocodecamp.com/
+[cotb]: http://www.codeonthebeach.com/

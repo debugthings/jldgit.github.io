@@ -4,13 +4,23 @@
  <title>Debug Things</title>
  <link href="http://www.debugthings.com/atom.xml" rel="self"/>
  <link href="http://www.debugthings.com/"/>
- <updated>2015-03-21T07:46:15-07:00</updated>
+ <updated>2015-03-31T20:31:07-07:00</updated>
  <id>http://www.debugthings.com</id>
  <author>
    <name>James Davis</name>
    <email>james.l.davis@outlook.com</email>
  </author>
 
+ 
+ <entry>
+   <title>Debugging - NetExt WinDbg Extension</title>
+   <link href="http://www.debugthings.com//2015/03/31/netext-windbg/"/>
+   <updated>2015-03-31T00:00:00-07:00</updated>
+   <id>http://www.debugthings.com/2015/03/31/netext-windbg</id>
+   <content type="html">&lt;p&gt;I was poking around for some WinDbg extensions and stumbled upon a new one that I hadn&amp;#8217;t seen before. &lt;a href=&quot;https://netext.codeplex.com/&quot;&gt;NetExt&lt;/a&gt;, is written and maintained by &lt;a href=&quot;https://msdn.microsoft.com/en-us/gg602412.aspx&quot;&gt;Rodney Viana&lt;/a&gt; an Escalation Engineer with Microsoft. I downloaded it and went through his tutorials on how to use it (available on the CodePlex site). I must say it&amp;#8217;s pretty nice. The best feature is that it uses the .NET Debugging interfaces as well as a mix of managed code.&lt;/p&gt;
+
+</content>
+ </entry>
  
  <entry>
    <title>Debugging - "Exception has been thrown by the target of an invocation"</title>
