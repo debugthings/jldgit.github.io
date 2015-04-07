@@ -57,7 +57,7 @@ How can Fiddler help in this situation? We all know that it allows us to change 
 >Depending on your browser and the cache settings of your file, you may want to force a full reload.
 
 ## Wrap Up
-The process is pretty simple to execute. If you noticed in Step 5 I highlighted the version requested from the server and the version fiddler returned. I was able to use this technique to replace a couple of other JavaScript files as well and see if upgrading the code helped. In this case we had to make some changes to our code and we were able to test and validate them rather quickly using this method.
+The process is pretty simple to execute. If you noticed in Step 5 I highlighted the version requested from the server and the version Fiddler returned. I was able to use this technique to replace a couple of other JavaScript files as well and see if upgrading the code helped. In this case we had to make some changes to our code and we were able to test and validate them rather quickly using this method.
 
 While testing in production for server side code is ***NOT RECOMMENDED*** by any means. This type of testing in production is okay and, of course, will only affect the client machine. Happy hacking.
 
