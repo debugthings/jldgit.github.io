@@ -4,13 +4,23 @@
  <title>Debug Things</title>
  <link href="http://www.debugthings.com/atom.xml" rel="self"/>
  <link href="http://www.debugthings.com/"/>
- <updated>2015-04-07T09:46:37-07:00</updated>
+ <updated>2015-04-14T08:34:28-07:00</updated>
  <id>http://www.debugthings.com</id>
  <author>
    <name>James Davis</name>
    <email>james.l.davis@outlook.com</email>
  </author>
 
+ 
+ <entry>
+   <title>Debugging - vNext, Mono, xUnit ... On Linux - Part 2</title>
+   <link href="http://www.debugthings.com//2015/04/10/debugging-vnext-mono-pt2/"/>
+   <updated>2015-04-10T00:00:00-07:00</updated>
+   <id>http://www.debugthings.com/2015/04/10/debugging-vnext-mono-pt2</id>
+   <content type="html">&lt;p&gt;Last time we found an issue with the threading model and the execution context that caused the xUnit custom thread manager to attempt to join on itself causing an infinite wait condition. This time the execution context is breaking us in an entirely new way. In this session I will show you two ways to find the issue using GDB. Hang on because we&amp;#8217;re going deep in this one.&lt;/p&gt;
+
+</content>
+ </entry>
  
  <entry>
    <title>Debugging - vNext, Mono, xUnit ... On Linux - Part 1</title>

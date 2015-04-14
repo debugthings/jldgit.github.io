@@ -81,6 +81,20 @@
   
   <div class="post">
     <h1 class="post-title">
+      <a href="/2015/01/09/debugging-heap-leaks/">
+        Debugging - Finding a native heap leak with WinDbg
+      </a>
+    </h1>
+
+    <span class="post-date">09 Jan 2015</span>
+
+    While writing the <a href="https://github.com/jldgit/mysql_udf_dotnet">MySQL .NET UDF Plugin</a> I had to break away from my daily use of .NET. I have done a bit with Win32 COM before but not enough to know all of the ins and outs. But, as I plow through some books and bad code examples I introduce all kinds of bugs. Most notably memory leaks. I will show what leaks I found and how I fixed them using a couple of WinDbg commands as well as a few utilities.
+
+
+  </div>
+  
+  <div class="post">
+    <h1 class="post-title">
       <a href="/2015/01/08/extending-mysql-server-part9/">
         MySQL .NET Hosting Extension - Part 9 - Strings, _bstr_t, SafeArrays, SysAllocString, SysFreeString
       </a>
@@ -131,20 +145,6 @@
     <span class="post-date">05 Dec 2014</span>
 
     Seriously, it&#8217;s 2014 almost 2015. I wanted to add a file type association to my machine using the provided Windows interfaces. I added an association by using the open file dialog, but realized after the fact that I wanted to give the file type a better name. A quick Google search provided a number of links asking how, but only one that told me how.
-
-
-  </div>
-  
-  <div class="post">
-    <h1 class="post-title">
-      <a href="/2014/12/03/compiling-for-two/">
-        Compiling for Two (.NET versions)
-      </a>
-    </h1>
-
-    <span class="post-date">03 Dec 2014</span>
-
-    While writing the <a href="https://github.com/jldgit/mysql_udf_dotnet">MySQL plugin</a> I found a strange need to compile two versions of my AppDomain Manager. Mainly it was for future compatibility. Plus I figured as long as my Interfaces didn&#8217;t change, everything would be great. But it left me with a sucking hole in my project solution. I was going to have to maintain two versions of source code <strong>FOR THE EXACT SAME THING</strong>. I didn&#8217;t like that.
 
 
   </div>
@@ -205,6 +205,24 @@
       <li id="2015-April-refmonth"><i class="fa-li fa fa-plus-square"></i>April
       <ul class="postlist fa-ul">
         
+
+    <li class="lipad"><i class="fa-li fa fa-link" ></i><a href="/2015/04/10/debugging-vnext-mono-pt2/">Debugging - vNext, Mono, xUnit ... On Linux - Part 2</a></li>
+
+
+    
+
+    
+      
+    
+    
+
+
+    
+    
+    
+    
+
+    
 
     <li class="lipad"><i class="fa-li fa fa-link" ></i><a href="/2015/04/07/debugging-vnext-mono/">Debugging - vNext, Mono, xUnit ... On Linux - Part 1</a></li>
 
