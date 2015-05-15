@@ -353,7 +353,7 @@ The next section will go into how we can isolate code execution by spinning up u
 If you have any questions, feel free to leave a comment or contact me on Twitter.
 
 [hosting]: http://msdn.microsoft.com/en-us/library/ms404385(v=vs.110).aspx
-[cpp]: https://github.com/jldgit/mysql_udf_dotnet/blob/master/clr_host/ClrHost.cpp
+[cpp]: https://github.com/jldgit/mysql_udf_dotnet/blob/master/clr_host/ClrHost
 [udf]: https://github.com/jldgit/mysql_udf_dotnet/blob/master/mysql_udf.c
 [ARGS]: http://dev.mysql.com/doc/refman/5.0/en/udf-arguments.html
 [adm]: http://www.microsoft.com/en-us/download/details.aspx?id=7325

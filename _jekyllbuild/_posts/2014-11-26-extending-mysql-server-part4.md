@@ -288,7 +288,7 @@ As you can (hopefully) see, we are getting close to a more first class plugin fo
 If you do want to use it in production let me know and I can help guide you with some updates to the code. Mainly these updates will be around bounds checking and type safety.
 
 [hosting]: http://msdn.microsoft.com/en-us/library/ms404385(v=vs.110).aspx
-[cpp]: https://github.com/jldgit/mysql_udf_dotnet/blob/master/clr_host/ClrHost.cpp
+[cpp]: https://github.com/jldgit/mysql_udf_dotnet/blob/master/clr_host/ClrHost
 [udf]: https://github.com/jldgit/mysql_udf_dotnet/blob/master/mysql_udf.c
 [ARGS]: http://dev.mysql.com/doc/refman/5.0/en/udf-arguments.html
 [adm]: http://www.microsoft.com/en-us/download/details.aspx?id=7325

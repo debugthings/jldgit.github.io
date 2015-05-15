@@ -4,13 +4,23 @@
  <title>Debug Things</title>
  <link href="http://www.debugthings.com/atom.xml" rel="self"/>
  <link href="http://www.debugthings.com/"/>
- <updated>2015-04-14T08:34:28-07:00</updated>
+ <updated>2015-05-15T09:20:58-07:00</updated>
  <id>http://www.debugthings.com</id>
  <author>
    <name>James Davis</name>
    <email>james.l.davis@outlook.com</email>
  </author>
 
+ 
+ <entry>
+   <title>Debugging - I break things. Visual Studio Crash</title>
+   <link href="http://www.debugthings.com//2015/05/14/i-break-things/"/>
+   <updated>2015-05-14T00:00:00-07:00</updated>
+   <id>http://www.debugthings.com/2015/05/14/i-break-things</id>
+   <content type="html">&lt;p&gt;Sometimes I abuse Visual Studio without trying. I use Visual Studio to create web performance test scripts and I usually use Fiddler to record the scripts. After recording a fairly trivial script I exported the Fiddler session and imported it into Visual Studio. Once I was done mucking with the Web Test layout I converted it to a coded web test. As soon as the coded test was done generating, Visual Studio crashed. So, I tried again, same thing. Nope, I don&amp;#8217;t like it&amp;#8212;let&amp;#8217;s find out what&amp;#8217;s going on.&lt;/p&gt;
+
+</content>
+ </entry>
  
  <entry>
    <title>Debugging - vNext, Mono, xUnit ... On Linux - Part 2</title>

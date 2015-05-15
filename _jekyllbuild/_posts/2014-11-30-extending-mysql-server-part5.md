@@ -221,7 +221,7 @@ Now that we have a solid foundation from part 4 we can extend it to be a bit mor
 As always, I'm here to help if you have questions. Look for a v1.0 before the end of December. I will make sure the application has an installer and can be used with both 32bit and 64bit.
 
 [hosting]: http://msdn.microsoft.com/en-us/library/ms404385(v=vs.110).aspx
-[cpp]: https://github.com/jldgit/mysql_udf_dotnet/blob/master/clr_host/ClrHost.cpp
+[cpp]: https://github.com/jldgit/mysql_udf_dotnet/blob/master/clr_host/ClrHost
 [udf]: https://github.com/jldgit/mysql_udf_dotnet/blob/master/mysql_udf.c
 [ARGS]: http://dev.mysql.com/doc/refman/5.0/en/udf-arguments.html
 [adm]: http://www.microsoft.com/en-us/download/details.aspx?id=7325
