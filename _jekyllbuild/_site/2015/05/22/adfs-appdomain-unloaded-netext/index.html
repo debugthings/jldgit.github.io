@@ -1,0 +1,393 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en-us">
+
+<head>
+  <link href="http://gmpg.org/xfn/11" rel="profile" />
+  <meta http-equiv="content-type" content="text/html; charset=utf-8" />
+
+  <!-- Enable responsiveness on mobile devices-->
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1" />
+
+  <title>
+    
+    Debugging - ADFS AppDomainUnloadedException with NetExt &middot; Debug Things
+    
+  </title>
+  <!--FONTS-->
+  <link href='http://fonts.googleapis.com/css?family=Lato&subset=latin,latin-ext' rel='stylesheet' type='text/css' />
+
+
+  <!-- CSS -->
+  <link rel="stylesheet" href="/public/css/monokai.css" />
+  <link rel="stylesheet" href="/public/css/bootstrap.css" />
+  <link rel="stylesheet" href="//maxcdn.bootstrapcdn.com/font-awesome/4.3.0/css/font-awesome.min.css">
+  <link rel="stylesheet" href="/public/css/poole.css" />
+
+
+  <script type="text/javascript" src="http://code.jquery.com/jquery-2.1.3.min.js"></script>
+
+
+  <!-- Icons -->
+  <link rel="apple-touch-icon-precomposed" sizes="144x144" href="/public/apple-touch-icon-precomposed.png" />
+  <link rel="shortcut icon" href="/public/favicon.ico" />
+
+  <!-- RSS -->
+  <link rel="alternate" type="application/rss+xml" title="RSS" href="/atom.xml" />
+
+
+
+  <script type="text/javascript">
+  (function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){
+  (i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),
+  m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)
+  })(window,document,'script','//www.google-analytics.com/analytics.js','ga');
+
+  ga('create', 'UA-56527114-1', 'auto');
+  ga('send', 'pageview');
+ </script>
+
+</head>
+
+
+<body>
+  <nav class="navbar navbar-inverse navbar-fixed-top" role="navigation">
+  <div class="container">
+    <div class="navbar-header">
+      <button type="button" class="navbar-toggle collapsed" data-toggle="collapse" data-target="#navbar" aria-expanded="false" aria-controls="navbar">
+        <span class="sr-only">Toggle navigation</span>
+        <span class="icon-bar"></span>
+        <span class="icon-bar"></span>
+        <span class="icon-bar"></span>
+      </button>
+      <a href="/" class="navbar-brand" title="Home">DEBUG THINGS</a>
+    </div>
+    <div id="navbar" class="navbar-collapse collapse">
+      <ul class="nav navbar-nav">
+        <li><a href="/about/">About</a></li>
+        <li><a href="/projects">Projects</a></li>
+        <li><a href="/mysql/">MySQL .NET UDF</a></li>
+        <li><a href="/speaking/">Speaking</a></li>
+        <li><a href="/owasp/">OWASP</a></li>
+
+      </ul>
+    </div><!--/.navbar-collapse -->
+  </div>
+</nav>
+
+  <div class="container containerbg">
+   <div class="row rowoffset">
+    <div class="col-md-12">
+      <div class="post">
+  <h1 class="post-title">Debugging - ADFS AppDomainUnloadedException with NetExt</h1>
+  <span class="post-date">22 May 2015</span>
+  <a href="https://twitter.com/share" class="twitter-share-button" data-via="debugthings" data-size="large">Tweet</a>
+  <script>!function(d,s,id){var js,fjs=d.getElementsByTagName(s)[0],p=/^http:/.test(d.location)?'http':'https';if(!d.getElementById(id)){js=d.createElement(s);js.id=id;js.src=p+'://platform.twitter.com/widgets.js';fjs.parentNode.insertBefore(js,fjs);}}(document, 'script', 'twitter-wjs');</script>
+  <p>I got a quick message yesterday about a machine running out of space. Normally this is just handled by our second line support. But this time the developer jumped on the box to find out what was causing it and noticed there were a lot of dump files. I looked at it with the developer and found there were a bunch of crash dumps being created by a monitoring tool. This tool captures unhandled exceptions and will create a mini dump for it. Neither of us liked the fact there were numerous dumps, so I decided to dig deeper.</p>
+
+<h2 id="tldr">TL;DR</h2>
+<p>This isn’t nessecarily related to ADFS, it could happen to any application. If you came here looking for the following things, you should start looking at the code that you deployed and if it has an explicit unload or if it modifies any files. In our case .NET patching was happening and the machine.config would be refreshed. This caused the AppDomain to be unloaded and restarted in the w3wp process.</p>
+
+<ul>
+  <li>AppDomainUnloadedException</li>
+  <li>HRESULT COR_E_APPDOMAINUNLOADED 0x80131014</li>
+</ul>
+
+<h2 id="the-problem---adfs-and-crashing-w3wp">The Problem - ADFS and Crashing W3WP</h2>
+<p>Not surprisingly, we didn’t know there was a problem. As it turns out the application would fail and it would get restarted almost instantaneously due to traffic coming in. The way we found it was non traditional; we have a monitoring solution that will generate a minidump when the process experiences an unhandled exception. Inside of the log directory we had minidumps running all the way back to late last year.</p>
+
+<p>All of these minidumps amounted to a little over 10GB and triggered an out of space warning. Seeing such a large amount of dumps makes me a bit edgy because I start to wonder if our monitoring solution is causing the issue. Looking at the dump files that was not the case, but was there something else that was happening? I can see where a few requests would hang and fail.</p>
+
+<h2 id="the-analysis">The Analysis</h2>
+<p>The great thing about what was happening here is that I have a dump that occurred around this time. The second great thing is that it’s .NET. I can use a number of tools and extensions to dig out the metadata and the object structure.</p>
+
+<p>I started by loading <a href="https://netext.codeplex.com/">NetExt</a> and took a look at the threads. If you look at thread 0x20(0n32) you can see there is an AppDomainUnloadedException on the stack. Well this looks interesting; let’s go check it out.</p>
+
+<div class="highlight"><pre><code>0:032&gt; .load netext
+netext version 2.0.1.5000 Mar 23 2015
+License and usage can be seen here: !whelp license
+Check Latest version: !wupdate
+For help, type !whelp (or in WinDBG run: '.browse !whelp')
+Questions and Feedback: http://netext.codeplex.com/discussions
+Copyright (c) 2014-2015 Rodney Viana (http://blogs.msdn.com/b/rodneyviana)
+Type: !windex -tree or ~*e!wstack to get started
+
+0:032&gt; !wthreads
+Id OSId Address          Domain           Allocation Start:End              COM  GC Type  Locks Type / Status             Last Exception
+2 0e90 0000009d2d93fa30 0000009d2d8dd630 0000000000000000:0000000000000000 MTA  Preemptive   0 Background|Finalizer
+5 0700 0000009f565c1cc0 0000009d2d8dd630 0000000000000000:0000000000000000 MTA  Preemptive   0 Background|Timer|Worker  
+8 1068 0000009f58cde3a0 0000009d2d8dd630 0000009d2ff3b1f0:0000009d2ff3cc88 MTA  Preemptive   0 Background
+9 1e80 0000009f58bc52b0 0000009d2d8dd630 0000000000000000:0000000000000000 MTA  Preemptive   0 Background
+10 1250 0000009f58cdd140 0000009d2d8dd630 0000000000000000:0000000000000000 NONE Preemptive   0 Background
+13 0bd0 0000009f58d6c590 0000009d2d8dd630 0000000000000000:0000000000000000 NONE Preemptive   0 Background|Wait|Worker
+14 0df4 0000009f58ca44d0 0000009d2d8dd630 0000000000000000:0000000000000000 NONE Preemptive   0 Background
+12 1130 0000009f58d6bdc0 0000009d2d8dd630 0000000000000000:0000000000000000 NONE Preemptive   0 Background|GC
+26 18f8 0000009f5cd91de0 0000009d2d8dd630 0000000000000000:0000000000000000 NONE Preemptive   0 Background|GC
+15 0414 0000009f5d149060 0000009d2d8dd630 0000000000000000:0000000000000000 NONE Preemptive   0 Background
+11 1a84 0000009f58ca2d60 0000009d2d8dd630 0000000000000000:0000000000000000 NONE Preemptive   0 Background
+1 1c60 0000009f5d149830 0000009d2d8dd630 0000000000000000:0000000000000000 NONE Preemptive   0 Background
+29 ---- 0000009f5cc5bc40 0000009d2d8dd630 0000000000000000:0000000000000000 MTA  Preemptive   0 Terminated
+16 ---- 0000009f5cd93d20 0000009d2d8dd630 0000000000000000:0000000000000000 MTA  Preemptive   0 Terminated
+4 0de4 0000009f58ca5470 0000009d2d8dd630 0000000000000000:0000000000000000 MTA  Preemptive   0 Background|Worker
+23 06a8 0000009f5cafb570 0000009d2d8dd630 0000000000000000:0000000000000000 NONE Preemptive   0 Background
+22 1d90 0000009f5cafbd40 0000009d2d8dd630 0000000000000000:0000000000000000 MTA  Preemptive   0 Background|Worker
+20 0adc 0000009f5d14a000 0000009d2d8dd630 0000000000000000:0000000000000000 MTA  Preemptive   0 Background|Worker         System.AppDomainUnloadedException
+24 096c 0000009f5d00be00 0000009d2d8dd630 0000000000000000:0000000000000000 MTA  Preemptive   0 Background|Worker
+17 0a3c 0000009f5924e430 0000009d2d8dd630 0000000000000000:0000000000000000 MTA  Preemptive   0 Background|Worker
+19 1e34 0000009f5cafc510 0000009d2d8dd630 0000000000000000:0000000000000000 MTA  Preemptive   0 Background|IOCPort
+6 09e4 0000009f5d00a690 0000009d2d8dd630 0000000000000000:0000000000000000 MTA  Preemptive   0 Background|IOCPort
+7 1f74 0000009f5924ec00 0000009d2d8dd630 0000000000000000:0000000000000000 MTA  Preemptive   0 Background|IOCPort
+3 1f68 0000009f5cafada0 0000009d2d8dd630 0000000000000000:0000000000000000 MTA  Preemptive   0 Background|IOCPort
+27 0f74 0000009f5d14a7d0 0000009d2d8dd630 0000000000000000:0000000000000000 MTA  Preemptive   0 Background|Worker
+
+
+0:032&gt; !wclrstack
+Thread Id: 32 OS Id: adc Locks: 0
+Thread is Alive
+Last Exception: (System.AppDomainUnloadedException) The application domain in which the thread was running has been unloaded.
+
+0000009f5b14f498 0000000000000000 GCFrame
+</code></pre></div>
+
+<p>Well, there’s nothing managed on the thread; but there is a managed exception. This is odd, but not unlikely. Let’s check out the unmanaged stack to see if anything is happening here. Let’s switch to the exception record and inspect the stack.</p>
+
+<div class="highlight"><pre><code>0:032&gt; .ecxr
+rax=0000009f5b14f008 rbx=0000009f5b14f3a8 rcx=0000009f5d14a000
+rdx=000007fbdfc77f66 rsi=0000000000000001 rdi=0000000000000005
+rip=000007fbea7b64a8 rsp=0000009f5b14f240 rbp=0000009f5b14f599
+ r8=000007fbdfb14954  r9=fffffffffffffffe r10=000007fbe01f86d3
+r11=0000cd2f8431210b r12=0000000000004000 r13=0000000000000000
+r14=00000000e0434352 r15=0000009f5b14f948
+iopl=0         nv up ei pl nz na po nc
+cs=0033  ss=002b  ds=002b  es=002b  fs=0053  gs=002b             efl=00000206
+KERNELBASE!RaiseException+0x68:
+000007fb`ea7b64a8 488b8c24c0000000 mov     rcx,qword ptr [rsp+0C0h] ss:0000009f`5b14f300=000028ab509810f9
+
+
+0:032&gt; kn
+  *** Stack trace for last set context - .thread/.cxr resets it
+ # Child-SP          RetAddr           Call Site
+00 0000009f`5b14f240 000007fb`dfcfe6af KERNELBASE!RaiseException+0x68
+01 0000009f`5b14f320 000007fb`dfeb8154 clr!RaiseTheExceptionInternalOnly+0x28b
+02 0000009f`5b14f410 000007fb`dfeb8eb2 clr!RaiseTheException+0xa4
+03 0000009f`5b14f440 000007fb`dfeb8194 clr!RealCOMPlusThrowWorker+0x36
+04 0000009f`5b14f470 000007fb`dfeb81ac clr!RealCOMPlusThrow+0x3c
+05 0000009f`5b14f4e0 000007fb`dfe895ea clr!RealCOMPlusThrow+0xc
+06 0000009f`5b14f510 000007fb`dfe89160 clr!Thread::RaiseCrossContextExceptionHelper+0xae
+07 0000009f`5b14f600 000007fb`e011d757 clr!Thread::RaiseCrossContextException+0xa9
+08 0000009f`5b14f820 000007fb`dfbb4ebd clr!Thread::DoADCallBack+0x5d1f4b
+09 0000009f`5b14f9f0 000007fb`dfd1918d clr!UM2MDoADCallBack+0x8d
+0a 0000009f`5b14fa70 000007fb`e09c1d6e clr!UMThunkStub+0x26d
+0b 0000009f`5b14fb00 000007fb`e09c2276 webengine4!W3_MGD_HANDLER::ProcessNotification+0x78
+0c 0000009f`5b14fb30 000007fb`dfb4b1c2 webengine4!ProcessNotificationCallback+0x42
+0d 0000009f`5b14fb60 000007fb`dfb49e8b clr!UnManagedPerAppDomainTPCount::DispatchWorkItem+0x11a
+0e 0000009f`5b14fc00 000007fb`dfb49d8a clr!ThreadpoolMgr::ExecuteWorkRequest+0x4c
+0f 0000009f`5b14fc30 000007fb`dfb6adde clr!ThreadpoolMgr::WorkerThreadStart+0xf6
+10 0000009f`5b14fcf0 000007fb`ec601842 clr!Thread::intermediateThreadProc+0x7d
+11 0000009f`5b14fe30 000007fb`ed7d02a9 kernel32!BaseThreadInitThunk+0x1a
+12 0000009f`5b14fe60 00000000`00000000 ntdll!RtlUserThreadStart+0x1d
+</code></pre></div>
+
+<p>Alright. It looks like the CLR is throwing the exception in the unmanaged world. If you look at frame 0x0d you can see were in the unmanaged thread pool (<code>UnManagedPerAppDomainTPCount</code>). This explains why we have an unhandled exception. If you read the <a href="https://msdn.microsoft.com/en-us/library/system.appdomainunloadedexception%28v=vs.110%29.aspx">MSDN documentation</a> about AppDomainUnloadedException it explains exactly what is happening.</p>
+
+<blockquote>
+  <p>In the .NET Framework version 2.0, an AppDomainUnloadedException that is not handled in user code has the following effect:</p>
+
+  <ul>
+    <li>If a thread was started in managed code, it is terminated. The unhandled exception is not allowed to terminate the application.</li>
+    <li>If a task is executing on a ThreadPool thread, it is terminated and the thread is returned to the thread pool. The unhandled exception is not allowed to terminate the application.</li>
+    <li><strong>If a thread started in unmanaged code, such as the main application thread, it is terminated. The unhandled exception is allowed to proceed, and the operating system terminates the application.</strong></li>
+  </ul>
+
+  <p>AppDomainUnloadedException uses the HRESULT COR_E_APPDOMAINUNLOADED, which has the value 0x80131014.</p>
+</blockquote>
+
+<p>Cool. That explains why the application died. But why was the AppDomain unloaded in the first place? Something had to cause this application domain unload. Let’s use a couple of goodies inside of NetExt to see what’s going on. I know a problem is occurring inside of the <code>W3_MGD_HANDLER</code> so let’s look at the HttpRuntime by using <code>!wruntime</code> to see if something is going on.</p>
+
+<div class="highlight"><pre><code>0:032&gt; !wruntime
+Runtime Settings per Application Pool
+
+=========================================================================
+Address         : 0000009D2FA4B130
+First Request   : 5/16/2015 3:52:33 AM
+App Pool User   : *************
+Trust Level     : Full
+App Domnain Id  : /LM/W3SVC/1/ROOT/adfs/ls-7-130762219536261032
+Debug Enabled   : True (Not recommended in production)
+Active Requests : 0n1
+Path            : C:\inetpub\adfs\ls\ (local disk)
+Temp Folder     : C:\Windows\Microsoft.NET\Framework64\v4.0.30319\Temporary ASP.NET Files
+Compiling Folder: C:\Windows\Microsoft.NET\Framework64\v4.0.30319\Temporary ASP.NET Files\adfs_ls\a6c27ef8\7adb2961
+Shutdown Reason : ConfigurationChange at 5/17/2015 3:12:33 AM
+
+CONFIG change
+HostingEnvironment initiated shutdown
+HostingEnvironment caused shutdownn   at System.Environment.GetStackTrace(Exception e, Boolean needFileInfo)
+   at System.Environment.get_StackTrace()
+   at System.Web.Hosting.HostingEnvironment.InitiateShutdownInternal()
+   at System.Web.HttpRuntime.ShutdownAppDomain(String stackTrace)
+   at System.Configuration.BaseConfigurationRecord.OnStreamChanged(String streamname)
+   at System.Web.DirectoryMonitor.FireNotifications()
+   at System.Web.Util.WorkItem.CallCallbackWithAssert(WorkItemCallback callback)
+   at System.Threading.ExecutionContext.RunInternal(ExecutionContext executionContext, ContextCallback callback, Object state, Boolean preserveSyncCtx)
+   at System.Threading.ExecutionContext.Run(ExecutionContext executionContext, ContextCallback callback, Object state, Boolean preserveSyncCtx)
+   at System.Threading.QueueUserWorkItemCallback.System.Threading.IThreadPoolWorkItem.ExecuteWorkItem()
+   at System.Threading.ThreadPoolWorkQueue.Dispatch()
+</code></pre></div>
+
+<p>Looks like a file is being modified and is causing the recycle. Let’s see if we can find this file. To do so we need to find all of the System.Web.FileMonitor objects.</p>
+
+<p><em>Also, let’s get the app team to turn off debug mode. :smile:</em></p>
+
+<div class="highlight"><pre><code>0:032&gt; !windex -type *FileMonitor
+Index is up to date
+ If you believe it is not, use !windex -flush to force reindex
+0000009d2fa4c478 000007fb80ab8a80 System.Web.FileMonitor       88   0 2
+0000009d2fa4c888 000007fb80ab8a80 System.Web.FileMonitor       88   0 2
+0000009d2fa4cc48 000007fb80ab8a80 System.Web.FileMonitor       88   0 2
+0000009d2fa4cff0 000007fb80ab8a80 System.Web.FileMonitor       88   0 2
+0000009d2fa4d2c0 000007fb80ab8a80 System.Web.FileMonitor       88   0 2
+&lt;&lt;&lt; REMOVED FOR CLARITY &gt;&gt;&gt;
+&lt;&lt;&lt; 22 instances &gt;&gt;&gt;
+</code></pre></div>
+
+<p>Ugh, 22 objects, it could be worse but it can take some time to go through all of these and to parse the information properly. Let’s look at the output from just one of the objects (web.config).</p>
+
+<div class="highlight"><pre><code>0:032&gt; !wdo 0000009D2FA76FE0
+Address: 0000009d2fa76fe0
+Method Table/Token: 000007fb80ab8a80/200031604
+Class Name: System.Web.FileMonitor
+Size : 88
+EEClass: 000007fb80ad6850
+Instance Fields: 10
+Static Fields: 0
+Total Fields: 20
+Heap/Generation: 0/2
+Module: 0000000057350000
+Assembly: 000000002d9436a0
+Domain: 00000000e03d2210
+Assembly Name: C:\Windows\Microsoft.Net\assembly\GAC_64\System.Web\v4.0_4.0.0.0__b03f5f7f11d50a3a\System.Web.dll
+Inherits: System.Object (000007FB80526248)
+000007fb807a65e0                 System.Web.DirectoryMonitor +0000          DirectoryMonitor 0000009d2fa76d28
+000007fb8082f0e8    System.Collections.Specialized.HybridDic +0008                   Aliases 0000009d2fa77060
+000007fb80564d58                               System.String +0010             _fileNameLong 0000009d2fa76db8 web.config
+000007fb80564d58                               System.String +0018            _fileNameShort 0000009d2fa76de8 WEB~1.CON
+000007fb8082f0e8    System.Collections.Specialized.HybridDic +0020                  _targets 0000009d2fa77038
+000007fb80ab9070          System.Web.Util.FileAttributesData +0028                      _fad 0000009d2fa76e18
+000007fb805c1378                               System.Byte[] +0030                     _dacl 0000009d2fa76e50
+000007fb80ab8928                       System.Web.FileAction +0038               _lastAction 0 (0n0) Overwhelming
+000007fb8052c7b8                              System.Boolean +003c                   _exists 1 (True)
+000007fb807579c0                             System.DateTime +0040        _utcLastCompletion -mt 000007FB807579C0 0000009D2FA77028 #INVALIDDATE#
+</code></pre></div>
+
+<p>A couple of fields stand out to me; <strong>_utcLastCompletion</strong> and <strong>_lastAction</strong>. Let’s create a <code>!wfrom</code> query to pull this data. This query pulls the address, the name of the file, the lastAction and the date time. I specified the where clause to pick up any _lastAction that wasn’t 0. This was simply because I inspected a couple of items and found 0 to be common.</p>
+
+<div class="highlight"><pre><code>0:032&gt; !wfrom -type *FileMonitor where _lastAction &gt; 0 select $addr(), _fileNameLong, _lastAction, $tickstodatetime(_utcLastCompletion.dateData)
+calculated: 0000009D2FA52478
+_fileNameLong: machine.config
+_lastAction: 0n3
+calculated: 5/17/2015 3:12:33 AM
+
+1 Object(s) listed
+21 Object(s) skipped by filter
+
+
+0:032&gt; !wdo 0000009D2FA52478
+Address: 0000009d2fa52478
+Method Table/Token: 000007fb80ab8a80/200031604
+Class Name: System.Web.FileMonitor
+Size : 88
+EEClass: 000007fb80ad6850
+Instance Fields: 10
+Static Fields: 0
+Total Fields: 20
+Heap/Generation: 0/2
+Module: 0000000057350000
+Assembly: 000000002d9436a0
+Domain: 00000000e03d2210
+Assembly Name: C:\Windows\Microsoft.Net\assembly\GAC_64\System.Web\v4.0_4.0.0.0__b03f5f7f11d50a3a\System.Web.dll
+Inherits: System.Object (000007FB80526248)
+000007fb807a65e0                      System.Web.DirectoryMonitor +0000          DirectoryMonitor 0000009d2fa521d0
+000007fb8082f0e8         System.Collections.Specialized.HybridDic +0008                   Aliases 0000009d2fa524f8
+000007fb80564d58                                    System.String +0010             _fileNameLong 0000009d2fa52260 machine.config
+000007fb80564d58                                    System.String +0018            _fileNameShort 0000009d2fa52298 MACHIN~1.CON
+000007fb8082f0e8         System.Collections.Specialized.HybridDic +0020                  _targets 0000009d2fa524d0
+000007fb80ab9070               System.Web.Util.FileAttributesData +0028                      _fad 0000009d2ff36f10
+000007fb805c1378                                    System.Byte[] +0030                     _dacl 0000009d2fa52388
+000007fb80ab8928                            System.Web.FileAction +0038               _lastAction 3 (0n3) Modified
+000007fb8052c7b8                                   System.Boolean +003c                   _exists 1 (True)
+000007fb807579c0                                  System.DateTime +0040        _utcLastCompletion -mt 000007FB807579C0 0000009D2FA524C0 5/17/2015 3:12:33 AM
+
+</code></pre></div>
+
+<p>Found it! It looks like the machine.config was updated sometime around 5/16 @ 11:12am (UTC -04:00), which happens to coincide with the shutdown reason from <code>!wruntime</code>. If you read <a href="http://blogs.msdn.com/b/tess/archive/2006/08/02/asp-net-case-study-lost-session-variables-and-appdomain-recycles.aspx">this old blog post</a> by Tess Ferandez, it lists the things that can cause an AppDomain recycle. The machine.config is the first one listed.</p>
+
+<h2 id="final-notes">Final Notes</h2>
+<p>In our case this was because of off-cycle security patching. Normally the systems are updated during a maintenance window, but in this case there were a few critical updates that needed to be installed.</p>
+
+
+</div>
+
+ <div id="disqus_thread"></div>
+    <script type="text/javascript">
+        /* * * CONFIGURATION VARIABLES: EDIT BEFORE PASTING INTO YOUR WEBPAGE * * */
+        var disqus_shortname = 'debugthings'; // required: replace example with your forum shortname
+        var disqus_url = 'http://www.debugthings.com/2015/05/22/adfs-appdomain-unloaded-netext/';
+        var disqus_identifier = '/2015/05/22/adfs-appdomain-unloaded-netext';
+
+
+        /* * * DON'T EDIT BELOW THIS LINE * * */
+        (function() {
+            var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
+            dsq.src = '//' + disqus_shortname + '.disqus.com/embed.js';
+            (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+        })();
+    </script>
+    <noscript>Please enable JavaScript to view the <a href="http://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
+    
+
+<div class="related">
+  <h2>Related Posts</h2>
+  <ul class="related-posts">
+    
+    <li>
+      <h3>
+        <a href="http://www.debugthings.com/2015/05/14/i-break-things/">
+          Debugging - I break things. Visual Studio Crash
+          <small>14 May 2015</small>
+        </a>
+      </h3>
+    </li>
+    
+    <li>
+      <h3>
+        <a href="http://www.debugthings.com/2015/04/10/debugging-vnext-mono-pt2/">
+          Debugging - vNext, Mono, xUnit ... On Linux - Part 2
+          <small>10 Apr 2015</small>
+        </a>
+      </h3>
+    </li>
+    
+    <li>
+      <h3>
+        <a href="http://www.debugthings.com/2015/04/07/debugging-vnext-mono/">
+          Debugging - vNext, Mono, xUnit ... On Linux - Part 1
+          <small>07 Apr 2015</small>
+        </a>
+      </h3>
+    </li>
+    
+  </ul>
+</div>
+
+      <div class="footer">
+        <p>
+          &copy; 2015. All rights reserved.
+        </p>
+      </div>
+    </div>
+  </div>
+</div>
+
+
+</body>
+</html>

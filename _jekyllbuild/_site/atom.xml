@@ -4,13 +4,23 @@
  <title>Debug Things</title>
  <link href="http://www.debugthings.com/atom.xml" rel="self"/>
  <link href="http://www.debugthings.com/"/>
- <updated>2015-05-15T09:20:58-07:00</updated>
+ <updated>2015-05-22T11:53:21-07:00</updated>
  <id>http://www.debugthings.com</id>
  <author>
    <name>James Davis</name>
    <email>james.l.davis@outlook.com</email>
  </author>
 
+ 
+ <entry>
+   <title>Debugging - ADFS AppDomainUnloadedException with NetExt</title>
+   <link href="http://www.debugthings.com//2015/05/22/adfs-appdomain-unloaded-netext/"/>
+   <updated>2015-05-22T00:00:00-07:00</updated>
+   <id>http://www.debugthings.com/2015/05/22/adfs-appdomain-unloaded-netext</id>
+   <content type="html">&lt;p&gt;I got a quick message yesterday about a machine running out of space. Normally this is just handled by our second line support. But this time the developer jumped on the box to find out what was causing it and noticed there were a lot of dump files. I looked at it with the developer and found there were a bunch of crash dumps being created by a monitoring tool. This tool captures unhandled exceptions and will create a mini dump for it. Neither of us liked the fact there were numerous dumps, so I decided to dig deeper.&lt;/p&gt;
+
+</content>
+ </entry>
  
  <entry>
    <title>Debugging - I break things. Visual Studio Crash</title>
