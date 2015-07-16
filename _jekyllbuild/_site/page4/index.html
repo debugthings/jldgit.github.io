@@ -81,6 +81,20 @@
   
   <div class="post">
     <h1 class="post-title">
+      <a href="/2015/01/08/extending-mysql-server-part9/">
+        MySQL .NET Hosting Extension - Part 9 - Strings, _bstr_t, SafeArrays, SysAllocString, SysFreeString
+      </a>
+    </h1>
+
+    <span class="post-date">08 Jan 2015</span>
+
+    Up until now I&#8217;ve been dealing with integers and reals. This is great for a lot of statistical information but we all know that databases are used for more than just storing numbers. Depending on your type of database you will most likely have a number of text items that are used to describe or othewise identify some integer value. In order to work with these values we have to marshal the data to and fro. Let&#8217;s dive in to what&#8217;s happening.
+
+
+  </div>
+  
+  <div class="post">
+    <h1 class="post-title">
       <a href="/2014/12/16/extending-mysql-server-part8/">
         MySQL .NET Hosting Extension - Part 8 - Mimicking IIS (Shadow Copy, Custom Configs)
       </a>
@@ -131,20 +145,6 @@
     <span class="post-date">03 Dec 2014</span>
 
     While writing the <a href="https://github.com/jldgit/mysql_udf_dotnet">MySQL plugin</a> I found a strange need to compile two versions of my AppDomain Manager. Mainly it was for future compatibility. Plus I figured as long as my Interfaces didn&#8217;t change, everything would be great. But it left me with a sucking hole in my project solution. I was going to have to maintain two versions of source code <strong>FOR THE EXACT SAME THING</strong>. I didn&#8217;t like that.
-
-
-  </div>
-  
-  <div class="post">
-    <h1 class="post-title">
-      <a href="/2014/12/02/extending-mysql-server-part6/">
-        MySQL .NET Hosting Extension - Part 6 - Supporting Side-by-Side .NET CLRs
-      </a>
-    </h1>
-
-    <span class="post-date">02 Dec 2014</span>
-
-    So far, we&#8217;ve done a lot to the CLR hosting engine to properly handle type loading, type safety and custom assemblies. Now we have the task to support some desired functionality supplied with the CLR. Namely being able to support, or not support side-by-side CLR loading. We will take a look at what code changes are involved and what we can do to ensure proper loading.
 
 
   </div>
@@ -202,11 +202,34 @@
     <ul class="postlistfirst postlist fa-ul">
       <li id="2015-refyear"><i class="fa-li fa fa-plus-square" ></i>2015
       <ul class="postlist fa-ul">
-      <li id="2015-June-refmonth"><i class="fa-li fa fa-plus-square"></i>June
+      <li id="2015-July-refmonth"><i class="fa-li fa fa-plus-square"></i>July
       <ul class="postlist fa-ul">
         
 
-    <li class="lipad"><i class="fa-li fa fa-link" ></i><a href="/2015/06/03/rsprintclient-ie11-heap-corruption/">Debugging - SSRS Report Viewer and IE11</a></li>
+    <li class="lipad"><i class="fa-li fa fa-link" ></i><a href="/2015/07/16/time-flies-code-on-the-beach/">Time Flies! - Prepping for Code on the Beach</a></li>
+
+
+    
+
+    
+      
+          </ul>
+        </li>
+          <li id="2015-June-refmonth"><i class="fa-li fa fa-plus-square" ></i>June
+          <ul class="postlist fa-ul">
+      
+    
+    
+
+
+    
+    
+    
+    
+
+    
+
+    <li class="lipad"><i class="fa-li fa fa-link" ></i><a href="/2015/06/03/rsprintclient-ie11-heap-corruption%20-%20Copy/">Debugging - SSRS Report Viewer and IE11</a></li>
 
 
     

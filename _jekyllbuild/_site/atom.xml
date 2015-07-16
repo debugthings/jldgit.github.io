@@ -4,7 +4,7 @@
  <title>Debug Things</title>
  <link href="http://www.debugthings.com/atom.xml" rel="self"/>
  <link href="http://www.debugthings.com/"/>
- <updated>2015-06-03T10:53:46-07:00</updated>
+ <updated>2015-07-16T13:40:29-07:00</updated>
  <id>http://www.debugthings.com</id>
  <author>
    <name>James Davis</name>
@@ -13,10 +13,20 @@
 
  
  <entry>
+   <title>Time Flies! - Prepping for Code on the Beach</title>
+   <link href="http://www.debugthings.com//2015/07/16/time-flies-code-on-the-beach/"/>
+   <updated>2015-07-16T00:00:00-07:00</updated>
+   <id>http://www.debugthings.com/2015/07/16/time-flies-code-on-the-beach</id>
+   <content type="html">&lt;p&gt;I was looking back at my site for reference here at work and I noticed I haven&amp;#8217;t written anything for over a month now! So, as the title says, time flies. Plenty of things have been broken and fixed in the past month, so I&amp;#8217;ll be getting back to it soon. However, the past month or so, I&amp;#8217;ve been devoting my free time at night to fully preparing for &lt;a href=&quot;https://www.codeonthebeach.com/&quot;&gt;Code on the Beach&lt;/a&gt;.&lt;/p&gt;
+
+</content>
+ </entry>
+ 
+ <entry>
    <title>Debugging - SSRS Report Viewer and IE11</title>
-   <link href="http://www.debugthings.com//2015/06/03/rsprintclient-ie11-heap-corruption/"/>
+   <link href="http://www.debugthings.com//2015/06/03/rsprintclient-ie11-heap-corruption%20-%20Copy/"/>
    <updated>2015-06-03T00:00:00-07:00</updated>
-   <id>http://www.debugthings.com/2015/06/03/rsprintclient-ie11-heap-corruption</id>
+   <id>http://www.debugthings.com/2015/06/03/rsprintclient-ie11-heap-corruption - Copy</id>
    <content type="html">&lt;p&gt;Recently we upgraded IE in order to keep up with the EOL of Internet Explorer&amp;#8212;for most of our enterprise that means we&amp;#8217;re going to IE11. This started a while ago and it took some time for it to trickle down to a majority of the machines. In fact, some standard user machines were upgraded before the developer&amp;#8217;s machines were. This lead to a number of broken pages and functionality. Aside from broken HTML pages was the SSRS Report Viewer control&amp;#8212;after the upgrade it started crashing IE. You may have run into something like this after your upgrades and you don&amp;#8217;t have a lot of options. Be prepared to read the words unsupported and not recommended &amp;#8230; &lt;strong&gt;&lt;em&gt;A LOT&lt;/em&gt;&lt;/strong&gt;.&lt;/p&gt;
 
 </content>
