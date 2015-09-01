@@ -85,7 +85,7 @@
   <p>The other day I had some issues starting up Visual Studio. I got presented with a modal dialog that said <code>"Exception has been thrown by the target of an invocation"</code>. I wasn’t sure why, so I tried it again, and again, and the once more for good measure. Turns out, it wasn’t the way I was clicking the shortcut link. Of course, this is a problem as Visual Studio is my primary tool. Let’s see what was causing this.</p>
 
 <h2 id="tldr">TL;DR</h2>
-<p>Shorten your PATH environment variable. It’s preferred max size is under 2048.</p>
+<p>Shorten your PATH environment variable. It’s preferred max size is under 2048. Skip down to the <a href="#powershell-artifact">Powershell Artifact</a></p>
 
 <h2 id="the-problems">The Problem(s)</h2>
 <p>Visual Studio failed to load. I would see the splash screen and then a few seconds later I would get the error message. I looked in logs and event logs but couldn’t find anything that was useful. I also noticed a few icons on my desktop were showing the default icon instead of the respective application icon. “Hmm, well that’s odd,” I said. I did a quick Google search and few hits said to shorten your PATH environment variable. This seemed like an okay thing and I know a long PATH can cause funky things, but <strong>WHY</strong> did it affect Visual Studio?</p>
@@ -452,6 +452,23 @@ PEB at fffde000
 
 <p>And there we have it. The WINDIR environment variable is back.</p>
 
+<h2 id="powershell-artifact">Powershell Artifact</h2>
+
+<div class="highlight"><pre><code>$fso = New-Object -com scripting.filesystemobject
+$paths = [Environment]::GetEnvironmentVariable("Path", "Machine")
+$goodpaths = @()
+foreach ($p in $paths)
+{
+	if (test-path $p)
+	{
+		$goodpaths += $fso.GetFolder($p).ShortPath
+	}
+}
+$finalpath = $goodpaths | select-object -unique
+$outpath = $finalpath -join "; "
+[Environment]::SetEnvironmentVariable("Path", $outpath, "Machine")
+</code></pre></div>
+
 <h2 id="conclusion">Conclusion</h2>
 <p>I did Google the error and found a couple of posts about it. One of the links was from a Microsoft form that just said to shorten the PATH. I was okay with that answer—but really, I had to know.</p>
 
@@ -484,6 +501,15 @@ PEB at fffde000
     
     <li>
       <h3>
+        <a href="http://www.debugthings.com/2015/09/01/a-year-of-procrastination/">
+          A Year of Procrastination
+          <small>01 Sep 2015</small>
+        </a>
+      </h3>
+    </li>
+    
+    <li>
+      <h3>
         <a href="http://www.debugthings.com/2015/07/16/time-flies-code-on-the-beach/">
           Time Flies! - Prepping for Code on the Beach
           <small>16 Jul 2015</small>
@@ -496,15 +522,6 @@ PEB at fffde000
         <a href="http://www.debugthings.com/2015/06/03/rsprintclient-ie11-heap-corruption%20-%20Copy/">
           Debugging - SSRS Report Viewer and IE11
           <small>03 Jun 2015</small>
-        </a>
-      </h3>
-    </li>
-    
-    <li>
-      <h3>
-        <a href="http://www.debugthings.com/2015/05/22/adfs-appdomain-unloaded-netext/">
-          Debugging - ADFS AppDomainUnloadedException with NetExt
-          <small>22 May 2015</small>
         </a>
       </h3>
     </li>

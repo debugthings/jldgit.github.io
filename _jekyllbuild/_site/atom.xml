@@ -4,13 +4,23 @@
  <title>Debug Things</title>
  <link href="http://www.debugthings.com/atom.xml" rel="self"/>
  <link href="http://www.debugthings.com/"/>
- <updated>2015-07-16T13:40:29-07:00</updated>
+ <updated>2015-09-01T10:32:06-07:00</updated>
  <id>http://www.debugthings.com</id>
  <author>
    <name>James Davis</name>
    <email>james.l.davis@outlook.com</email>
  </author>
 
+ 
+ <entry>
+   <title>A Year of Procrastination</title>
+   <link href="http://www.debugthings.com//2015/09/01/a-year-of-procrastination/"/>
+   <updated>2015-09-01T00:00:00-07:00</updated>
+   <id>http://www.debugthings.com/2015/09/01/a-year-of-procrastination</id>
+   <content type="html">&lt;p&gt;So, about a year ago (August 1st, 2014 to be exact) I started on a project for fun(?). This wasn&amp;#8217;t much unlike any other project I&amp;#8217;ve started, however, this one felt a bit different. I actually &lt;strong&gt;TALKED ABOUT IT&lt;/strong&gt; with other people. I&amp;#8217;m not normally shy about my whimsical ideas, but usually I relegate them to &amp;#8220;it would only help me,&amp;#8221; and I bother only one or two people with my scheme. In this last year I&amp;#8217;ve stopped a number of times for great things. Speaking at four conferences, my daughter&amp;#8217;s first birthday, a family reunion, my 8th wedding anniversary, literally a full life worth of stuff in a year. It has been a great year.&lt;/p&gt;
+
+</content>
+ </entry>
  
  <entry>
    <title>Time Flies! - Prepping for Code on the Beach</title>
@@ -99,6 +109,10 @@
    <id>http://www.debugthings.com/2015/03/20/visual-studio-target-invocation</id>
    <content type="html">&lt;p&gt;The other day I had some issues starting up Visual Studio. I got presented with a modal dialog that said &lt;code&gt;&quot;Exception has been thrown by the target of an invocation&quot;&lt;/code&gt;. I wasn&amp;#8217;t sure why, so I tried it again, and again, and the once more for good measure. Turns out, it wasn&amp;#8217;t the way I was clicking the shortcut link. Of course, this is a problem as Visual Studio is my primary tool. Let&amp;#8217;s see what was causing this.&lt;/p&gt;
 
+&lt;p&gt;[Environment]::SetEnvironmentVariable(&amp;#8220;Path&amp;#8221;, $outpath, &amp;#8220;Machine&amp;#8221;)
+[procmondl]: https://technet.microsoft.com/en-us/library/bb896645.aspx
+[psscordl]: http://www.microsoft.com/en-us/download/details.aspx?id=21255
+[sosmsdn]: https://msdn.microsoft.com/en-us/library/bb190764%28v=vs.110%29.aspx&lt;/p&gt;
 </content>
  </entry>
  

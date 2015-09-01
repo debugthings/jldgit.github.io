@@ -10,7 +10,7 @@
 
   <title>
     
-    MySQL .NET Hosting Extension - Part 0 &middot; Debug Things
+    A Year of Procrastination &middot; Debug Things
     
   </title>
   <!--FONTS-->
@@ -78,42 +78,23 @@
    <div class="row rowoffset">
     <div class="col-md-12">
       <div class="post">
-  <h1 class="post-title">MySQL .NET Hosting Extension - Part 0</h1>
-  <span class="post-date">11 Nov 2014</span>
+  <h1 class="post-title">A Year of Procrastination</h1>
+  <span class="post-date">01 Sep 2015</span>
   <a href="https://twitter.com/share" class="twitter-share-button" data-via="debugthings" data-size="large">Tweet</a>
   <script>!function(d,s,id){var js,fjs=d.getElementsByTagName(s)[0],p=/^http:/.test(d.location)?'http':'https';if(!d.getElementById(id)){js=d.createElement(s);js.id=id;js.src=p+'://platform.twitter.com/widgets.js';fjs.parentNode.insertBefore(js,fjs);}}(document, 'script', 'twitter-wjs');</script>
-  <p>For some reason I feel compelled to write an extension for <a href="http://www.mysql.com/">MySQL</a> that allows use of .NET classes for functions. It’s really a purely academic exercise—even though I’m not in school—that I’m using to explore the use of the <a href="http://msdn.microsoft.com/en-us/library/dd380850(v=vs.110).aspx">.NET Hosting APIs</a>. I will use my blog as a way to keep myself focused and accountable. But more over it’s so I don’t forget what I wanted to do. I will line out a few milestones.</p>
+  <p>So, about a year ago (August 1st, 2014 to be exact) I started on a project for fun(?). This wasn’t much unlike any other project I’ve started, however, this one felt a bit different. I actually <strong>TALKED ABOUT IT</strong> with other people. I’m not normally shy about my whimsical ideas, but usually I relegate them to “it would only help me,” and I bother only one or two people with my scheme. In this last year I’ve stopped a number of times for great things. Speaking at four conferences, my daughter’s first birthday, a family reunion, my 8th wedding anniversary, literally a full life worth of stuff in a year. It has been a great year.</p>
 
-<h2 id="background">Background</h2>
-<p>I started messing around with the Hosting API when I was researching a debugging issue surrounding Host Access Protection. I have a <a href="(/2014/10/21/hostprotectionexception-ssrs/)">blog post</a> that talks about it. This got me curious as to some areas it would be applicable. I wanted to make the extension useful and not just a way for me to load a .NET assembly into a “hello world!” application. Although, that’s where this all started.</p>
+<p>But, even with all of that I had spare time. There would be weekends that required no lawn to be mowed, no errands to be done. No, not even running the vacuum for 10 minutes. Nope, all I did was sit around and fritter away time on the internet; occasionally I’d blog, speak at a conference and add a line or two to the project. But really, I didn’t put any effort towards it. Even now as I write this, <em>The Simpsons</em> are on and I continuously turn around to see the joke, even though I’ve seen and heard it a couple hundred times.</p>
 
-<h3 id="what-is-the-hosting-api">What is the Hosting API?</h3>
-<p>Quite simply, it is a way for you (the developer) to integrate <a href="http://msdn.microsoft.com/en-us/library/8bs2ecf4(v=vs.110).aspx">Microsoft’s CLR</a> implementation into your application. You can extend your application by allowing managed code execution in safe containers that can interact with the state of your application by predefined interfaces. Check out this <a href="http://msdn.microsoft.com/en-us/library/dd380850(v=vs.110).aspx">article</a> for more info. I also highly recommend reading <a href="https://www.microsoft.com/learning/en-us/book.aspx?ID=6895&amp;locale=en-us">Customizing the .NET Framework</a> by <a href="http://www.linkedin.com/pub/steven-pratschner/0/a92/8a4">Steven Pratschner</a>.</p>
+<p>What sparked this post and what got me moving the past 2 weeks was my GitHub graphs that showed plenty of gaps in my commits. I did the most work at the beginning (don’t we all?) and it really faded out after the new year. I got a bit busier in April, but took off a few months after that. You can see it <a href="https://github.com/chainsapm/chainsapm/graphs/commit-activity">here</a>, feel free to snicker.</p>
 
-<h3 id="why-mysql">Why MySQL?</h3>
-<p>Well, I have a soft spot in my heart for this particular database. It was the first real RDBMS that I developed with. I started back in 1999 using the good ‘ole LAMP stack. Also, MySQL is used on Windows occasionally and I thought it would be fun trying to extend something I’ve used for so long.</p>
+<p>So, what have I been putting off the past year or so? Well, it’s my pet project  <a href="https://github.com/chainsapm/chainsapm">ChainsAPM</a>. I actually sat down one day and came up with <strong>C</strong>onnected  <strong>H</strong>eterogeneous <strong>A</strong>rchitecture, <strong>I</strong>nterspersed (among) <strong>N</strong>umerous <strong>S</strong>ystems. Yeah, I know, it’s totally awesome. But, seriously I spent a good bit of time writing down what I wanted it to do. Including what I wanted to name it.</p>
 
-<h3 id="will-this-be-production-ready">Will this be production ready?</h3>
-<p>No, probably never. I think the idea is great, but its too niche to be of any use to a lot of people. I’d like to see it mentioned as examples of what (not) to do when extending MySQL or using the Hosting API.</p>
+<p>I spent numerous hours in office-mate’s cubes asking opinions, and really just talking about it but not doing much. I’m sure they <strong><em>LOVED</em></strong> it. I wrote documents, made diagrams—all of which are no longer relevant. I spent a lot of time doing nothing. Turns out, I really should have spent my time procrastinating. It’s interesting what procrastination gives you. Time. Time to read. To learn. To forget. To start over.</p>
 
-<h2 id="milestones">Milestones</h2>
-<p>Like I said before in my opening, I wanted to use the blog as a way to hold myself accountable. The milestones are going to be lofty, changing and probably never fully realized. That being said, here is a short list of what I want to do in the coming weeks and months.</p>
+<p>Start over. That’s exactly what I did. No, no, no. Not from scratch but, with a more focused approach. I spent some time reading back over my patterns and practices book—in between Simpsons episodes. Picked up some experience with C++. Read some old school books on Windows programing by Richter and Petzold. I did some experiments with other methodologies. Broke some critical pieces, fixed them or reverted them.</p>
 
-<ol>
-  <li><del>Create a simple hello world application using the hosting API</del></li>
-  <li><del>Create a simple <a href="http://dev.mysql.com/doc/refman/5.1/en/adding-udf.html">User Defined Function</a> (UDF) for MySQL</del></li>
-  <li><del>Send and retrieve data from the UDF</del></li>
-  <li><del>Extend the simple UDF to load the CLR</del></li>
-  <li><del>Implement a custom interface to interact with the UDF</del></li>
-  <li><del>Load an assembly from the file system</del></li>
-  <li><del>Allow dynamic loading of UDF based on parameters</del></li>
-  <li><del>Implement Host Access Protection to protect MySQL</del></li>
-  <li><del><em>Extend MySQL to include a BLOB table to install assemblies</em></del></li>
-  <li><del><em>Load assemblies from BLOB table</em></del></li>
-  <li><del><em>Write the same for <a href="http://www.mono-project.com/">Mono</a>?</em></del></li>
-</ol>
-
-<p><strong>[EDIT 12/16/2014] I struck out items 9, 10, and 11 even though they are not implemented. As I wrote the tool it was better to load the assemblies from a directory instead of a table for better features. Mono has no defined host integrations that I have found so it may never happen.</strong></p>
+<p>The good news is jumping back in to a project I once knew but now can only barely remember is it’s forcing me to relearn something I probably only skimmed two paragraphs on a year ago. So, here goes. Look for some blog posts in the coming weeks talking about the project and what plans I have for it.</p>
 
 
 </div>
@@ -122,8 +103,8 @@
     <script type="text/javascript">
         /* * * CONFIGURATION VARIABLES: EDIT BEFORE PASTING INTO YOUR WEBPAGE * * */
         var disqus_shortname = 'debugthings'; // required: replace example with your forum shortname
-        var disqus_url = 'http://www.debugthings.com/2014/11/11/extending-mysql-server-part0/';
-        var disqus_identifier = '/2014/11/11/extending-mysql-server-part0';
+        var disqus_url = 'http://www.debugthings.com/2015/09/01/a-year-of-procrastination/';
+        var disqus_identifier = '/2015/09/01/a-year-of-procrastination';
 
 
         /* * * DON'T EDIT BELOW THIS LINE * * */
@@ -142,15 +123,6 @@
     
     <li>
       <h3>
-        <a href="http://www.debugthings.com/2015/09/01/a-year-of-procrastination/">
-          A Year of Procrastination
-          <small>01 Sep 2015</small>
-        </a>
-      </h3>
-    </li>
-    
-    <li>
-      <h3>
         <a href="http://www.debugthings.com/2015/07/16/time-flies-code-on-the-beach/">
           Time Flies! - Prepping for Code on the Beach
           <small>16 Jul 2015</small>
@@ -163,6 +135,15 @@
         <a href="http://www.debugthings.com/2015/06/03/rsprintclient-ie11-heap-corruption%20-%20Copy/">
           Debugging - SSRS Report Viewer and IE11
           <small>03 Jun 2015</small>
+        </a>
+      </h3>
+    </li>
+    
+    <li>
+      <h3>
+        <a href="http://www.debugthings.com/2015/05/22/adfs-appdomain-unloaded-netext/">
+          Debugging - ADFS AppDomainUnloadedException with NetExt
+          <small>22 May 2015</small>
         </a>
       </h3>
     </li>

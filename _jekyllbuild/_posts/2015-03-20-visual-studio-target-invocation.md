@@ -9,7 +9,7 @@ tags:
 The other day I had some issues starting up Visual Studio. I got presented with a modal dialog that said `"Exception has been thrown by the target of an invocation"`. I wasn't sure why, so I tried it again, and again, and the once more for good measure. Turns out, it wasn't the way I was clicking the shortcut link. Of course, this is a problem as Visual Studio is my primary tool. Let's see what was causing this.
 
 ## TL;DR
-Shorten your PATH environment variable. It's preferred max size is under 2048.
+Shorten your PATH environment variable. It's preferred max size is under 2048. Skip down to the [Powershell Artifact](#powershell-artifact)
 
 ## The Problem(s)
 Visual Studio failed to load. I would see the splash screen and then a few seconds later I would get the error message. I looked in logs and event logs but couldn't find anything that was useful. I also noticed a few icons on my desktop were showing the default icon instead of the respective application icon. "Hmm, well that's odd," I said. I did a quick Google search and few hits said to shorten your PATH environment variable. This seemed like an okay thing and I know a long PATH can cause funky things, but **WHY** did it affect Visual Studio?
@@ -379,6 +379,24 @@ PEB at fffde000
 ~~~
 
 And there we have it. The WINDIR environment variable is back.
+
+## Powershell Artifact
+
+~~~
+$fso = New-Object -com scripting.filesystemobject
+$paths = [Environment]::GetEnvironmentVariable("Path", "Machine")
+$goodpaths = @()
+foreach ($p in $paths)
+{
+	if (test-path $p)
+	{
+		$goodpaths += $fso.GetFolder($p).ShortPath
+	}
+}
+$finalpath = $goodpaths | select-object -unique
+$outpath = $finalpath -join "; "
+[Environment]::SetEnvironmentVariable("Path", $outpath, "Machine")
+~~~
 
 ## Conclusion
 I did Google the error and found a couple of posts about it. One of the links was from a Microsoft form that just said to shorten the PATH. I was okay with that answer---but really, I had to know.
