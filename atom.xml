@@ -4,13 +4,23 @@
  <title>Debug Things</title>
  <link href="http://www.debugthings.com/atom.xml" rel="self"/>
  <link href="http://www.debugthings.com/"/>
- <updated>2015-09-01T10:32:06-07:00</updated>
+ <updated>2015-09-05T18:21:02-07:00</updated>
  <id>http://www.debugthings.com</id>
  <author>
    <name>James Davis</name>
    <email>james.l.davis@outlook.com</email>
  </author>
 
+ 
+ <entry>
+   <title>Simple Beginnings - ChainsAPM</title>
+   <link href="http://www.debugthings.com//2015/09/06/simple%20beginings-chainsapm/"/>
+   <updated>2015-09-06T00:00:00-07:00</updated>
+   <id>http://www.debugthings.com/2015/09/06/simple beginings-chainsapm</id>
+   <content type="html">&lt;p&gt;In my last post I prattle on about the normal hang ups that any software developer has. I don&amp;#8217;t have time for this, I would rather be doing that&amp;#8230; Now that, &lt;em&gt;that&amp;#8217;s&lt;/em&gt; over I can get back to doing what I enjoy doing. Breaking things and making really terrible design decisions. Today I&amp;#8217;m going to bore you with some background of my pet project &lt;a href=&quot;https://github.com/chainsapm/chainsapm&quot;&gt;ChainsAPM&lt;/a&gt;.&lt;/p&gt;
+
+</content>
+ </entry>
  
  <entry>
    <title>A Year of Procrastination</title>
