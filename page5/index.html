@@ -81,6 +81,20 @@
   
   <div class="post">
     <h1 class="post-title">
+      <a href="/2014/12/15/extending-mysql-server-part7/">
+        MySQL .NET Hosting Extension - Part 7 - AppDomain Pools
+      </a>
+    </h1>
+
+    <span class="post-date">15 Dec 2014</span>
+
+    If we look at some of the performance metrics of the MySQL UDF extension, we&#8217;re not looking great for a few items. Number one, of course, is the loading of the .NET CLR. Unfortunately unless I integrate this tool into the MySQL code itself I can&#8217;t control that. The next is the loading and use of the AppDomain. That, however, I can fix.
+
+
+  </div>
+  
+  <div class="post">
+    <h1 class="post-title">
       <a href="/2014/12/05/y-u-no-have-button/">
         Y U NO HAVE BUTTON?
       </a>
@@ -131,20 +145,6 @@
     <span class="post-date">30 Nov 2014</span>
 
     Now that we have a properly refactored base, and we have a good working solution to load new file from, we need to start considering safety. Not just type safety and integrity of data. No, safety of the executing code as well as the safety of the CLR host&#8212;MySQL in this case. Without that we would open up our new plugin library to a lot of malicious things.
-
-
-  </div>
-  
-  <div class="post">
-    <h1 class="post-title">
-      <a href="/2014/11/26/extending-mysql-server-part4/">
-        MySQL .NET Hosting Extension - Part 4 - Extending the AppDomain Manager
-      </a>
-    </h1>
-
-    <span class="post-date">26 Nov 2014</span>
-
-    So far the application was simple and was able to load and run a command from inside of our AppDomain manager. As promised, I am extending this functionality to allow loading of any number of classes. In order to do this I made some large changes to the application. In order to keep things somewhat coherent between Parts 1, 2 and 3&#8212;I branched off into a work in progress(wip) area that should make it easier to follow along.
 
 
   </div>
@@ -205,6 +205,24 @@
       <li id="2015-September-refmonth"><i class="fa-li fa fa-plus-square"></i>September
       <ul class="postlist fa-ul">
         
+
+    <li class="lipad"><i class="fa-li fa fa-link" ></i><a href="/2015/09/16/rewriting-il-remotely-part1/">Rewriting IL - Part 1 - Metadata Interfaces</a></li>
+
+
+    
+
+    
+      
+    
+    
+
+
+    
+    
+    
+    
+
+    
 
     <li class="lipad"><i class="fa-li fa fa-link" ></i><a href="/2015/09/06/simple%20beginings-chainsapm/">Simple Beginnings - ChainsAPM</a></li>
 

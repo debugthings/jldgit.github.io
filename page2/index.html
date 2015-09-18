@@ -81,6 +81,20 @@
   
   <div class="post">
     <h1 class="post-title">
+      <a href="/2015/05/22/adfs-appdomain-unloaded-netext/">
+        Debugging - ADFS AppDomainUnloadedException with NetExt
+      </a>
+    </h1>
+
+    <span class="post-date">22 May 2015</span>
+
+    I got a quick message yesterday about a machine running out of space. Normally this is just handled by our second line support. But this time the developer jumped on the box to find out what was causing it and noticed there were a lot of dump files. I looked at it with the developer and found there were a bunch of crash dumps being created by a monitoring tool. This tool captures unhandled exceptions and will create a mini dump for it. Neither of us liked the fact there were numerous dumps, so I decided to dig deeper.
+
+
+  </div>
+  
+  <div class="post">
+    <h1 class="post-title">
       <a href="/2015/05/14/i-break-things/">
         Debugging - I break things. Visual Studio Crash
       </a>
@@ -131,20 +145,6 @@
     <span class="post-date">01 Apr 2015</span>
 
     While this does seem like an April fools joke, that wasn&#8217;t the intention. However, that doesn&#8217;t stop me from feeling somewhat clever. Anyway, one of our internal teams started complaining about their web pages being slow. Well, yeah, okay; what do you mean by slow? Just slow or SLOOOOOW. Turns out it was the latter. Using the IE and Chrome profiling tools I could see that there was a lot of time being spent in a jQGrid selector. We wanted to test out some code changes, but had to wait to cut a change record. This would have cost us a few days.
-
-
-  </div>
-  
-  <div class="post">
-    <h1 class="post-title">
-      <a href="/2015/03/31/netext-windbg/">
-        Debugging - NetExt WinDbg Extension
-      </a>
-    </h1>
-
-    <span class="post-date">31 Mar 2015</span>
-
-    I was poking around for some WinDbg extensions and stumbled upon a new one that I hadn&#8217;t seen before. <a href="https://netext.codeplex.com/">NetExt</a>, is written and maintained by <a href="https://msdn.microsoft.com/en-us/gg602412.aspx">Rodney Viana</a> an Escalation Engineer with Microsoft. I downloaded it and went through his tutorials on how to use it (available on the CodePlex site). I must say it&#8217;s pretty nice. The best feature is that it uses the .NET Debugging interfaces as well as a mix of managed code.
 
 
   </div>
@@ -205,6 +205,24 @@
       <li id="2015-September-refmonth"><i class="fa-li fa fa-plus-square"></i>September
       <ul class="postlist fa-ul">
         
+
+    <li class="lipad"><i class="fa-li fa fa-link" ></i><a href="/2015/09/16/rewriting-il-remotely-part1/">Rewriting IL - Part 1 - Metadata Interfaces</a></li>
+
+
+    
+
+    
+      
+    
+    
+
+
+    
+    
+    
+    
+
+    
 
     <li class="lipad"><i class="fa-li fa fa-link" ></i><a href="/2015/09/06/simple%20beginings-chainsapm/">Simple Beginnings - ChainsAPM</a></li>
 

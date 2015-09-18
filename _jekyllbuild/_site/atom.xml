@@ -4,13 +4,23 @@
  <title>Debug Things</title>
  <link href="http://www.debugthings.com/atom.xml" rel="self"/>
  <link href="http://www.debugthings.com/"/>
- <updated>2015-09-05T18:21:02-07:00</updated>
+ <updated>2015-09-17T23:26:26-07:00</updated>
  <id>http://www.debugthings.com</id>
  <author>
    <name>James Davis</name>
    <email>james.l.davis@outlook.com</email>
  </author>
 
+ 
+ <entry>
+   <title>Rewriting IL - Part 1 - Metadata Interfaces</title>
+   <link href="http://www.debugthings.com//2015/09/16/rewriting-il-remotely-part1/"/>
+   <updated>2015-09-16T00:00:00-07:00</updated>
+   <id>http://www.debugthings.com/2015/09/16/rewriting-il-remotely-part1</id>
+   <content type="html">&lt;p&gt;I think it goes without saying that rewriting IL is no trivial thing. However, I&amp;#8217;ll just go ahead and say it again, rewriting IL is no trivial thing. If you jump on Code Project you&amp;#8217;ll find a ton of resources that span the years. In fact when I started my project I turned to these very same articles. I found a couple of them that rely on using an injection library but are somewhat of a hack&amp;#8212;very brilliant hacks mind you. So, in order to be above board I started down the path of using a profiler to inject IL. Let&amp;#8217;s find out why this is not a trivial thing.&lt;/p&gt;
+
+</content>
+ </entry>
  
  <entry>
    <title>Simple Beginnings - ChainsAPM</title>
