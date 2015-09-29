@@ -81,6 +81,20 @@
   
   <div class="post">
     <h1 class="post-title">
+      <a href="/2014/11/30/extending-mysql-server-part5/">
+        MySQL .NET Hosting Extension - Part 5 - AppDomain and Host Safety
+      </a>
+    </h1>
+
+    <span class="post-date">30 Nov 2014</span>
+
+    Now that we have a properly refactored base, and we have a good working solution to load new file from, we need to start considering safety. Not just type safety and integrity of data. No, safety of the executing code as well as the safety of the CLR host&#8212;MySQL in this case. Without that we would open up our new plugin library to a lot of malicious things.
+
+
+  </div>
+  
+  <div class="post">
+    <h1 class="post-title">
       <a href="/2014/11/26/extending-mysql-server-part4/">
         MySQL .NET Hosting Extension - Part 4 - Extending the AppDomain Manager
       </a>
@@ -131,20 +145,6 @@
     <span class="post-date">11 Nov 2014</span>
 
     So, the first thing I had to do was compile the MySQL sample UDF which is included in the source tree. While it seems like a simple thing to do with CMake and all of the proper tools installed, there are a few things not documented. The steps to compile <a href="http://dev.mysql.com/doc/refman/5.5/en/udf-compiling.html">can be found here</a>. The steps are really straight forward, but there is a catch. In order to build on Windows there are a few steps you will need to do in order to fully get the example working.
-
-
-  </div>
-  
-  <div class="post">
-    <h1 class="post-title">
-      <a href="/2014/11/11/extending-mysql-server-part0/">
-        MySQL .NET Hosting Extension - Part 0
-      </a>
-    </h1>
-
-    <span class="post-date">11 Nov 2014</span>
-
-    For some reason I feel compelled to write an extension for <a href="http://www.mysql.com/">MySQL</a> that allows use of .NET classes for functions. It&#8217;s really a purely academic exercise&#8212;even though I&#8217;m not in school&#8212;that I&#8217;m using to explore the use of the <a href="http://msdn.microsoft.com/en-us/library/dd380850(v=vs.110).aspx">.NET Hosting APIs</a>. I will use my blog as a way to keep myself focused and accountable. But more over it&#8217;s so I don&#8217;t forget what I wanted to do. I will line out a few milestones.
 
 
   </div>
@@ -205,6 +205,24 @@
       <li id="2015-September-refmonth"><i class="fa-li fa fa-plus-square"></i>September
       <ul class="postlist fa-ul">
         
+
+    <li class="lipad"><i class="fa-li fa fa-link" ></i><a href="/2015/09/28/rewriting-il-remotely-part2/">Rewriting IL - Part 2 - Tokens</a></li>
+
+
+    
+
+    
+      
+    
+    
+
+
+    
+    
+    
+    
+
+    
 
     <li class="lipad"><i class="fa-li fa fa-link" ></i><a href="/2015/09/16/rewriting-il-remotely-part1/">Rewriting IL - Part 1 - Metadata Interfaces</a></li>
 
