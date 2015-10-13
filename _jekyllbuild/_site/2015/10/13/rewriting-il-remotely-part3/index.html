@@ -1,0 +1,629 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en-us">
+
+<head>
+  <link href="http://gmpg.org/xfn/11" rel="profile" />
+  <meta http-equiv="content-type" content="text/html; charset=utf-8" />
+
+  <!-- Enable responsiveness on mobile devices-->
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1" />
+
+  <title>
+    
+    Rewriting IL - Part 3 - Signatures and Compression &middot; Debug Things
+    
+  </title>
+  <!--FONTS-->
+  <link href='http://fonts.googleapis.com/css?family=Lato&subset=latin,latin-ext' rel='stylesheet' type='text/css' />
+
+
+  <!-- CSS -->
+  <link rel="stylesheet" href="/public/css/bootstrap.css" />
+  <link rel="stylesheet" href="//maxcdn.bootstrapcdn.com/font-awesome/4.3.0/css/font-awesome.min.css">
+  <link rel="stylesheet" href="/public/css/poole.css" />
+
+  <link rel="stylesheet" href="//cdnjs.cloudflare.com/ajax/libs/highlight.js/8.8.0/styles/monokai_sublime.min.css">
+  <script src="//cdnjs.cloudflare.com/ajax/libs/highlight.js/8.8.0/highlight.min.js"></script>
+  <script>hljs.initHighlightingOnLoad();</script>
+
+  <script type="text/javascript" src="http://code.jquery.com/jquery-2.1.3.min.js"></script>
+
+
+  <!-- Icons -->
+  <link rel="apple-touch-icon-precomposed" sizes="144x144" href="/public/apple-touch-icon-precomposed.png" />
+  <link rel="shortcut icon" href="/public/favicon.ico" />
+
+  <!-- RSS -->
+  <link rel="alternate" type="application/rss+xml" title="RSS" href="/atom.xml" />
+
+
+
+  <script type="text/javascript">
+  (function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){
+  (i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),
+  m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)
+  })(window,document,'script','//www.google-analytics.com/analytics.js','ga');
+
+  ga('create', 'UA-56527114-1', 'auto');
+  ga('send', 'pageview');
+ </script>
+
+</head>
+
+
+<body>
+  <nav class="navbar navbar-inverse navbar-fixed-top" role="navigation">
+  <div class="container">
+    <div class="navbar-header">
+      <button type="button" class="navbar-toggle collapsed" data-toggle="collapse" data-target="#navbar" aria-expanded="false" aria-controls="navbar">
+        <span class="sr-only">Toggle navigation</span>
+        <span class="icon-bar"></span>
+        <span class="icon-bar"></span>
+        <span class="icon-bar"></span>
+      </button>
+      <a href="/" class="navbar-brand" title="Home">DEBUG THINGS</a>
+    </div>
+    <div id="navbar" class="navbar-collapse collapse">
+      <ul class="nav navbar-nav">
+        <li><a href="/about/">About</a></li>
+        <li><a href="/projects">Projects</a></li>
+        <li><a href="/mysql/">MySQL .NET UDF</a></li>
+        <li><a href="/speaking/">Speaking</a></li>
+        <li><a href="/owasp/">OWASP</a></li>
+
+      </ul>
+    </div><!--/.navbar-collapse -->
+  </div>
+</nav>
+
+  <div class="container containerbg">
+   <div class="row rowoffset">
+    <div class="col-md-12">
+      <div class="post">
+  <h1 class="post-title">Rewriting IL - Part 3 - Signatures and Compression</h1>
+  <span class="post-date">13 Oct 2015</span>
+  <a href="https://twitter.com/share" class="twitter-share-button" data-via="debugthings" data-size="large">Tweet</a>
+  <script>!function(d,s,id){var js,fjs=d.getElementsByTagName(s)[0],p=/^http:/.test(d.location)?'http':'https';if(!d.getElementById(id)){js=d.createElement(s);js.id=id;js.src=p+'://platform.twitter.com/widgets.js';fjs.parentNode.insertBefore(js,fjs);}}(document, 'script', 'twitter-wjs');</script>
+  <p>In the <a href="(/2015/09/28/rewriting-il-remotely-part2/)">last post</a> we talked about tokens and how they are like handles to types, methods, signatures, and really just about everything else. They are the currency that the CLR deals with. Today we talk about signatures, these guys are the biggest consumers of tokens outside of IL.</p>
+
+<h2 id="what-are-signatures">What Are Signatures?</h2>
+<p>Signatures are the first line of defense when it comes to fully describing your parameters and locals at runtime. The method signature will help identify all of the types being supplied to the method, the direction of the types, number of elements in an array, the list goes on. Since it’s a well defined format that doesn’t rely on raw address spaces it has the benefit of being the same between machine to machine and architecture to architecture.</p>
+
+<p>Some key enumerations can be found here:</p>
+
+<ul>
+  <li><a href="https://msdn.microsoft.com/en-us/library/ms232600(v=vs.110).aspx">CorElementAttr</a> - Managed types</li>
+  <li><a href="https://msdn.microsoft.com/en-us/library/ms231239(v=vs.110).aspx">CorCallingConvention</a> - Calling conventions</li>
+  <li><a href="https://msdn.microsoft.com/en-us/library/ms233456(v=vs.110).aspx">CorMethodImpl</a> - Method implementation features</li>
+  <li><a href="https://msdn.microsoft.com/en-us/library/ms231030(v=vs.110).aspx">CorMethodAttr</a> - Method features</li>
+</ul>
+
+<h2 id="simple-static-method-signature">Simple Static Method Signature</h2>
+<p>Let’s look at a method and it’s signature in Metadata. This is a fairly trivial signature to decode just by looking at it. The static method takes in two strings and outputs one string.</p>
+
+<pre><code  class="csharp">static string ConcatStrings (string str1, string str2) {}
+</code></pre>
+
+<pre><code  class="nohighlight">00 02 0e 0e 0e
+</code></pre>
+
+<table>
+  <thead>
+    <tr>
+      <th>Calling Convention</th>
+      <th>Parameter Count</th>
+      <th>Return Type</th>
+      <th>Parameter 1</th>
+      <th>Parameter 2</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><code>0x00</code></td>
+      <td><code>0x02</code></td>
+      <td><code>0x0e</code></td>
+      <td><code>0x0e</code></td>
+      <td><code>0x0e</code></td>
+    </tr>
+  </tbody>
+</table>
+
+<p>The table above has the following 1 byte identifiers specifying a simple type.</p>
+
+<ul>
+  <li><code>0x00 = </code><a href="https://github.com/dotnet/coreclr/blob/4cf8a6b082d9bb1789facd996d8265d3908757b2/src/inc/corhdr.h#L953"><code>IMAGE_CEE_CS_CALLCONV_DEFAULT</code></a></li>
+  <li><code>0x02 = 2 parameters</code></li>
+  <li><code>0x0e = </code><a href="https://github.com/dotnet/coreclr/blob/4cf8a6b082d9bb1789facd996d8265d3908757b2/src/inc/corhdr.h#L876"><code>ELEMENT_TYPE_STRING</code></a></li>
+  <li><code>0x0e = </code><a href="https://github.com/dotnet/coreclr/blob/4cf8a6b082d9bb1789facd996d8265d3908757b2/src/inc/corhdr.h#L876"><code>ELEMENT_TYPE_STRING</code></a></li>
+  <li><code>0x0e = </code><a href="https://github.com/dotnet/coreclr/blob/4cf8a6b082d9bb1789facd996d8265d3908757b2/src/inc/corhdr.h#L876"><code>ELEMENT_TYPE_STRING</code></a></li>
+</ul>
+
+<p><em>Wait. Where is <code>static</code>?</em> This isn’t held in the signature (directly) because its an attribute of the method (see <a href="https://msdn.microsoft.com/en-us/library/ms231030(v=vs.110).aspx">CorMethodAttr</a>). What’s great about this is if I have any amount of methods with this signature the compiler will only emit this once. For example, I have four static methods defined in another type. If you look at the Metadata directly below the C# code you’ll see that I have 5 methods defined and all of them have the same signature blob #53.</p>
+
+<blockquote>
+  <p>Click on the ELEMENT_TYPE<em>* or IMAGE_CEE</em>* names to see their definition in the <a href="https://github.com/dotnet/coreclr/blob/4cf8a6b082d9bb1789facd996d8265d3908757b2/src/inc/corhdr.h">corhdr.h</a> file on GitHub.</p>
+</blockquote>
+
+<pre><code  class="csharp">public static string ConcatStrings5 (string str1, string str2) {
+  return str1 + str2;
+}
+
+private static string ConcatStrings6 (string str1, string str2) {
+  return str1 + str2;
+}
+
+internal static string ConcatStrings7 (string str1, string str2) {
+  return str1 + str2;
+}
+
+protected static string ConcatStrings8 (string str1, string str2) {
+  return str1 + str2;
+}
+</code></pre>
+
+<pre><code  class="nohighlight">=================================================
+ 6(0x6): Method               cRecs:   17(0x11), cbRec: 14(0xe), cbTable:   238(0xee)
+  col  0:  RVA          oCol: 0, cbCol:4, ULONG  
+  col  1:  ImplFlags    oCol: 4, cbCol:2, USHORT
+  col  2:  Flags        oCol: 6, cbCol:2, USHORT
+  col  3:  Name         oCol: 8, cbCol:2, string
+  col  4:  Signature    oCol: a, cbCol:2, blob   
+  col  5:  ParamList    oCol: c, cbCol:2, Param  
+-------------------------------------------------
+&lt;&lt;&lt; 0 - 8 REMOVED &gt;&gt;&gt;
+9 == 0:00002124, 1:0000, 2:0096, 3:string#50, 4:blob#53, 5:Param[800000b]
+a == 0:00002140, 1:0000, 2:0091, 3:string#5f, 4:blob#53, 5:Param[800000d]
+b == 0:0000215c, 1:0000, 2:0093, 3:string#6e, 4:blob#53, 5:Param[800000f]
+c == 0:00002178, 1:0000, 2:0094, 3:string#7d, 4:blob#53, 5:Param[8000011]
+&lt;&lt;&lt; d - f REMOVED &gt;&gt;&gt;
+10 == 0:000021b0, 1:0000, 2:0091, 3:string#30d, 4:blob#53, 5:Param[8000016]
+
+Blob Heap:  444(0x1bc) bytes
+&lt;&lt;&lt; LINES REMOVED &gt;&gt;&gt;
+   53,5 : 00 02 0e 0e 0e                                   &gt;                &lt;
+</code></pre>
+
+<h2 id="simple-instance-method-signature">Simple Instance Method Signature</h2>
+<p>This isn’t terribly different from the static instance except for the calling convention.</p>
+
+<pre><code  class="csharp">string ConcatStringsInstance (string str1, string str2) {}
+</code></pre>
+
+<pre><code  class="nohighlight">20 02 0e 0e 0e
+</code></pre>
+
+<table>
+  <thead>
+    <tr>
+      <th>Calling Convention</th>
+      <th>Parameter Count</th>
+      <th>Return Type</th>
+      <th>Parameter 1</th>
+      <th>Parameter 2</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><code>0x20</code></td>
+      <td><code>0x02</code></td>
+      <td><code>0x0e</code></td>
+      <td><code>0x0e</code></td>
+      <td><code>0x0e</code></td>
+    </tr>
+  </tbody>
+</table>
+
+<p>The table above has the following 1 byte identifiers specifying a simple type.</p>
+
+<ul>
+  <li><code>0x20 = </code><a href="https://github.com/dotnet/coreclr/blob/4cf8a6b082d9bb1789facd996d8265d3908757b2/src/inc/corhdr.h#L967"><code>IMAGE_CEE_CS_CALLCONV_HASTHIS</code></a><code> (0x20) |  </code><a href="https://github.com/dotnet/coreclr/blob/4cf8a6b082d9bb1789facd996d8265d3908757b2/src/inc/corhdr.h#L953"><code>IMAGE_CEE_CS_CALLCONV_DEFAULT</code></a><code> (0x00)</code></li>
+  <li><code>0x02 = 2 parameters</code></li>
+  <li><code>0x0e = </code><a href="https://github.com/dotnet/coreclr/blob/4cf8a6b082d9bb1789facd996d8265d3908757b2/src/inc/corhdr.h#L876"><code>ELEMENT_TYPE_STRING</code></a></li>
+  <li><code>0x0e = </code><a href="https://github.com/dotnet/coreclr/blob/4cf8a6b082d9bb1789facd996d8265d3908757b2/src/inc/corhdr.h#L876"><code>ELEMENT_TYPE_STRING</code></a></li>
+  <li><code>0x0e = </code><a href="https://github.com/dotnet/coreclr/blob/4cf8a6b082d9bb1789facd996d8265d3908757b2/src/inc/corhdr.h#L876"><code>ELEMENT_TYPE_STRING</code></a></li>
+</ul>
+
+<p>This tells the CLR that this signature has the <code>this</code> parameter as the first parameter. This is not unlike instance members in C++ where the <code>__thiscall</code> is implied and passes the <code>this</code> parameter as the first parameter.</p>
+
+<h2 id="a-more-complex-method-example">A More Complex Method Example</h2>
+<p>Of course this is a simple method, but .NET isn’t a simple language to implement. Nor are the problems being solved. Let’s take a look at a signature for a method with a few external types, generics and even some arrays.</p>
+
+<pre><code  class="csharp">public Something ReturnSomething(int one, System.Threading.Thread t) {
+  return new Something ();
+}
+</code></pre>
+
+<pre><code  class="nohighlight">20 02 12 0c 08 12 45
+</code></pre>
+
+<table>
+  <thead>
+    <tr>
+      <th>Calling Convention</th>
+      <th>Parameter Count</th>
+      <th>Return Type</th>
+      <th>Parameter 1</th>
+      <th>Parameter 2</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><code>0x20</code></td>
+      <td><code>0x02</code></td>
+      <td><code>0x12 0x0c</code></td>
+      <td><code>0x08</code></td>
+      <td><code>0x12 0x45</code></td>
+    </tr>
+  </tbody>
+</table>
+
+<p>The table above has the following 1 byte identifiers specifying a simple type.</p>
+
+<ul>
+  <li><code>0x20 = </code><a href="https://github.com/dotnet/coreclr/blob/4cf8a6b082d9bb1789facd996d8265d3908757b2/src/inc/corhdr.h#L967"><code>IMAGE_CEE_CS_CALLCONV_HASTHIS</code></a><code> (0x20) |  </code><a href="https://github.com/dotnet/coreclr/blob/4cf8a6b082d9bb1789facd996d8265d3908757b2/src/inc/corhdr.h#L953"><code>IMAGE_CEE_CS_CALLCONV_DEFAULT</code></a><code> (0x00)</code></li>
+  <li><code>0x02 = 2 parameters</code></li>
+  <li><code>0x12 = </code><a href="https://github.com/dotnet/coreclr/blob/4cf8a6b082d9bb1789facd996d8265d3908757b2/src/inc/corhdr.h#L884"><code>ELEMENT_TYPE_CLASS</code></a>
+    <ul>
+      <li><code>0x0c = Compressed Token; see below</code></li>
+    </ul>
+  </li>
+  <li><code>0x08 = </code><a href="https://github.com/dotnet/coreclr/blob/4cf8a6b082d9bb1789facd996d8265d3908757b2/src/inc/corhdr.h#L870"><code>ELEMENT_TYPE_I4</code></a></li>
+  <li><code>0x12 = </code><a href="https://github.com/dotnet/coreclr/blob/4cf8a6b082d9bb1789facd996d8265d3908757b2/src/inc/corhdr.h#L884"><code>ELEMENT_TYPE_CLASS</code></a>
+    <ul>
+      <li><code>0x45 = Compressed Token; see below</code></li>
+    </ul>
+  </li>
+</ul>
+
+<h3 id="compressed-tokens">Compressed Tokens</h3>
+<p>Let’s take a pause and look at how compression is implemented. Right away you can see there is something strange here. If you’ve been keeping up with the series you might expect to see a fully qualified token after the element type; perhaps something like <code>0x12 0x03 0x00 0x00 0x02</code> for the return value as <code>Something</code> is defined inside of this module. Well, as I’ve said before, the idea of Metadata was to shave off bytes wherever possible and reduce bandwidth. Sending 4 bytes for each type in a signature would easily increase the size a substantial amount even for simple definitions <code>type1 method(type2)</code> for example would be 12 bytes instead of 6.</p>
+
+<p>To get around this, the tokens are compressed. When defining a type you have a couple of ways to do so. A TypeDef, TypeRef, or TypeSpec. Since all tokens are a full integer they will be compressed with the big data logic. Let’s step through it here to determine what happens. The full C code is linked <a href="https://github.com/dotnet/coreclr/blob/e879597385221df7131042d1e0830b87f7632a01/src/inc/cor.h#L2090-L2514">here</a>.</p>
+
+<pre><code  class="c">inline ULONG CorSigCompressToken(   // return number of bytes that compressed form of the token will take
+    mdToken  tk,                    // [IN] given token
+    void *   pDataOut)              // [OUT] buffer where the token will be compressed and stored.
+{
+    RID     rid = RidFromToken(tk);
+    ULONG32 ulTyp = TypeFromToken(tk);
+
+    if (rid &gt; 0x3FFFFFF)
+        // token is too big to be compressed
+        return (ULONG) -1;
+
+    rid = (rid &lt;&lt; 2);
+
+    // TypeDef is encoded with low bits 00
+    // TypeRef is encoded with low bits 01
+    // TypeSpec is encoded with low bits 10
+    // BaseType is encoded with low bit 11
+    //
+    if (ulTyp == g_tkCorEncodeToken[1])
+    {
+        // make the last two bits 01
+        rid |= 0x1;
+    }
+    else if (ulTyp == g_tkCorEncodeToken[2])
+    {
+        // make last two bits 0
+        rid |= 0x2;
+    }
+    else if (ulTyp == g_tkCorEncodeToken[3])
+    {
+        rid |= 0x3;
+    }
+    return CorSigCompressData((ULONG)rid, pDataOut);
+}
+</code></pre>
+<ol>
+  <li>First we get the row ID by bitwise AND of 0x00FFFFFF
+    <ul>
+      <li><code>0x02000003 &amp; 0x00FFFFFF = 0x03</code></li>
+    </ul>
+  </li>
+  <li>Then we get the type by bitwise AND of 0xFF000000
+    <ul>
+      <li><code>0x02000003 &amp; 0xFF000000 = 0x02000000</code></li>
+    </ul>
+  </li>
+  <li>Check to see if we’re compressing a number larger than 0x3FFFFFFF
+    <ul>
+      <li><code>0y0011 1111 1111 1111</code> This makes sure the top two MSBs are clear</li>
+    </ul>
+  </li>
+  <li>Left shift 2 bits leaving the LSBs clear
+    <ul>
+      <li><code>0x03 &lt;&lt; 2 = 0x0C = 0y0000 1100</code></li>
+    </ul>
+  </li>
+  <li>We check the type against the <a href="https://github.com/dotnet/coreclr/blob/e879597385221df7131042d1e0830b87f7632a01/src/inc/cor.h#L2226"><code>g_tkCorEncodeToken</code></a> array
+    <ul>
+      <li>Since we’re a TypeDef we don’t change the bottom bits. So the resulting encoded token is 0xC. <code>0y0000 1100 = 0xC</code></li>
+    </ul>
+  </li>
+  <li>Compress the newly generated number further
+    <ul>
+      <li>0x0C is less than 0x80 so don’t compress it. <a href="https://github.com/dotnet/coreclr/blob/e879597385221df7131042d1e0830b87f7632a01/src/inc/cor.h#L2372-L2400">See here</a></li>
+    </ul>
+  </li>
+</ol>
+
+<p>Using this same methodology (in reverse) we can uncompress 0x45 to represent <code>TypeRef 0x01000011</code>.</p>
+
+<pre><code  class="nohighlight">0y0100 0101
+         ^^ = TypeRef (0x01000000)
+
+0y0100 0101 &gt;&gt; 2 = 0y0001 0001 = 0x11
+</code></pre>
+
+<h2 id="local-signature-with-a-generic">Local Signature with a Generic</h2>
+<p>Locals follow the same convention as signatures and the only real change is instead of a calling convention and return types they just define that it’s a local signature and how many parameters there are.</p>
+
+<pre><code  class="csharp">public ITemplate&lt;Something&gt; ReturnSomethingTemplate
+  (int one, ITemplate&lt;System.Net.Sockets.Socket&gt; socket) {
+  return new ITemplate&lt;Something&gt; ();
+}
+</code></pre>
+
+<pre><code  class="nohighlight">07 01 15 12 08 01 12 0c
+</code></pre>
+
+<p>While it doesn’t look like any locals are defined, there actually is ONE local. That is the placeholder for the address that will be returned by the constructor of this method. Let’s break this apart and we can see that we have one local for a generic type.</p>
+
+<table>
+  <thead>
+    <tr>
+      <th>Calling Convention</th>
+      <th>Local Count</th>
+      <th>Parameter 1</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><code>0x07</code></td>
+      <td><code>0x01</code></td>
+      <td><code>0x15 0x12 0x08 0x01 0x12 0x0c</code></td>
+    </tr>
+  </tbody>
+</table>
+
+<table>
+  <thead>
+    <tr>
+      <th>GENERICINST</th>
+      <th>Generic Type</th>
+      <th>Number of Parameters</th>
+      <th>Paramter 1</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><code>0x15</code></td>
+      <td><code>0x12 0x08</code></td>
+      <td><code>0x01</code></td>
+      <td><code>0x12 0x0c</code></td>
+    </tr>
+  </tbody>
+</table>
+
+<ul>
+  <li><code>0x07 = </code><a href="https://github.com/dotnet/coreclr/blob/4cf8a6b082d9bb1789facd996d8265d3908757b2/src/inc/corhdr.h#L957"><code>IMAGE_CEE_CS_CALLCONV_LOCAL_SIG</code></a></li>
+  <li><code>0x01 = 1 parameter</code></li>
+  <li><code>0x15 = </code><a href="https://github.com/dotnet/coreclr/blob/4cf8a6b082d9bb1789facd996d8265d3908757b2/src/inc/corhdr.h#L887"><code>ELEMENT_TYPE_GENERICINST</code></a>
+    <ul>
+      <li><code>0x12 = </code><a href="https://github.com/dotnet/coreclr/blob/4cf8a6b082d9bb1789facd996d8265d3908757b2/src/inc/corhdr.h#L884"><code>ELEMENT_TYPE_CLASS</code></a>
+        <ul>
+          <li><code>0x08 = 0x02000002 (ITemplate'1)</code></li>
+        </ul>
+      </li>
+      <li><code>0x01 = One Generic Type Definition</code></li>
+      <li><code>0x12 = </code><a href="https://github.com/dotnet/coreclr/blob/4cf8a6b082d9bb1789facd996d8265d3908757b2/src/inc/corhdr.h#L884"><code>ELEMENT_TYPE_CLASS</code></a>
+        <ul>
+          <li><code>0x0C = 0x02000003 (Something)</code></li>
+        </ul>
+      </li>
+    </ul>
+  </li>
+</ul>
+
+<h2 id="local-signature-with-an-array">Local Signature with an Array</h2>
+<p>Generics seem tricky but can be done pretty straight forward. Some other types require a bit more logic to pick apart. The quintessential type is the array. Something that is so fundamental requires some solid definition to make sure we understand the shape of the array as well as the number of elements.</p>
+
+<pre><code  class="csharp">public int [] ReturnTheNubmers (string [] [] number) {
+  int [] twenty = new int [20];
+  int [,] twenty2 = new int [20, 20];
+  return twenty;
+}
+</code></pre>
+<pre><code  class="nohighlight">07 03 1d 08 14 08 02 00  02 00 00 1d 08
+</code></pre>
+
+<table>
+  <thead>
+    <tr>
+      <th>Calling Convention</th>
+      <th>Local Count</th>
+      <th>Parameter 1</th>
+      <th>Parameter 2</th>
+      <th>Parameter 3</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><code>0x07</code></td>
+      <td><code>0x03</code></td>
+      <td><code>0x1d 0x08</code></td>
+      <td><code>0x14 0x08 0x02 0x00 0x02 0x00 0x00</code></td>
+      <td><code>0x1d 0x08</code></td>
+    </tr>
+  </tbody>
+</table>
+
+<h3 id="parameter-1-int">Parameter 1 int[]</h3>
+
+<table>
+  <thead>
+    <tr>
+      <th>SZARRAY</th>
+      <th>Array Type</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><code>0x1d</code></td>
+      <td><code>0x08</code></td>
+    </tr>
+  </tbody>
+</table>
+
+<h3 id="parameter-2-int">Parameter 2 int[,]</h3>
+
+<table>
+  <thead>
+    <tr>
+      <th>ARRAY</th>
+      <th>Array Type</th>
+      <th>Array Rank</th>
+      <th># of Sizes</th>
+      <th>Sizes</th>
+      <th># of LowerBounds</th>
+      <th>Lower Bounds</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><code>0x1d</code></td>
+      <td><code>0x08</code></td>
+      <td><code>0x02</code></td>
+      <td><code>0x00</code></td>
+      <td>n/a</td>
+      <td><code>0x02</code></td>
+      <td><code>0x00 0x00</code></td>
+    </tr>
+  </tbody>
+</table>
+
+<h3 id="parameter-3-int">Parameter 3 int[]</h3>
+
+<table>
+  <thead>
+    <tr>
+      <th>SZARRAY</th>
+      <th>Array Type</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><code>0x1d</code></td>
+      <td><code>0x08</code></td>
+    </tr>
+  </tbody>
+</table>
+
+<ul>
+  <li><code>0x07 = </code><a href="https://github.com/dotnet/coreclr/blob/4cf8a6b082d9bb1789facd996d8265d3908757b2/src/inc/corhdr.h#L957"><code>IMAGE_CEE_CS_CALLCONV_LOCAL_SIG</code></a></li>
+  <li><code>0x03 = 3 parameters</code></li>
+  <li><code>0x1d = </code><a href="https://github.com/dotnet/coreclr/blob/4cf8a6b082d9bb1789facd996d8265d3908757b2/src/inc/corhdr.h#L894"><code>ELEMENT_TYPE_SZARRAY</code></a>
+    <ul>
+      <li><code>0x08 = </code><a href="https://github.com/dotnet/coreclr/blob/4cf8a6b082d9bb1789facd996d8265d3908757b2/src/inc/corhdr.h#L870"><code>ELEMENT_TYPE_I4</code></a></li>
+    </ul>
+  </li>
+  <li><code>0x14 = </code><a href="https://github.com/dotnet/coreclr/blob/4cf8a6b082d9bb1789facd996d8265d3908757b2/src/inc/corhdr.h#L886"><code>ELEMENT_TYPE_ARRAY</code></a>
+    <ul>
+      <li><code>0x08 = </code><a href="https://github.com/dotnet/coreclr/blob/4cf8a6b082d9bb1789facd996d8265d3908757b2/src/inc/corhdr.h#L870"><code>ELEMENT_TYPE_I4</code></a></li>
+      <li><code>0x02 = Rank</code></li>
+      <li><code>0x00 = Number of Sizes (0 skips)</code></li>
+      <li><code>0x02 = Number of Lower Bounds</code></li>
+      <li><code>0x00 = Lower Bound 1</code></li>
+      <li><code>0x00 = Lower Bound 2</code></li>
+    </ul>
+  </li>
+  <li><code>0x1d = </code><a href="https://github.com/dotnet/coreclr/blob/4cf8a6b082d9bb1789facd996d8265d3908757b2/src/inc/corhdr.h#L894"><code>ELEMENT_TYPE_SZARRAY</code></a>
+    <ul>
+      <li><code>0x08 = </code><a href="https://github.com/dotnet/coreclr/blob/4cf8a6b082d9bb1789facd996d8265d3908757b2/src/inc/corhdr.h#L870"><code>ELEMENT_TYPE_I4</code></a></li>
+    </ul>
+  </li>
+</ul>
+
+<p>The simple <code>int[]</code> array probably makes sense, but the multi dimensional array will cause you to have to watch it when you decompress as you can have multiple nested types. Imagine the following <code>ITemplate&lt;string[,,,],ITemplate&lt;List&lt;int[]&gt;, Something&gt;&gt;[,,,,,]</code> This has multiple types, generics with nested generics and oddly defined arrays. I can tell you it’s not pretty. In fact, here ya go. :) If the type names were any shorter than the signature blob would be larger than the string that defines it.</p>
+
+<pre><code  class="nohighlight">14 08 02 00 02 00 00 14 15 12 08 02 14 0e 04 00 04 00 00 00 00 15 12 08 02 15 12 45 01 1d 08 12 0c 06 00 06 00 00 00 00 00 00
+</code></pre>
+
+<h2 id="now-what">Now What?</h2>
+<p>Since we can rip apart signatures and locals we can start to understand how to locate locals, to inspect the types, and how to decompress, alter and compress to change the tokens to something else. You can also use this information to write out the signatures of methods to a string.</p>
+
+<p>If you want a good example of a signature parser head over to <a href="http://blogs.msdn.com/b/davbr/">Dave Broman’s blog</a> and check out the <a href="http://blogs.msdn.com/b/davbr/archive/2005/10/13/sample-a-signature-blob-parser-for-your-profiler.aspx">Signature Parser</a>. It was last updated in 2010, but it looks feature complete so it should be able to work on generics and arrays.</p>
+
+<h2 id="conclusion">Conclusion</h2>
+<p>So far we’ve touched on Metadata, Tokens and Signatures. With these few simple things we can start identifying methods and inspect them to see what types they take in and return. We can also look at the locals and determine what information is being moved around inside of this method.</p>
+
+<p>Next we’ll talk about some miscellanea around Rewriting IL that works with all of these things. We’ll talk about mapping a token from one type to another. We’ll discuss what a safe point is inside of IL and how to detect if we’re inside of a branch.</p>
+
+
+</div>
+
+ <div id="disqus_thread"></div>
+    <script type="text/javascript">
+        /* * * CONFIGURATION VARIABLES: EDIT BEFORE PASTING INTO YOUR WEBPAGE * * */
+        var disqus_shortname = 'debugthings'; // required: replace example with your forum shortname
+        var disqus_url = 'http://www.debugthings.com/2015/10/13/rewriting-il-remotely-part3/';
+        var disqus_identifier = '/2015/10/13/rewriting-il-remotely-part3';
+
+
+        /* * * DON'T EDIT BELOW THIS LINE * * */
+        (function() {
+            var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
+            dsq.src = '//' + disqus_shortname + '.disqus.com/embed.js';
+            (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+        })();
+    </script>
+    <noscript>Please enable JavaScript to view the <a href="http://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
+    
+
+<div class="related">
+  <h2>Related Posts</h2>
+  <ul class="related-posts">
+    
+    <li>
+      <h3>
+        <a href="http://www.debugthings.com/2015/09/28/rewriting-il-remotely-part2/">
+          Rewriting IL - Part 2 - Tokens
+          <small>28 Sep 2015</small>
+        </a>
+      </h3>
+    </li>
+    
+    <li>
+      <h3>
+        <a href="http://www.debugthings.com/2015/09/16/rewriting-il-remotely-part1/">
+          Rewriting IL - Part 1 - Metadata Interfaces
+          <small>16 Sep 2015</small>
+        </a>
+      </h3>
+    </li>
+    
+    <li>
+      <h3>
+        <a href="http://www.debugthings.com/2015/09/06/simple%20beginings-chainsapm/">
+          Simple Beginnings - ChainsAPM
+          <small>06 Sep 2015</small>
+        </a>
+      </h3>
+    </li>
+    
+  </ul>
+</div>
+
+      <div class="footer">
+        <p>
+          &copy; 2015. All rights reserved.
+        </p>
+      </div>
+    </div>
+  </div>
+</div>
+
+
+</body>
+</html>

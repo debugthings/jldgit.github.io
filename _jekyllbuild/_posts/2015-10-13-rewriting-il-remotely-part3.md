@@ -141,27 +141,58 @@ The table above has the following 1 byte identifiers specifying a simple type.
   * `0x45 = Compressed Token; see below`
 
 ###Compressed Tokens
-Let's take a pause and look at how compression is implemented. Right away you can see there is something strange here. If you've been keeping up with the series you might expect to see a fully qualified token after the element type; perhaps something like `0x12 0x03 0x00 0x00 0x02` for the return value as Something is defined inside of this module. Well, as I've said before the idea of Metadata was to shave off bytes where ever possible and reduce bandwidth. Sending 4 bytes for each type in a signature could easily increase the size by a factor of two for simple definitions `type1 method(type2)` for example.
+Let's take a pause and look at how compression is implemented. Right away you can see there is something strange here. If you've been keeping up with the series you might expect to see a fully qualified token after the element type; perhaps something like `0x12 0x03 0x00 0x00 0x02` for the return value as `Something` is defined inside of this module. Well, as I've said before, the idea of Metadata was to shave off bytes wherever possible and reduce bandwidth. Sending 4 bytes for each type in a signature would easily increase the size a substantial amount even for simple definitions `type1 method(type2)` for example would be 12 bytes instead of 6.
 
-To get around this the tokens are compressed. When defining a type you have a couple of ways to do so. A TypeDef, TypeRef, or TypeSpec. Since all tokens are a full integer they will be compressed with the big data logic. Let's step through it here to determine what happens. The C code is linked [here][corsig].
+To get around this, the tokens are compressed. When defining a type you have a couple of ways to do so. A TypeDef, TypeRef, or TypeSpec. Since all tokens are a full integer they will be compressed with the big data logic. Let's step through it here to determine what happens. The full C code is linked [here][corsig].
 
-First we get the row ID by bitwise AND of 0x00FFFFFF
+~~~c
+inline ULONG CorSigCompressToken(   // return number of bytes that compressed form of the token will take
+    mdToken  tk,                    // [IN] given token
+    void *   pDataOut)              // [OUT] buffer where the token will be compressed and stored.
+{
+    RID     rid = RidFromToken(tk);
+    ULONG32 ulTyp = TypeFromToken(tk);
 
-`0x02000003 & 0x00FFFFFF = 0x03`
+    if (rid > 0x3FFFFFF)
+        // token is too big to be compressed
+        return (ULONG) -1;
 
-Then we get the type by bitwise AND of 0xFF000000
+    rid = (rid << 2);
 
-`0x02000003 & 0xFF000000 = 0x02000000`
-
-Then we shift the row ID by 2 to the left, now we start to look at binary values
-
-`0x03 << 2 = 0x0C = 0y0000 1100`
-
-We check the type against the [`g_tkCorEncodeToken`][corencode] array, since we're a TypeDef we don't change the bottom bits. So the resulting encoded token is 0xC.
-
-`0y0000 1100 = 0xC`
-
-Since 0x0C is less than 0x80 we don't compress it.
+    // TypeDef is encoded with low bits 00
+    // TypeRef is encoded with low bits 01
+    // TypeSpec is encoded with low bits 10
+    // BaseType is encoded with low bit 11
+    //
+    if (ulTyp == g_tkCorEncodeToken[1])
+    {
+        // make the last two bits 01
+        rid |= 0x1;
+    }
+    else if (ulTyp == g_tkCorEncodeToken[2])
+    {
+        // make last two bits 0
+        rid |= 0x2;
+    }
+    else if (ulTyp == g_tkCorEncodeToken[3])
+    {
+        rid |= 0x3;
+    }
+    return CorSigCompressData((ULONG)rid, pDataOut);
+}
+~~~
+1. First we get the row ID by bitwise AND of 0x00FFFFFF
+  - `0x02000003 & 0x00FFFFFF = 0x03`
+2. Then we get the type by bitwise AND of 0xFF000000
+ - `0x02000003 & 0xFF000000 = 0x02000000`
+3. Check to see if we're compressing a number larger than 0x3FFFFFFF
+ - `0y0011 1111 1111 1111` This makes sure the top two MSBs are clear
+4. Left shift 2 bits leaving the LSBs clear
+- `0x03 << 2 = 0x0C = 0y0000 1100`
+5. We check the type against the [`g_tkCorEncodeToken`][corencode] array
+ - Since we're a TypeDef we don't change the bottom bits. So the resulting encoded token is 0xC. `0y0000 1100 = 0xC`
+6. Compress the newly generated number further
+ - 0x0C is less than 0x80 so don't compress it. [See here][compress]
 
 Using this same methodology (in reverse) we can uncompress 0x45 to represent `TypeRef 0x01000011`.
 
@@ -284,8 +315,9 @@ Next we'll talk about some miscellanea around Rewriting IL that works with all o
 [elemstring]: https://github.com/dotnet/coreclr/blob/4cf8a6b082d9bb1789facd996d8265d3908757b2/src/inc/corhdr.h#L876
 [elemint]: https://github.com/dotnet/coreclr/blob/4cf8a6b082d9bb1789facd996d8265d3908757b2/src/inc/corhdr.h#L870
 [elemclass]: https://github.com/dotnet/coreclr/blob/4cf8a6b082d9bb1789facd996d8265d3908757b2/src/inc/corhdr.h#L884
-[corsig]: https://github.com/dotnet/coreclr/blob/e879597385221df7131042d1e0830b87f7632a01/src/inc/cor.h
+[corsig]: https://github.com/dotnet/coreclr/blob/e879597385221df7131042d1e0830b87f7632a01/src/inc/cor.h#L2090-L2514
 [corhdr]: https://github.com/dotnet/coreclr/blob/4cf8a6b082d9bb1789facd996d8265d3908757b2/src/inc/corhdr.h
+[compress]: https://github.com/dotnet/coreclr/blob/e879597385221df7131042d1e0830b87f7632a01/src/inc/cor.h#L2372-L2400
 [CorImpl]: https://msdn.microsoft.com/en-us/library/ms233456(v=vs.110).aspx
 [CorAttr]: https://msdn.microsoft.com/en-us/library/ms231030(v=vs.110).aspx
 [CorElem]: https://msdn.microsoft.com/en-us/library/ms232600(v=vs.110).aspx

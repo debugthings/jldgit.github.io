@@ -81,7 +81,7 @@
     <div class="col-md-12">
       <div class="post">
   <h1 class="post-title">Rewriting IL - Part 3 - Signatures and Compression</h1>
-  <span class="post-date">08 Oct 2015</span>
+  <span class="post-date">13 Oct 2015</span>
   <a href="https://twitter.com/share" class="twitter-share-button" data-via="debugthings" data-size="large">Tweet</a>
   <script>!function(d,s,id){var js,fjs=d.getElementsByTagName(s)[0],p=/^http:/.test(d.location)?'http':'https';if(!d.getElementById(id)){js=d.createElement(s);js.id=id;js.src=p+'://platform.twitter.com/widgets.js';fjs.parentNode.insertBefore(js,fjs);}}(document, 'script', 'twitter-wjs');</script>
   <p>In the <a href="(/2015/09/28/rewriting-il-remotely-part2/)">last post</a> we talked about tokens and how they are like handles to types, methods, signatures, and really just about everything else. They are the currency that the CLR deals with. Today we talk about signatures, these guys are the biggest consumers of tokens outside of IL.</p>
@@ -276,27 +276,77 @@ Blob Heap:  444(0x1bc) bytes
 </ul>
 
 <h3 id="compressed-tokens">Compressed Tokens</h3>
-<p>Let’s take a pause and look at how compression is implemented. Right away you can see there is something strange here. If you’ve been keeping up with the series you might expect to see a fully qualified token after the element type; perhaps something like <code>0x12 0x03 0x00 0x00 0x02</code> for the return value as Something is defined inside of this module. Well, as I’ve said before the idea of Metadata was to shave off bytes where ever possible and reduce bandwidth. Sending 4 bytes for each type in a signature could easily increase the size by a factor of two for simple definitions <code>type1 method(type2)</code> for example.</p>
+<p>Let’s take a pause and look at how compression is implemented. Right away you can see there is something strange here. If you’ve been keeping up with the series you might expect to see a fully qualified token after the element type; perhaps something like <code>0x12 0x03 0x00 0x00 0x02</code> for the return value as <code>Something</code> is defined inside of this module. Well, as I’ve said before, the idea of Metadata was to shave off bytes wherever possible and reduce bandwidth. Sending 4 bytes for each type in a signature would easily increase the size a substantial amount even for simple definitions <code>type1 method(type2)</code> for example would be 12 bytes instead of 6.</p>
 
-<p>To get around this the tokens are compressed. When defining a type you have a couple of ways to do so. A TypeDef, TypeRef, or TypeSpec. Since all tokens are a full integer they will be compressed with the big data logic. Let’s step through it here to determine what happens. The C code is linked <a href="https://github.com/dotnet/coreclr/blob/e879597385221df7131042d1e0830b87f7632a01/src/inc/cor.h">here</a>.</p>
+<p>To get around this, the tokens are compressed. When defining a type you have a couple of ways to do so. A TypeDef, TypeRef, or TypeSpec. Since all tokens are a full integer they will be compressed with the big data logic. Let’s step through it here to determine what happens. The full C code is linked <a href="https://github.com/dotnet/coreclr/blob/e879597385221df7131042d1e0830b87f7632a01/src/inc/cor.h#L2090-L2514">here</a>.</p>
 
-<p>First we get the row ID by bitwise AND of 0x00FFFFFF</p>
+<pre><code  class="c">inline ULONG CorSigCompressToken(   // return number of bytes that compressed form of the token will take
+    mdToken  tk,                    // [IN] given token
+    void *   pDataOut)              // [OUT] buffer where the token will be compressed and stored.
+{
+    RID     rid = RidFromToken(tk);
+    ULONG32 ulTyp = TypeFromToken(tk);
 
-<p><code>0x02000003 &amp; 0x00FFFFFF = 0x03</code></p>
+    if (rid &gt; 0x3FFFFFF)
+        // token is too big to be compressed
+        return (ULONG) -1;
 
-<p>Then we get the type by bitwise AND of 0xFF000000</p>
+    rid = (rid &lt;&lt; 2);
 
-<p><code>0x02000003 &amp; 0xFF000000 = 0x02000000</code></p>
-
-<p>Then we shift the row ID by 2 to the left, now we start to look at binary values</p>
-
-<p><code>0x03 &lt;&lt; 2 = 0x0C = 0y0000 1100</code></p>
-
-<p>We check the type against the <a href="https://github.com/dotnet/coreclr/blob/e879597385221df7131042d1e0830b87f7632a01/src/inc/cor.h#L2226"><code>g_tkCorEncodeToken</code></a> array, since we’re a TypeDef we don’t change the bottom bits. So the resulting encoded token is 0xC.</p>
-
-<p><code>0y0000 1100 = 0xC</code></p>
-
-<p>Since 0x0C is less than 0x80 we don’t compress it.</p>
+    // TypeDef is encoded with low bits 00
+    // TypeRef is encoded with low bits 01
+    // TypeSpec is encoded with low bits 10
+    // BaseType is encoded with low bit 11
+    //
+    if (ulTyp == g_tkCorEncodeToken[1])
+    {
+        // make the last two bits 01
+        rid |= 0x1;
+    }
+    else if (ulTyp == g_tkCorEncodeToken[2])
+    {
+        // make last two bits 0
+        rid |= 0x2;
+    }
+    else if (ulTyp == g_tkCorEncodeToken[3])
+    {
+        rid |= 0x3;
+    }
+    return CorSigCompressData((ULONG)rid, pDataOut);
+}
+</code></pre>
+<ol>
+  <li>First we get the row ID by bitwise AND of 0x00FFFFFF
+    <ul>
+      <li><code>0x02000003 &amp; 0x00FFFFFF = 0x03</code></li>
+    </ul>
+  </li>
+  <li>Then we get the type by bitwise AND of 0xFF000000
+    <ul>
+      <li><code>0x02000003 &amp; 0xFF000000 = 0x02000000</code></li>
+    </ul>
+  </li>
+  <li>Check to see if we’re compressing a number larger than 0x3FFFFFFF
+    <ul>
+      <li><code>0y0011 1111 1111 1111</code> This makes sure the top two MSBs are clear</li>
+    </ul>
+  </li>
+  <li>Left shift 2 bits leaving the LSBs clear
+    <ul>
+      <li><code>0x03 &lt;&lt; 2 = 0x0C = 0y0000 1100</code></li>
+    </ul>
+  </li>
+  <li>We check the type against the <a href="https://github.com/dotnet/coreclr/blob/e879597385221df7131042d1e0830b87f7632a01/src/inc/cor.h#L2226"><code>g_tkCorEncodeToken</code></a> array
+    <ul>
+      <li>Since we’re a TypeDef we don’t change the bottom bits. So the resulting encoded token is 0xC. <code>0y0000 1100 = 0xC</code></li>
+    </ul>
+  </li>
+  <li>Compress the newly generated number further
+    <ul>
+      <li>0x0C is less than 0x80 so don’t compress it. <a href="https://github.com/dotnet/coreclr/blob/e879597385221df7131042d1e0830b87f7632a01/src/inc/cor.h#L2372-L2400">See here</a></li>
+    </ul>
+  </li>
+</ol>
 
 <p>Using this same methodology (in reverse) we can uncompress 0x45 to represent <code>TypeRef 0x01000011</code>.</p>
 
@@ -517,8 +567,8 @@ Blob Heap:  444(0x1bc) bytes
     <script type="text/javascript">
         /* * * CONFIGURATION VARIABLES: EDIT BEFORE PASTING INTO YOUR WEBPAGE * * */
         var disqus_shortname = 'debugthings'; // required: replace example with your forum shortname
-        var disqus_url = 'http://www.debugthings.com/2015/10/08/rewriting-il-remotely-part3/';
-        var disqus_identifier = '/2015/10/08/rewriting-il-remotely-part3';
+        var disqus_url = 'http://www.debugthings.com/2015/10/13/rewriting-il-remotely-part3/';
+        var disqus_identifier = '/2015/10/13/rewriting-il-remotely-part3';
 
 
         /* * * DON'T EDIT BELOW THIS LINE * * */
