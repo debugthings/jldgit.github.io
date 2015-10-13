@@ -18,11 +18,13 @@
 
 
   <!-- CSS -->
-  <link rel="stylesheet" href="/public/css/monokai.css" />
   <link rel="stylesheet" href="/public/css/bootstrap.css" />
   <link rel="stylesheet" href="//maxcdn.bootstrapcdn.com/font-awesome/4.3.0/css/font-awesome.min.css">
   <link rel="stylesheet" href="/public/css/poole.css" />
 
+  <link rel="stylesheet" href="//cdnjs.cloudflare.com/ajax/libs/highlight.js/8.8.0/styles/monokai_sublime.min.css">
+  <script src="//cdnjs.cloudflare.com/ajax/libs/highlight.js/8.8.0/highlight.min.js"></script>
+  <script>hljs.initHighlightingOnLoad();</script>
 
   <script type="text/javascript" src="http://code.jquery.com/jquery-2.1.3.min.js"></script>
 
@@ -88,7 +90,7 @@
 
 <p>Enter the following commands in your GIT command prompt. It’s that simple. All code changes as I have shown them in this blog post should be there. If you come across this post at a way later date, try increasing the range from 5 to 10, and so on.</p>
 
-<div class="highlight"><pre><code>git clone https://github.com/jldgit/mysql_udf_dotnet.git -b wip-nextversion
+<pre><code  class="nohighlight">git clone https://github.com/jldgit/mysql_udf_dotnet.git -b wip-nextversion
 git log --abbrev-commit -n 5 --pretty=oneline
 
 4a0be76 Changes relating to post 8
@@ -98,7 +100,7 @@ e9dc6de Changed relating to post 7
 303d9cd Changes relating to post 4
 
 git checkout 4a0be76
-</code></pre></div>
+</code></pre>
 
 <h2 id="whats-changed">What’s Changed?</h2>
 <p>In this version we have a lot of code changes that support the new shadow copies as well as the filewatcher for the .config files. I have also updated some of the locking when creating an AppDomain. The change here is if the application can’t get a lock within 10ms it will continue on and create a new domain regardless of any domains that are in the pool.</p>
@@ -122,16 +124,16 @@ git checkout 4a0be76
 
 <p>Let’s take a look at the simple code that enables shadow copying.</p>
 
-<div class="highlight"><pre><code class="language-Csharp"><div class="highlight"><pre><span id="line-1"><span class="n">AppDomainSetup</span> <span class="n">ads</span> <span class="p">=</span> <span class="k">new</span> <span class="n">AppDomainSetup</span><span class="p">();</span>
-</span><span id="line-2"><span class="c1">// .. removed for clarity ..</span>
-</span><span id="line-3"><span class="n">ads</span><span class="p">.</span><span class="n">ShadowCopyFiles</span> <span class="p">=</span> <span class="s">&quot;true&quot;</span><span class="p">;</span>
-</span></pre></div></code></pre></div>
+<pre><code  class="Csharp">AppDomainSetup ads = new AppDomainSetup();
+// .. removed for clarity ..
+ads.ShadowCopyFiles = "true";
+</code></pre>
 
 <p>This single line requires you to set the value to the string value <code>"true"</code> and not <code>true</code>. I dunno why, but that is how it has been for a while now. If you look in some of the Microsoft code that does things like <code>System.Web.Hosting.ApplicationManager::PopulateDomainBindings()</code> you will see the same code.</p>
 
 <p>With this set we can open up mysqld.exe in WinDbg, loading SOS and using the <code>!DumpDomain</code> command to  take a look at where the assembly is being loaded from. Look at the bottom of this listing and you can see the MySQLCustomClass assembly being loaded from <code>C:\Users\James\AppData\Local\assembly\dl3\XDO19CO6.93L\QWVBM69E.1HJ\05b42dd0\d00c85ba_2618d001\</code>. This indicates that the CLR copied this file to the download cache directory and is using it from there.</p>
 
-<div class="highlight"><pre><code>0:035&gt; !DumpDomain 
+<pre><code  class="nohighlight">0:035&gt; !DumpDomain 
 &lt;&lt;&lt;&lt;&lt;&lt; DATA REMOVED FOR CLARITY &gt;&gt;&gt;&gt;&gt;&gt;
 --------------------------------------
 Domain 23:          0e0277d0
@@ -164,32 +166,32 @@ ClassLoader:        0e5a86b0
 SecurityDescriptor: 006805e0
   Module Name
 0d475fcc    C:\Users\James\AppData\Local\assembly\dl3\XDO19CO6.93L\QWVBM69E.1HJ\05b42dd0\d00c85ba_2618d001\MySQLCustomClass.dll
-</code></pre></div>
+</code></pre>
 
 <h3 id="mysqldotnetconfig-file-changes">mysqldotnet.config file changes</h3>
 <p>In ASP.NET you can have multiple applications under multiple virtual directories. Each ASP.NET application can have it’s own <code>web.config</code>. I wanted to have a similar feature with each assembly having it’s own <code>mysqldotnet.config</code>. As well, I wanted to have the ability to make a change to either of the config files and have the default domain spin down the old domains and spin up new ones.</p>
 
 <p>In order to track when a config file changes, we need to use the <code>FileSystemWatcher</code> class. This class takes in a file path in the constructor and has you attach an event on specific file actions like Create, Changed or Deleted. In our case we are only attaching to the changed event.</p>
 
-<div class="highlight"><pre><code class="language-Csharp"><div class="highlight"><pre><span id="line-1"><span class="c1">// This free standing code snippet is located in the constructor.</span>
-</span><span id="line-2"><span class="p">{</span>
-</span><span id="line-3">    <span class="kt">var</span> <span class="n">configFileWatcher</span> <span class="p">=</span> <span class="k">new</span> <span class="n">System</span><span class="p">.</span><span class="n">IO</span><span class="p">.</span><span class="n">FileSystemWatcher</span><span class="p">(</span><span class="s">&quot;.\\mysqld.exe.config&quot;</span><span class="p">);</span>
-</span><span id="line-4">    <span class="n">configFileWatcher</span><span class="p">.</span><span class="n">Changed</span> <span class="p">+=</span> <span class="n">configFileWatcher_Changed</span><span class="p">;</span>
-</span><span id="line-5"><span class="p">}</span>
-</span><span id="line-6">
-</span><span id="line-7"><span class="c1">// This event sets the AppDomain manager private members to tell us when this event occured.</span>
-</span><span id="line-8"><span class="k">void</span> <span class="nf">configFileWatcher_Changed</span><span class="p">(</span><span class="kt">object</span> <span class="n">sender</span><span class="p">,</span> <span class="n">FileSystemEventArgs</span> <span class="n">e</span><span class="p">)</span>
-</span><span id="line-9"><span class="p">{</span>
-</span><span id="line-10">    <span class="n">System</span><span class="p">.</span><span class="n">Configuration</span><span class="p">.</span><span class="n">ConfigurationManager</span><span class="p">.</span><span class="n">RefreshSection</span><span class="p">(</span><span class="s">&quot;mysqlassemblies&quot;</span><span class="p">);</span>
-</span><span id="line-11">    <span class="n">fileWatcherPurge</span> <span class="p">=</span> <span class="n">DateTime</span><span class="p">.</span><span class="n">Now</span><span class="p">;</span>
-</span><span id="line-12"><span class="p">}</span>
-</span><span id="line-13">
-</span><span id="line-14"><span class="c1">// Upon any active application creation or unload we will check to see if it&#39;s created time is less than the purge</span>
-</span><span id="line-15"><span class="k">if</span> <span class="p">(</span><span class="n">mysqlhost</span><span class="p">.</span><span class="n">FirstAccessed</span> <span class="p">&lt;</span> <span class="n">fileWatcherPurge</span><span class="p">)</span>
-</span><span id="line-16"><span class="p">{</span>
-</span><span id="line-17">    <span class="c1">// Set Appdomain to die</span>
-</span><span id="line-18"><span class="p">}</span>
-</span></pre></div></code></pre></div>
+<pre><code  class="Csharp">// This free standing code snippet is located in the constructor.
+{
+    var configFileWatcher = new System.IO.FileSystemWatcher(".\\mysqld.exe.config");
+    configFileWatcher.Changed += configFileWatcher_Changed;
+}
+
+// This event sets the AppDomain manager private members to tell us when this event occured.
+void configFileWatcher_Changed(object sender, FileSystemEventArgs e)
+{
+    System.Configuration.ConfigurationManager.RefreshSection("mysqlassemblies");
+    fileWatcherPurge = DateTime.Now;
+}
+
+// Upon any active application creation or unload we will check to see if it's created time is less than the purge
+if (mysqlhost.FirstAccessed &lt; fileWatcherPurge)
+{
+    // Set Appdomain to die
+}
+</code></pre>
 
 <p>With this event I tell the default domain to refresh the section under mysqlassemblies so it will jettison the cached version of the config file. I also set a date time to do a check when we create or unload an AppDomain that will remove it if it finds that the domain was created before the file change.</p>
 
@@ -209,10 +211,10 @@ SecurityDescriptor: 006805e0
 
 <p>To validate we are loading from the proper directory we can review the Fusion Log. You must turn on the fusion log before you execute a query that uses the MySQL plugin. Check out this MSDN page on the <a href="http://msdn.microsoft.com/en-us/library/e74a18c4%28v=vs.110%29.aspx">Assembly Binding Log Viewer</a> to learn how to setup and use the tool.</p>
 
-<div class="highlight"><pre><code>LOG: Attempting download of new URL file:///C:/Users/James/Source/BazaarRepos/mysql-server/mysql-5.5/sql/lib/plugin/MySQLCustomClass.DLL.
+<pre><code  class="nohighlight">LOG: Attempting download of new URL file:///C:/Users/James/Source/BazaarRepos/mysql-server/mysql-5.5/sql/lib/plugin/MySQLCustomClass.DLL.
 LOG: Attempting download of new URL file:///C:/Users/James/Source/BazaarRepos/mysql-server/mysql-5.5/sql/lib/plugin/MySQLCustomClass/MySQLCustomClass.DLL.
 LOG: Assembly download was successful. Attempting setup of file: C:\Users\James\Source\BazaarRepos\mysql-server\mysql-5.5\sql\lib\plugin\MySQLCustomClass\MySQLCustomClass.dll
-</code></pre></div>
+</code></pre>
 
 <h2 id="wrapping-up">Wrapping Up</h2>
 <p>With all of the peices starting to fall in place we’re getting close to a release of this code. I will have a final part to clear up any miscellanea that didn’t make it into the first 8 posts. I will try to focus on performance testing the code and give some better examples. I will also get a proper installer out there for both 32bit and 64bit versions.</p>
@@ -244,6 +246,15 @@ LOG: Assembly download was successful. Attempting setup of file: C:\Users\James\
     
     <li>
       <h3>
+        <a href="http://www.debugthings.com/2015/10/08/rewriting-il-remotely-part3/">
+          Rewriting IL - Part 3 - Signatures and Compression
+          <small>08 Oct 2015</small>
+        </a>
+      </h3>
+    </li>
+    
+    <li>
+      <h3>
         <a href="http://www.debugthings.com/2015/09/28/rewriting-il-remotely-part2/">
           Rewriting IL - Part 2 - Tokens
           <small>28 Sep 2015</small>
@@ -256,15 +267,6 @@ LOG: Assembly download was successful. Attempting setup of file: C:\Users\James\
         <a href="http://www.debugthings.com/2015/09/16/rewriting-il-remotely-part1/">
           Rewriting IL - Part 1 - Metadata Interfaces
           <small>16 Sep 2015</small>
-        </a>
-      </h3>
-    </li>
-    
-    <li>
-      <h3>
-        <a href="http://www.debugthings.com/2015/09/06/simple%20beginings-chainsapm/">
-          Simple Beginnings - ChainsAPM
-          <small>06 Sep 2015</small>
         </a>
       </h3>
     </li>

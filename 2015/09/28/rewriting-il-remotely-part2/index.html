@@ -18,11 +18,13 @@
 
 
   <!-- CSS -->
-  <link rel="stylesheet" href="/public/css/monokai.css" />
   <link rel="stylesheet" href="/public/css/bootstrap.css" />
   <link rel="stylesheet" href="//maxcdn.bootstrapcdn.com/font-awesome/4.3.0/css/font-awesome.min.css">
   <link rel="stylesheet" href="/public/css/poole.css" />
 
+  <link rel="stylesheet" href="//cdnjs.cloudflare.com/ajax/libs/highlight.js/8.8.0/styles/monokai_sublime.min.css">
+  <script src="//cdnjs.cloudflare.com/ajax/libs/highlight.js/8.8.0/highlight.min.js"></script>
+  <script>hljs.initHighlightingOnLoad();</script>
 
   <script type="text/javascript" src="http://code.jquery.com/jquery-2.1.3.min.js"></script>
 
@@ -93,6 +95,15 @@
 
 <p><img src="/images/ildasm_viewmeta.png" alt="TokenMenu" /></p>
 
+<p>Some key enumerations can be found here:</p>
+
+<ul>
+  <li>[CorElementAttr][CorElem] - Managed types</li>
+  <li>[CorCallingConvention][CorCall] - Calling conventions</li>
+  <li><a href="https://msdn.microsoft.com/en-us/library/ms233456(v=vs.110).aspx">CorMethodImpl</a> - Method implementation features</li>
+  <li><a href="https://msdn.microsoft.com/en-us/library/ms231030(v=vs.110).aspx">CorMethodAttr</a> - Method features</li>
+</ul>
+
 <h2 id="metadata-tables">MetaData Tables</h2>
 <p>When the CLR profiler loads a module it gives you the ability to query for the ModuleMetaData interfaces you need by using the <a href="https://msdn.microsoft.com/en-us/library/ms231432(v=vs.110).aspx"><code>ICorProfilerInfo::GetModuleMetaData()</code></a> method. The best place to do this is in the <a href="https://msdn.microsoft.com/en-us/library/ms230105(v=vs.110).aspx"><code>ICorProfilerCallback::ModuleLoadFinished()</code></a> method. This ensures all data is in memory from the file. A code example is in my last blog post <a href="(/2015/09/16/rewriting-il-remotely-part1/)">here</a>.</p>
 
@@ -148,7 +159,7 @@
 </table>
 
 <h2 id="metainfo-method-table-0x6-detail-from-ildasm">MetaInfo Method Table (0x6) Detail from ILDASM</h2>
-<div class="highlight"><pre><code>=================================================
+<pre><code  class="nohighlight">=================================================
  6(0x6): Method               cRecs:   18(0x12), cbRec: 14(0xe), cbTable:   252(0xfc)
   col  0:  RVA          oCol: 0, cbCol:4, ULONG  
   col  1:  ImplFlags    oCol: 4, cbCol:2, USHORT
@@ -161,7 +172,7 @@
    2 == 0:00002058, 1:0000, 2:0886, 3:string#70b, 4:blob#10, 5:Param[8000001]
    3 == 0:00002061, 1:0000, 2:0886, 3:string#71e, 4:blob#8a, 5:Param[8000002]
    4 == 0:00002069, 1:0000, 2:0886, 3:string#72f, 4:blob#10, 5:Param[8000002]
-</code></pre></div>
+</code></pre>
 
 <blockquote>
   <p><strong>TIP</strong> if you search for a specific table you should try searching for N(0x#): where N is the base 10 number and # is the base 16 number so for MemberRef seach for 10(0xa):</p>
@@ -241,30 +252,30 @@ row in the MethodDef table</li>
 
 <p>What about the Signature? See the next section on heaps for more info.</p>
 
-<div class="highlight"><pre><code class="language-cpp"><div class="highlight"><pre><span id="line-1"><span class="k">typedef</span> <span class="k">enum</span> <span class="n">CorMethodImpl</span>
-</span><span id="line-2"><span class="p">{</span>
-</span><span id="line-3">    <span class="c1">// code impl mask</span>
-</span><span id="line-4">    <span class="n">miIL</span>                 <span class="o">=</span>   <span class="mh">0x0000</span><span class="p">,</span>   <span class="c1">// Method impl is IL.</span>
-</span><span id="line-5">
-</span><span id="line-6">    <span class="c1">// Flags removed for clarity, see link above</span>
-</span><span id="line-7"><span class="p">}</span> <span class="n">CorMethodImpl</span><span class="p">;</span>
-</span></pre></div></code></pre></div>
+<pre><code  class="cpp">typedef enum CorMethodImpl
+{
+    // code impl mask
+    miIL                 =   0x0000,   // Method impl is IL.
 
-<div class="highlight"><pre><code class="language-cpp"><div class="highlight"><pre><span id="line-1"><span class="c1">// MethodDef attr bits, Used by DefineMethod.</span>
-</span><span id="line-2"><span class="k">typedef</span> <span class="k">enum</span> <span class="n">CorMethodAttr</span>
-</span><span id="line-3"><span class="p">{</span>
-</span><span id="line-4">    <span class="c1">// member access mask - Use this mask to retrieve accessibility information.</span>
-</span><span id="line-5">    <span class="n">mdPublic</span>                    <span class="o">=</span>   <span class="mh">0x0006</span><span class="p">,</span>     <span class="c1">// Accessibly by anyone who has visibility to this scope.</span>
-</span><span id="line-6">    <span class="c1">// end member access mask</span>
-</span><span id="line-7">
-</span><span id="line-8">    <span class="n">mdHideBySig</span>                 <span class="o">=</span>   <span class="mh">0x0080</span><span class="p">,</span>     <span class="c1">// Method hides by name+sig, else just by name.</span>
-</span><span id="line-9">
-</span><span id="line-10">    <span class="c1">// method implementation attributes.</span>
-</span><span id="line-11">    <span class="n">mdSpecialName</span>               <span class="o">=</span>   <span class="mh">0x0800</span><span class="p">,</span>     <span class="c1">// Method is special.  Name describes how.</span>
-</span><span id="line-12">
-</span><span id="line-13">    <span class="c1">// Flags removed for clarity, see link above</span>
-</span><span id="line-14"><span class="p">}</span> <span class="n">CorMethodAttr</span><span class="p">;</span>
-</span></pre></div></code></pre></div>
+    // Flags removed for clarity, see link above
+} CorMethodImpl;
+</code></pre>
+
+<pre><code  class="cpp">// MethodDef attr bits, Used by DefineMethod.
+typedef enum CorMethodAttr
+{
+    // member access mask - Use this mask to retrieve accessibility information.
+    mdPublic                    =   0x0006,     // Accessibly by anyone who has visibility to this scope.
+    // end member access mask
+
+    mdHideBySig                 =   0x0080,     // Method hides by name+sig, else just by name.
+
+    // method implementation attributes.
+    mdSpecialName               =   0x0800,     // Method is special.  Name describes how.
+
+    // Flags removed for clarity, see link above
+} CorMethodAttr;
+</code></pre>
 
 <h2 id="heaps-and-blobs---string-heap">Heaps and Blobs - String Heap</h2>
 
@@ -278,7 +289,7 @@ row in the MethodDef table</li>
   <p><strong>TIP</strong> if you search for strings by just the smallest number “6f8” you might have a few dozen to a few hundred hits. Pad the number with a few 0’s to help. (ie. 0006f8)</p>
 </blockquote>
 
-<div class="highlight"><pre><code>String Heap:  2397(0x95d) bytes
+<pre><code  class="nohighlight">String Heap:  2397(0x95d) bytes
 00000000: 00                                               &gt;                &lt;
 00000001: 49 45 6e 75 6d 65 72 61  62 6c 65 60 31 00       &gt;IEnumerable`1   &lt;
 0000000f: 49 43 6f 6c 6c 65 63 74  69 6f 6e 60 31 00       &gt;ICollection`1   &lt;
@@ -288,7 +299,7 @@ row in the MethodDef table</li>
 000006f8: 67 65 74 5f 4d 6f 64 75  6c 65 54 6f 54 61 72 67 &gt;get_ModuleToTarg&lt;
         : 65 74 00                                         &gt;et              &lt;
 &lt;&lt;&lt; REMOVED FOR CLARITY &gt;&gt;&gt;
-</code></pre></div>
+</code></pre>
 
 <p><strong>String Interning</strong> In an effort to save space the string heap may intern your data. So a likely case would be if you use IEnumerable<t> and Enumerable<t> in your code, both sting references would point to the same location, however IEnumerable would have the address of 0xf and Enumerable would be 0x10 (0xf + 1).</t></t></p>
 
@@ -319,7 +330,7 @@ row in the MethodDef table</li>
   </tbody>
 </table>
 
-<div class="highlight"><pre><code>Blob Heap:  812(0x32c) bytes
+<pre><code  class="nohighlight">Blob Heap:  812(0x32c) bytes
     0,0 :                                                  &gt;                &lt;
     1,4 : 20 01 01 08                                      &gt;                &lt;
     6,3 : 20 00 01                                         &gt;                &lt;
@@ -333,39 +344,39 @@ row in the MethodDef table</li>
    86,3 : 20 00 1c                                         &gt;                &lt;
    8a,3 : 20 00 0e                                         &gt;                &lt;
    8e,6 : 15 12 80 89 01 0e                                &gt;                &lt;
-</code></pre></div>
+</code></pre>
 
-<div class="highlight"><pre><code class="language-cpp"><div class="highlight"><pre><span id="line-1"><span class="k">typedef</span> <span class="k">enum</span> <span class="n">CorCallingConvention</span>
-</span><span id="line-2"><span class="p">{</span>
-</span><span id="line-3">    <span class="c1">// ITEMS REMOVED FOR CLARITY</span>
-</span><span id="line-4">
-</span><span id="line-5">    <span class="n">IMAGE_CEE_CS_CALLCONV_DEFAULT</span>       <span class="o">=</span> <span class="mh">0x0</span><span class="p">,</span>
-</span><span id="line-6">    <span class="c1">// The high bits of the calling convention convey additional info</span>
-</span><span id="line-7">    <span class="n">IMAGE_CEE_CS_CALLCONV_HASTHIS</span>   <span class="o">=</span> <span class="mh">0x20</span><span class="p">,</span>  <span class="c1">// Top bit indicates a &#39;this&#39; parameter</span>
-</span><span id="line-8"><span class="p">}</span> <span class="n">CorCallingConvention</span><span class="p">;</span>
-</span></pre></div></code></pre></div>
+<pre><code  class="cpp">typedef enum CorCallingConvention
+{
+    // ITEMS REMOVED FOR CLARITY
 
-<div class="highlight"><pre><code class="language-cpp"><div class="highlight"><pre><span id="line-1"><span class="k">typedef</span> <span class="k">enum</span> <span class="n">CorElementType</span>
-</span><span id="line-2"><span class="p">{</span>
-</span><span id="line-3">    <span class="c1">// ITEMS REMOVED FOR CLARITY</span>
-</span><span id="line-4">
-</span><span id="line-5">    <span class="n">ELEMENT_TYPE_VOID</span>           <span class="o">=</span> <span class="mh">0x01</span><span class="p">,</span>
-</span><span id="line-6">    <span class="n">ELEMENT_TYPE_BOOLEAN</span>        <span class="o">=</span> <span class="mh">0x02</span><span class="p">,</span>
-</span><span id="line-7">    <span class="n">ELEMENT_TYPE_CHAR</span>           <span class="o">=</span> <span class="mh">0x03</span><span class="p">,</span>
-</span><span id="line-8">    <span class="n">ELEMENT_TYPE_I1</span>             <span class="o">=</span> <span class="mh">0x04</span><span class="p">,</span>
-</span><span id="line-9">    <span class="n">ELEMENT_TYPE_U1</span>             <span class="o">=</span> <span class="mh">0x05</span><span class="p">,</span>
-</span><span id="line-10">    <span class="n">ELEMENT_TYPE_I2</span>             <span class="o">=</span> <span class="mh">0x06</span><span class="p">,</span>
-</span><span id="line-11">    <span class="n">ELEMENT_TYPE_U2</span>             <span class="o">=</span> <span class="mh">0x07</span><span class="p">,</span>
-</span><span id="line-12">    <span class="n">ELEMENT_TYPE_I4</span>             <span class="o">=</span> <span class="mh">0x08</span><span class="p">,</span>
-</span><span id="line-13">    <span class="n">ELEMENT_TYPE_U4</span>             <span class="o">=</span> <span class="mh">0x09</span><span class="p">,</span>
-</span><span id="line-14">    <span class="n">ELEMENT_TYPE_I8</span>             <span class="o">=</span> <span class="mh">0x0a</span><span class="p">,</span>
-</span><span id="line-15">    <span class="n">ELEMENT_TYPE_U8</span>             <span class="o">=</span> <span class="mh">0x0b</span><span class="p">,</span>
-</span><span id="line-16">    <span class="n">ELEMENT_TYPE_R4</span>             <span class="o">=</span> <span class="mh">0x0c</span><span class="p">,</span>
-</span><span id="line-17">    <span class="n">ELEMENT_TYPE_R8</span>             <span class="o">=</span> <span class="mh">0x0d</span><span class="p">,</span>
-</span><span id="line-18">    <span class="n">ELEMENT_TYPE_STRING</span>         <span class="o">=</span> <span class="mh">0x0e</span><span class="p">,</span>
-</span><span id="line-19">
-</span><span id="line-20"><span class="p">}</span> <span class="n">CorElementType</span><span class="p">;</span>
-</span></pre></div></code></pre></div>
+    IMAGE_CEE_CS_CALLCONV_DEFAULT       = 0x0,
+    // The high bits of the calling convention convey additional info
+    IMAGE_CEE_CS_CALLCONV_HASTHIS   = 0x20,  // Top bit indicates a 'this' parameter
+} CorCallingConvention;
+</code></pre>
+
+<pre><code  class="cpp">typedef enum CorElementType
+{
+    // ITEMS REMOVED FOR CLARITY
+
+    ELEMENT_TYPE_VOID           = 0x01,
+    ELEMENT_TYPE_BOOLEAN        = 0x02,
+    ELEMENT_TYPE_CHAR           = 0x03,
+    ELEMENT_TYPE_I1             = 0x04,
+    ELEMENT_TYPE_U1             = 0x05,
+    ELEMENT_TYPE_I2             = 0x06,
+    ELEMENT_TYPE_U2             = 0x07,
+    ELEMENT_TYPE_I4             = 0x08,
+    ELEMENT_TYPE_U4             = 0x09,
+    ELEMENT_TYPE_I8             = 0x0a,
+    ELEMENT_TYPE_U8             = 0x0b,
+    ELEMENT_TYPE_R4             = 0x0c,
+    ELEMENT_TYPE_R8             = 0x0d,
+    ELEMENT_TYPE_STRING         = 0x0e,
+
+} CorElementType;
+</code></pre>
 
 <h2 id="what-can-we-do-with-these">What can we do with these?</h2>
 <p>Using the metadata interfaces we can start looking at the properties of the tokens and creating an internal mapping of the types in our injection assembly and we can attempt to find them in the target assembly. Here is a high level of what I am doing in my application.</p>
@@ -436,7 +447,7 @@ row in the MethodDef table</li>
 0A000033 will map to 06000A33</p>
 </blockquote>
 
-<div class="highlight"><pre><code>.method /*06000016*/ public hidebysig instance void
+<pre><code  class="nohighlight">.method /*06000016*/ public hidebysig instance void
         DateTimeExample() cil managed
 // SIG: 20 00 01
 {
@@ -453,30 +464,30 @@ row in the MethodDef table</li>
   IL_000e:  /* 0A   |                  */ stloc.0
   IL_000f:  /* 2A   |                  */ ret
 } // end of method
-</code></pre></div>
+</code></pre>
 
 <h3 id="original-in-memory">Original in Memory</h3>
-<div class="highlight"><pre><code>IL_0000:  00              nop
+<pre><code  class="nohighlight">IL_0000:  00              nop
 IL_0001:  28 32 00 00 0A  call
 IL_0006:  0B              stloc.1
 IL_0007:  12 01           ldloca.s   V_1
 IL_0009:  28 33 00 00 0A  call
 IL_000e:  0A              stloc.0
 IL_000f:  2A              ret
-</code></pre></div>
+</code></pre>
 
 <h3 id="rewritten-in-memory">Rewritten in Memory</h3>
-<div class="highlight"><pre><code>IL_0000:  00              nop
+<pre><code  class="nohighlight">IL_0000:  00              nop
 IL_0001:  28 32 0a 00 06  call
 IL_0006:  0B              stloc.1
 IL_0007:  12 01           ldloca.s   V_1
 IL_0009:  28 33 0a 00 06  call
 IL_000e:  0A              stloc.0
 IL_000f:  2A              ret
-</code></pre></div>
+</code></pre>
 
 <h2 id="conclusion">Conclusion</h2>
-<p>Tokens are the currency of rewriting IL. You use them in exchange for methods, types, and signatures. If you know how to convert your currency you can easily rewrite existing methods. We’ll make a quick stop at signature parsing and token compression beforehand. After that, we can dig deeper on things like Generics and really get into some powerful rewriting. </p>
+<p>Tokens are the currency of rewriting IL. You use them in exchange for methods, types, and signatures. If you know how to convert your currency you can easily rewrite existing methods. We’ll make a quick stop at signature parsing and token compression beforehand. After that, we can dig deeper on things like Generics and really get into some powerful rewriting.</p>
 
 
 </div>
@@ -505,6 +516,15 @@ IL_000f:  2A              ret
     
     <li>
       <h3>
+        <a href="http://www.debugthings.com/2015/10/08/rewriting-il-remotely-part3/">
+          Rewriting IL - Part 3 - Signatures and Compression
+          <small>08 Oct 2015</small>
+        </a>
+      </h3>
+    </li>
+    
+    <li>
+      <h3>
         <a href="http://www.debugthings.com/2015/09/16/rewriting-il-remotely-part1/">
           Rewriting IL - Part 1 - Metadata Interfaces
           <small>16 Sep 2015</small>
@@ -517,15 +537,6 @@ IL_000f:  2A              ret
         <a href="http://www.debugthings.com/2015/09/06/simple%20beginings-chainsapm/">
           Simple Beginnings - ChainsAPM
           <small>06 Sep 2015</small>
-        </a>
-      </h3>
-    </li>
-    
-    <li>
-      <h3>
-        <a href="http://www.debugthings.com/2015/09/01/a-year-of-procrastination/">
-          A Year of Procrastination
-          <small>01 Sep 2015</small>
         </a>
       </h3>
     </li>

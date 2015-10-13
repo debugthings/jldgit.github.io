@@ -18,11 +18,13 @@
 
 
   <!-- CSS -->
-  <link rel="stylesheet" href="/public/css/monokai.css" />
   <link rel="stylesheet" href="/public/css/bootstrap.css" />
   <link rel="stylesheet" href="//maxcdn.bootstrapcdn.com/font-awesome/4.3.0/css/font-awesome.min.css">
   <link rel="stylesheet" href="/public/css/poole.css" />
 
+  <link rel="stylesheet" href="//cdnjs.cloudflare.com/ajax/libs/highlight.js/8.8.0/styles/monokai_sublime.min.css">
+  <script src="//cdnjs.cloudflare.com/ajax/libs/highlight.js/8.8.0/highlight.min.js"></script>
+  <script>hljs.initHighlightingOnLoad();</script>
 
   <script type="text/javascript" src="http://code.jquery.com/jquery-2.1.3.min.js"></script>
 
@@ -88,7 +90,7 @@
 
 <p>Enter the following commands in your GIT command prompt. It’s that simple. All code changes as I have shown them in this blog post should be there. If you come across this post at a way later date, try increasing the range from 5 to 10, and so on.</p>
 
-<div class="highlight"><pre><code>git clone https://github.com/jldgit/mysql_udf_dotnet.git -b wip-nextversion
+<pre><code  class="nohighlight">git clone https://github.com/jldgit/mysql_udf_dotnet.git -b wip-nextversion
 git log --abbrev-commit -n 5 --pretty=oneline
 
 91e2238 Changes relating to post 6
@@ -98,7 +100,7 @@ git log --abbrev-commit -n 5 --pretty=oneline
 6a588f8 Work in progress.
 
 git checkout 91e2238
-</code></pre></div>
+</code></pre>
 
 <h2 id="whats-changed">What’s Changed?</h2>
 <p>In this version I added support for both v4.0 binding and legacy (v2.0) binding. The legacy binding only allows one CLR at a time to be loaded. By default v4.0 allows side-by-side loading of the CLRs. This is by design so you can properly load and execute <a href="http://msdn.microsoft.com/en-us/library/x0w2664k.aspx">mixed-mode assemblies</a>–assemblies that contain both native and managed code.</p>
@@ -117,34 +119,34 @@ git checkout 91e2238
 <h3 id="enumerating-the-clr-versions">Enumerating the CLR versions</h3>
 <p>Thankfully Microsoft provides <a href="http://msdn.microsoft.com/en-us/library/hh925568%28v=vs.110%29.aspx">this article</a> on how to determine what version(s) of .NET are installed on your machine. It is as simple as enumerating the registry with <code>RegOpenKeyEx()</code> and <code>RegEnumKeyEx()</code>. I don’t flag the bitness in my code as it would highly unlikely that the x64 version is installed and the x86 is not.</p>
 
-<div class="highlight"><pre><code class="language-Cpp"><div class="highlight"><pre><span id="line-1"><span class="c1">// Use this to find out what versions of the CLR are installed.</span>
-</span><span id="line-2"><span class="c1">// We will prefer to use v4.0 for now; this is not future proof as v5 may come out soon</span>
-</span><span id="line-3"><span class="cp">#define MAXSTRING 128</span>
-</span><span id="line-4"><span class="n">HKEY</span> <span class="n">netFrame</span><span class="p">;</span>
-</span><span id="line-5"><span class="n">hr</span> <span class="o">=</span> <span class="n">RegOpenKeyEx</span><span class="p">(</span><span class="n">HKEY_LOCAL_MACHINE</span><span class="p">,</span> <span class="s">&quot;SOFTWARE</span><span class="se">\\</span><span class="s">Microsoft</span><span class="se">\\</span><span class="s">NET Framework Setup</span><span class="se">\\</span><span class="s">NDP&quot;</span><span class="p">,</span> 
-</span><span id="line-6"><span class="nb">NULL</span><span class="p">,</span> <span class="n">KEY_READ</span> <span class="o">|</span> <span class="n">KEY_QUERY_VALUE</span> <span class="o">|</span> <span class="n">KEY_ENUMERATE_SUB_KEYS</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">netFrame</span><span class="p">);</span>
-</span><span id="line-7"><span class="kt">int</span> <span class="n">keyIndex</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>
-</span><span id="line-8"><span class="kt">char</span> <span class="n">keys</span><span class="p">[</span><span class="mi">10</span><span class="p">][</span><span class="n">MAXSTRING</span><span class="p">];</span> <span class="c1">// Store 10 keys x 128bytes</span>
-</span><span id="line-9"><span class="n">BOOL</span> <span class="n">has40</span> <span class="o">=</span> <span class="n">FALSE</span><span class="p">;</span>
-</span><span id="line-10"><span class="n">WCHAR</span> <span class="n">version</span><span class="p">[</span><span class="n">MAXSTRING</span><span class="p">];</span>
-</span><span id="line-11"><span class="n">DWORD</span> <span class="n">versionSize</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>
-</span><span id="line-12">
-</span><span id="line-13"><span class="k">while</span> <span class="p">(</span><span class="n">hr</span> <span class="o">==</span> <span class="mi">0</span><span class="p">)</span>
-</span><span id="line-14"><span class="p">{</span>
-</span><span id="line-15">  <span class="n">DWORD</span> <span class="n">keyLen</span> <span class="o">=</span> <span class="n">MAXSTRING</span><span class="p">;</span>
-</span><span id="line-16">  <span class="n">ZeroMemory</span><span class="p">(</span><span class="n">keys</span><span class="p">[</span><span class="n">keyIndex</span><span class="p">],</span> <span class="n">MAXSTRING</span><span class="p">);</span>
-</span><span id="line-17">  <span class="n">hr</span> <span class="o">=</span> <span class="n">RegEnumKeyEx</span><span class="p">(</span><span class="n">netFrame</span><span class="p">,</span> <span class="n">keyIndex</span><span class="p">,</span> <span class="n">keys</span><span class="p">[</span><span class="n">keyIndex</span><span class="p">],</span> <span class="o">&amp;</span><span class="n">keyLen</span><span class="p">,</span> <span class="nb">NULL</span><span class="p">,</span> <span class="nb">NULL</span><span class="p">,</span> <span class="nb">NULL</span><span class="p">,</span> <span class="nb">NULL</span><span class="p">);</span>
-</span><span id="line-18">  <span class="k">if</span> <span class="p">(</span><span class="n">hr</span> <span class="o">==</span> <span class="n">ERROR_ACCESS_DENIED</span><span class="p">)</span>
-</span><span id="line-19">    <span class="k">return</span> <span class="n">hr</span><span class="p">;</span>
-</span><span id="line-20">  <span class="k">if</span> <span class="p">(</span><span class="o">!</span><span class="n">has40</span><span class="p">)</span>
-</span><span id="line-21">  <span class="p">{</span>
-</span><span id="line-22">    <span class="n">has40</span> <span class="o">=</span> <span class="n">strcmp</span><span class="p">(</span><span class="n">V4</span><span class="p">,</span> <span class="n">keys</span><span class="p">[</span><span class="n">keyIndex</span><span class="p">]);</span>
-</span><span id="line-23">  <span class="p">}</span>
-</span><span id="line-24">  <span class="k">if</span> <span class="p">(</span><span class="n">keyIndex</span><span class="o">++</span> <span class="o">&gt;</span> <span class="mi">10</span><span class="p">)</span>
-</span><span id="line-25">    <span class="k">break</span><span class="p">;</span> <span class="c1">// There shouldn&#39;t be 10 keys here, but some high random number is better than </span>
-</span><span id="line-26">           <span class="c1">// letting it go forever.</span>
-</span><span id="line-27"><span class="p">}</span>
-</span></pre></div></code></pre></div>
+<pre><code  class="Cpp">// Use this to find out what versions of the CLR are installed.
+// We will prefer to use v4.0 for now; this is not future proof as v5 may come out soon
+#define MAXSTRING 128
+HKEY netFrame;
+hr = RegOpenKeyEx(HKEY_LOCAL_MACHINE, "SOFTWARE\\Microsoft\\NET Framework Setup\\NDP", 
+NULL, KEY_READ | KEY_QUERY_VALUE | KEY_ENUMERATE_SUB_KEYS, &amp;netFrame);
+int keyIndex = 0;
+char keys[10][MAXSTRING]; // Store 10 keys x 128bytes
+BOOL has40 = FALSE;
+WCHAR version[MAXSTRING];
+DWORD versionSize = 0;
+
+while (hr == 0)
+{
+  DWORD keyLen = MAXSTRING;
+  ZeroMemory(keys[keyIndex], MAXSTRING);
+  hr = RegEnumKeyEx(netFrame, keyIndex, keys[keyIndex], &amp;keyLen, NULL, NULL, NULL, NULL);
+  if (hr == ERROR_ACCESS_DENIED)
+    return hr;
+  if (!has40)
+  {
+    has40 = strcmp(V4, keys[keyIndex]);
+  }
+  if (keyIndex++ &gt; 10)
+    break; // There shouldn't be 10 keys here, but some high random number is better than 
+           // letting it go forever.
+}
+</code></pre>
 
 <h3 id="proper-clr-binding">Proper CLR Binding</h3>
 <p>After we check to see what versions of the CLR we have loaded we need to check to see if we are using a legacy binding model. Most machines now have .NET 4.0. Version 4.5 comes standard since Sever 2012 and .NET 4.0 was released in 2010. However they may be a few Machines out there that only have .NET 3.5 installed. Since MySQL runs just about everywhere it’s plausible that we will be on a Windows 2008 server somewhere.</p>
@@ -157,101 +159,101 @@ git checkout 91e2238
 
 <p>If the version string is invalid for the default CLR to load then we will return an error.</p>
 
-<div class="highlight"><pre><code class="language-Cpp"><div class="highlight"><pre><span id="line-1"><span class="kt">bool</span> <span class="n">disableSxS</span> <span class="o">=</span> <span class="n">FALSE</span><span class="p">;</span>
-</span><span id="line-2"><span class="c1">// If we have 4.0 try to use the 4.0 binding policy.</span>
-</span><span id="line-3"><span class="k">if</span> <span class="p">(</span><span class="n">has40</span><span class="p">)</span>
-</span><span id="line-4"><span class="p">{</span>
-</span><span id="line-5">  <span class="n">DWORD</span> <span class="n">actFlags</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>
-</span><span id="line-6">  <span class="n">hr</span> <span class="o">=</span> <span class="n">CLRCreateInstance</span><span class="p">(</span><span class="n">CLSID_CLRMetaHostPolicy</span><span class="p">,</span> <span class="n">IID_ICLRMetaHostPolicy</span><span class="p">,</span>
-</span><span id="line-7">    <span class="p">(</span><span class="n">LPVOID</span><span class="o">*</span><span class="p">)</span><span class="o">&amp;</span><span class="n">pMetaHostPolicy</span><span class="p">);</span>
-</span><span id="line-8">  <span class="k">if</span> <span class="p">(</span><span class="n">FAILED</span><span class="p">(</span><span class="n">hr</span><span class="p">))</span>
-</span><span id="line-9">    <span class="k">return</span> <span class="n">hr</span><span class="p">;</span>
-</span><span id="line-10">
-</span><span id="line-11">  <span class="n">hr</span> <span class="o">=</span> <span class="n">pMetaHostPolicy</span><span class="o">-&gt;</span><span class="n">GetRequestedRuntime</span><span class="p">(</span>
-</span><span id="line-12">    <span class="n">METAHOST_POLICY_USE_PROCESS_IMAGE_PATH</span><span class="p">,</span>
-</span><span id="line-13">    <span class="nb">NULL</span><span class="p">,</span>
-</span><span id="line-14">    <span class="nb">NULL</span><span class="p">,</span>
-</span><span id="line-15">    <span class="nb">NULL</span><span class="p">,</span>
-</span><span id="line-16">    <span class="o">&amp;</span><span class="n">versionSize</span><span class="p">,</span>
-</span><span id="line-17">    <span class="nb">NULL</span><span class="p">,</span>
-</span><span id="line-18">    <span class="nb">NULL</span><span class="p">,</span>
-</span><span id="line-19">    <span class="o">&amp;</span><span class="n">actFlags</span><span class="p">,</span>
-</span><span id="line-20">    <span class="n">IID_ICLRRuntimeInfo</span><span class="p">,</span>
-</span><span id="line-21">    <span class="k">reinterpret_cast</span><span class="o">&lt;</span><span class="n">LPVOID</span> <span class="o">*&gt;</span><span class="p">(</span><span class="o">&amp;</span><span class="n">info</span><span class="p">));</span>
-</span><span id="line-22">  <span class="k">if</span> <span class="p">(</span><span class="n">FAILED</span><span class="p">(</span><span class="n">hr</span><span class="p">))</span>
-</span><span id="line-23">    <span class="k">return</span> <span class="n">hr</span><span class="p">;</span>
-</span><span id="line-24">
-</span><span id="line-25">  <span class="c1">// Check the preferred version</span>
-</span><span id="line-26">  <span class="n">hr</span> <span class="o">=</span> <span class="n">info</span><span class="o">-&gt;</span><span class="n">GetVersionString</span><span class="p">(</span><span class="n">version</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">versionSize</span><span class="p">);</span>
-</span><span id="line-27">  <span class="k">if</span> <span class="p">(</span><span class="n">FAILED</span><span class="p">(</span><span class="n">hr</span><span class="p">))</span>
-</span><span id="line-28">    <span class="k">return</span> <span class="n">hr</span><span class="p">;</span>
-</span><span id="line-29">
-</span><span id="line-30">  <span class="n">disableSxS</span> <span class="o">=</span> <span class="p">(</span><span class="n">actFlags</span> <span class="o">&amp;</span> <span class="n">METAHOST_CONFIG_FLAGS_LEGACY_V2_ACTIVATION_POLICY_MASK</span><span class="p">)</span> 
-</span><span id="line-31">  <span class="o">&amp;</span> <span class="n">METAHOST_CONFIG_FLAGS_LEGACY_V2_ACTIVATION_POLICY_TRUE</span><span class="p">;</span> <span class="c1">// Disable SxS</span>
-</span><span id="line-32">
-</span><span id="line-33">  <span class="n">hr</span> <span class="o">=</span> <span class="n">CLRCreateInstance</span><span class="p">(</span><span class="n">CLSID_CLRMetaHost</span><span class="p">,</span> <span class="n">IID_ICLRMetaHost</span><span class="p">,</span>
-</span><span id="line-34">    <span class="p">(</span><span class="n">LPVOID</span><span class="o">*</span><span class="p">)</span><span class="o">&amp;</span><span class="n">pMetaHost</span><span class="p">);</span>
-</span><span id="line-35">  <span class="k">if</span> <span class="p">(</span><span class="n">FAILED</span><span class="p">(</span><span class="n">hr</span><span class="p">))</span>
-</span><span id="line-36">    <span class="k">return</span> <span class="n">hr</span><span class="p">;</span>
-</span><span id="line-37"><span class="p">}</span>
-</span><span id="line-38">
-</span><span id="line-39"><span class="c1">// If we don&#39;t have 4.0, bind the old way to the latest version (v2.0.50727)</span>
-</span><span id="line-40"><span class="k">if</span> <span class="p">(</span><span class="o">!</span><span class="n">has40</span><span class="p">)</span> <span class="p">{</span>
-</span><span id="line-41">
-</span><span id="line-42">  <span class="c1">// In the case of our binding we will force the required version.</span>
-</span><span id="line-43">  <span class="c1">// If we fail this kills the initilization of the CLR</span>
-</span><span id="line-44">  <span class="n">hr</span> <span class="o">=</span> <span class="n">GetCORRequiredVersion</span><span class="p">(</span><span class="n">version</span><span class="p">,</span> <span class="n">MAXSTRING</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">versionSize</span><span class="p">);</span>
-</span><span id="line-45">  <span class="k">if</span> <span class="p">(</span><span class="n">FAILED</span><span class="p">(</span><span class="n">hr</span><span class="p">))</span>
-</span><span id="line-46">    <span class="k">return</span> <span class="n">hr</span><span class="p">;</span>
-</span><span id="line-47">
-</span><span id="line-48">  <span class="n">hr</span> <span class="o">=</span> <span class="n">CorBindToRuntimeEx</span><span class="p">(</span><span class="n">version</span><span class="p">,</span>
-</span><span id="line-49">    <span class="nb">NULL</span><span class="p">,</span>
-</span><span id="line-50">    <span class="mi">0</span><span class="p">,</span>
-</span><span id="line-51">    <span class="n">CLSID_CLRRuntimeHost</span><span class="p">,</span>
-</span><span id="line-52">    <span class="n">IID_ICLRRuntimeHost</span><span class="p">,</span>
-</span><span id="line-53">    <span class="k">reinterpret_cast</span><span class="o">&lt;</span><span class="n">LPVOID</span> <span class="o">*&gt;</span><span class="p">(</span><span class="o">&amp;</span><span class="n">m_pClr</span><span class="p">));</span>
-</span><span id="line-54">
-</span><span id="line-55">  <span class="k">if</span> <span class="p">(</span><span class="n">FAILED</span><span class="p">(</span><span class="n">hr</span><span class="p">))</span>
-</span><span id="line-56">    <span class="k">return</span> <span class="n">hr</span><span class="p">;</span>
-</span><span id="line-57">
-</span><span id="line-58">  <span class="c1">// Pulled out common startup items.</span>
-</span><span id="line-59">  <span class="k">return</span> <span class="nf">SetupCLR</span><span class="p">(</span><span class="n">m_pClr</span><span class="p">,</span> <span class="n">version</span><span class="p">,</span> <span class="n">version</span><span class="p">);</span>
-</span><span id="line-60">
-</span><span id="line-61"><span class="p">}</span>
-</span></pre></div></code></pre></div>
+<pre><code  class="Cpp">bool disableSxS = FALSE;
+// If we have 4.0 try to use the 4.0 binding policy.
+if (has40)
+{
+  DWORD actFlags = 0;
+  hr = CLRCreateInstance(CLSID_CLRMetaHostPolicy, IID_ICLRMetaHostPolicy,
+    (LPVOID*)&amp;pMetaHostPolicy);
+  if (FAILED(hr))
+    return hr;
 
-<div class="highlight"><pre><code class="language-Cpp"><div class="highlight"><pre><span id="line-1"><span class="c1">// If no runtimes are loaded we will make sure to load them all based on the policy.</span>
-</span><span id="line-2"><span class="c1">// This will set the default runtime as the last CLR to be loaded.</span>
-</span><span id="line-3"><span class="c1">// At the time of writing this application it is 4.5 (4.0)</span>
-</span><span id="line-4"><span class="k">if</span> <span class="p">(</span><span class="o">!</span><span class="n">runtimesLoaded</span><span class="p">)</span>
-</span><span id="line-5"><span class="p">{</span>
-</span><span id="line-6">  <span class="n">pMetaHost</span><span class="o">-&gt;</span><span class="n">EnumerateInstalledRuntimes</span><span class="p">(</span><span class="o">&amp;</span><span class="n">pRtEnum</span><span class="p">);</span>
-</span><span id="line-7">  <span class="k">while</span> <span class="p">((</span><span class="n">hr</span> <span class="o">=</span> <span class="n">pRtEnum</span><span class="o">-&gt;</span><span class="n">Next</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="p">(</span><span class="n">IUnknown</span> <span class="o">**</span><span class="p">)</span><span class="o">&amp;</span><span class="n">info</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">fetched</span><span class="p">))</span> <span class="o">==</span> <span class="n">S_OK</span> <span class="o">&amp;&amp;</span> <span class="n">fetched</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">)</span>
-</span><span id="line-8">  <span class="p">{</span>
-</span><span id="line-9">    <span class="n">ZeroMemory</span><span class="p">(</span><span class="n">strName</span><span class="p">,</span> <span class="k">sizeof</span><span class="p">(</span><span class="n">strName</span><span class="p">));</span>
-</span><span id="line-10">    <span class="n">info</span><span class="o">-&gt;</span><span class="n">GetVersionString</span><span class="p">(</span><span class="n">strName</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">len</span><span class="p">);</span>
-</span><span id="line-11">
-</span><span id="line-12">    <span class="c1">// If we are disabling side by side execution </span>
-</span><span id="line-13">    <span class="c1">// (useLegacyV2RuntimeActivationPolicy) then only load the speficied CLR</span>
-</span><span id="line-14">    <span class="c1">// If we haven&#39;t specified SxS policy then load all.</span>
-</span><span id="line-15">    <span class="k">if</span> <span class="p">(((</span><span class="n">StrCmpW</span><span class="p">(</span><span class="n">strName</span><span class="p">,</span> <span class="n">version</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">)</span> <span class="o">&amp;</span> <span class="n">disableSxS</span><span class="p">)</span> <span class="o">||</span> <span class="o">!</span><span class="n">disableSxS</span><span class="p">)</span>
-</span><span id="line-16">    <span class="p">{</span>
-</span><span id="line-17">      <span class="n">hr</span> <span class="o">=</span> <span class="n">info</span><span class="o">-&gt;</span><span class="n">GetInterface</span><span class="p">(</span><span class="n">CLSID_CLRRuntimeHost</span><span class="p">,</span>
-</span><span id="line-18">        <span class="n">IID_ICLRRuntimeHost</span><span class="p">,</span>
-</span><span id="line-19">        <span class="k">reinterpret_cast</span><span class="o">&lt;</span><span class="n">LPVOID</span> <span class="o">*&gt;</span><span class="p">(</span><span class="o">&amp;</span><span class="n">m_pClr</span><span class="p">));</span>
-</span><span id="line-20">      <span class="k">if</span> <span class="p">(</span><span class="n">FAILED</span><span class="p">(</span><span class="n">hr</span><span class="p">))</span>
-</span><span id="line-21">        <span class="k">return</span> <span class="n">hr</span><span class="p">;</span>
-</span><span id="line-22">
-</span><span id="line-23">      <span class="c1">// Pulled out common startup items.</span>
-</span><span id="line-24">      <span class="n">hr</span> <span class="o">=</span> <span class="n">SetupCLR</span><span class="p">(</span><span class="n">m_pClr</span><span class="p">,</span> <span class="n">strName</span><span class="p">,</span> <span class="n">version</span><span class="p">);</span>
-</span><span id="line-25">      <span class="k">if</span> <span class="p">(</span><span class="n">FAILED</span><span class="p">(</span><span class="n">hr</span><span class="p">))</span>
-</span><span id="line-26">        <span class="k">return</span> <span class="n">hr</span><span class="p">;</span>
-</span><span id="line-27">    <span class="p">}</span>
-</span><span id="line-28">
-</span><span id="line-29">  <span class="p">}</span>
-</span><span id="line-30">  <span class="n">pRtEnum</span><span class="o">-&gt;</span><span class="n">Release</span><span class="p">();</span>
-</span><span id="line-31"><span class="p">}</span>
-</span></pre></div></code></pre></div>
+  hr = pMetaHostPolicy-&gt;GetRequestedRuntime(
+    METAHOST_POLICY_USE_PROCESS_IMAGE_PATH,
+    NULL,
+    NULL,
+    NULL,
+    &amp;versionSize,
+    NULL,
+    NULL,
+    &amp;actFlags,
+    IID_ICLRRuntimeInfo,
+    reinterpret_cast&lt;LPVOID *&gt;(&amp;info));
+  if (FAILED(hr))
+    return hr;
+
+  // Check the preferred version
+  hr = info-&gt;GetVersionString(version, &amp;versionSize);
+  if (FAILED(hr))
+    return hr;
+
+  disableSxS = (actFlags &amp; METAHOST_CONFIG_FLAGS_LEGACY_V2_ACTIVATION_POLICY_MASK) 
+  &amp; METAHOST_CONFIG_FLAGS_LEGACY_V2_ACTIVATION_POLICY_TRUE; // Disable SxS
+
+  hr = CLRCreateInstance(CLSID_CLRMetaHost, IID_ICLRMetaHost,
+    (LPVOID*)&amp;pMetaHost);
+  if (FAILED(hr))
+    return hr;
+}
+
+// If we don't have 4.0, bind the old way to the latest version (v2.0.50727)
+if (!has40) {
+
+  // In the case of our binding we will force the required version.
+  // If we fail this kills the initilization of the CLR
+  hr = GetCORRequiredVersion(version, MAXSTRING, &amp;versionSize);
+  if (FAILED(hr))
+    return hr;
+
+  hr = CorBindToRuntimeEx(version,
+    NULL,
+    0,
+    CLSID_CLRRuntimeHost,
+    IID_ICLRRuntimeHost,
+    reinterpret_cast&lt;LPVOID *&gt;(&amp;m_pClr));
+
+  if (FAILED(hr))
+    return hr;
+
+  // Pulled out common startup items.
+  return SetupCLR(m_pClr, version, version);
+
+}
+</code></pre>
+
+<pre><code  class="Cpp">// If no runtimes are loaded we will make sure to load them all based on the policy.
+// This will set the default runtime as the last CLR to be loaded.
+// At the time of writing this application it is 4.5 (4.0)
+if (!runtimesLoaded)
+{
+  pMetaHost-&gt;EnumerateInstalledRuntimes(&amp;pRtEnum);
+  while ((hr = pRtEnum-&gt;Next(1, (IUnknown **)&amp;info, &amp;fetched)) == S_OK &amp;&amp; fetched &gt; 0)
+  {
+    ZeroMemory(strName, sizeof(strName));
+    info-&gt;GetVersionString(strName, &amp;len);
+
+    // If we are disabling side by side execution 
+    // (useLegacyV2RuntimeActivationPolicy) then only load the speficied CLR
+    // If we haven't specified SxS policy then load all.
+    if (((StrCmpW(strName, version) == 0) &amp; disableSxS) || !disableSxS)
+    {
+      hr = info-&gt;GetInterface(CLSID_CLRRuntimeHost,
+        IID_ICLRRuntimeHost,
+        reinterpret_cast&lt;LPVOID *&gt;(&amp;m_pClr));
+      if (FAILED(hr))
+        return hr;
+
+      // Pulled out common startup items.
+      hr = SetupCLR(m_pClr, strName, version);
+      if (FAILED(hr))
+        return hr;
+    }
+
+  }
+  pRtEnum-&gt;Release();
+}
+</code></pre>
 
 <h2 id="wrapping-up">Wrapping Up</h2>
 <p>This version of the code supports proper side-by-side loading and binding depending on the policy selected. We also check to make sure that we are being passed a correct specific version of the CLR.</p>
@@ -285,6 +287,15 @@ git checkout 91e2238
     
     <li>
       <h3>
+        <a href="http://www.debugthings.com/2015/10/08/rewriting-il-remotely-part3/">
+          Rewriting IL - Part 3 - Signatures and Compression
+          <small>08 Oct 2015</small>
+        </a>
+      </h3>
+    </li>
+    
+    <li>
+      <h3>
         <a href="http://www.debugthings.com/2015/09/28/rewriting-il-remotely-part2/">
           Rewriting IL - Part 2 - Tokens
           <small>28 Sep 2015</small>
@@ -297,15 +308,6 @@ git checkout 91e2238
         <a href="http://www.debugthings.com/2015/09/16/rewriting-il-remotely-part1/">
           Rewriting IL - Part 1 - Metadata Interfaces
           <small>16 Sep 2015</small>
-        </a>
-      </h3>
-    </li>
-    
-    <li>
-      <h3>
-        <a href="http://www.debugthings.com/2015/09/06/simple%20beginings-chainsapm/">
-          Simple Beginnings - ChainsAPM
-          <small>06 Sep 2015</small>
         </a>
       </h3>
     </li>

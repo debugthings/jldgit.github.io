@@ -18,11 +18,13 @@
 
 
   <!-- CSS -->
-  <link rel="stylesheet" href="/public/css/monokai.css" />
   <link rel="stylesheet" href="/public/css/bootstrap.css" />
   <link rel="stylesheet" href="//maxcdn.bootstrapcdn.com/font-awesome/4.3.0/css/font-awesome.min.css">
   <link rel="stylesheet" href="/public/css/poole.css" />
 
+  <link rel="stylesheet" href="//cdnjs.cloudflare.com/ajax/libs/highlight.js/8.8.0/styles/monokai_sublime.min.css">
+  <script src="//cdnjs.cloudflare.com/ajax/libs/highlight.js/8.8.0/highlight.min.js"></script>
+  <script>hljs.initHighlightingOnLoad();</script>
 
   <script type="text/javascript" src="http://code.jquery.com/jquery-2.1.3.min.js"></script>
 
@@ -88,7 +90,7 @@
 
 <p>Enter the following commands in your GIT command prompt. It’s that simple. All code changes as I have shown them in this blog post should be there. If you come across this post at a way later date, try increasing the range from 5 to 10, and so on.</p>
 
-<div class="highlight"><pre><code>git clone https://github.com/jldgit/mysql_udf_dotnet.git -b wip-nextversion
+<pre><code  class="nohighlight">git clone https://github.com/jldgit/mysql_udf_dotnet.git -b wip-nextversion
 git log --abbrev-commit -n 5 --pretty=oneline
 
 e9dc6de Changed relating to post 7
@@ -98,7 +100,7 @@ e9dc6de Changed relating to post 7
 5d721fa Good working copy.
 
 git checkout e9dc6de
-</code></pre></div>
+</code></pre>
 
 <h2 id="whats-changed">What’s Changed?</h2>
 <p>I’ve updated the code to address a problem with loading and unloading AppDomains each time the code is called. The majority of the updates are inside of the managed AppDomainManager assembly.</p>
@@ -150,10 +152,10 @@ git checkout e9dc6de
 
 <p>Once the AppDomain is created it has a configurable finite life time. This lifetime can be set inside of the mysqld.config file. Now that we’re using pools let’s take a look at the configuration for the timers; and the new load sequence for a domain that is created but not being used.</p>
 
-<div class="highlight"><pre><code class="language-XML"><div class="highlight"><pre><span id="line-1"><span class="nt">&lt;appDomainCleanup</span>
-</span><span id="line-2">  <span class="na">interval=</span><span class="s">&quot;0.00:05:00&quot;</span>
-</span><span id="line-3">  <span class="na">forcedInterval=</span><span class="s">&quot;1.00:00:00&quot;</span> <span class="nt">/&gt;</span>
-</span></pre></div></code></pre></div>
+<pre><code  class="XML">&lt;appDomainCleanup
+  interval="0.00:05:00"
+  forcedInterval="1.00:00:00" /&gt;
+</code></pre>
 
 <ol>
   <li>MySQL .NET UDF gets a pointer to the default domain.</li>
@@ -189,31 +191,31 @@ git checkout e9dc6de
 
 <p>But even with a simpler approach I still introduced a bug during one of my test runs by just one simple mistake. Here it is for your viewing pleasure.</p>
 
-<div class="highlight"><pre><code class="language-Csharp"><div class="highlight"><pre><span id="line-1"><span class="kt">string</span> <span class="n">AppDomainName</span> <span class="p">=</span> <span class="kt">string</span><span class="p">.</span><span class="n">Format</span><span class="p">(</span><span class="s">&quot;{0}||{1}&quot;</span><span class="p">,</span> <span class="n">typeName</span><span class="p">,</span> 
-</span><span id="line-2"><span class="n">DateTime</span><span class="p">.</span><span class="n">Now</span><span class="p">.</span><span class="n">ToFileTime</span><span class="p">().</span><span class="n">ToString</span><span class="p">());</span> <span class="c1">//BUG Here</span>
-</span><span id="line-3"><span class="k">lock</span> <span class="p">(</span><span class="n">objLock</span><span class="p">)</span>
-</span><span id="line-4"><span class="p">{</span>
-</span><span id="line-5">    <span class="k">if</span> <span class="p">(</span><span class="n">activeAppDomains</span><span class="p">.</span><span class="n">ContainsKey</span><span class="p">(</span><span class="n">assemblyName</span><span class="p">))</span>
-</span><span id="line-6">    <span class="p">{</span>
-</span><span id="line-7">        <span class="n">AppDomainName</span> <span class="p">=</span> <span class="kt">string</span><span class="p">.</span><span class="n">Format</span><span class="p">(</span><span class="s">&quot;{0}||{1}&quot;</span><span class="p">,</span> <span class="n">typeName</span><span class="p">,</span> <span class="p">(</span><span class="n">DateTime</span><span class="p">.</span><span class="n">Now</span><span class="p">.</span><span class="n">ToFileTime</span><span class="p">()</span> 
-</span><span id="line-8">        <span class="p">+</span> <span class="k">new</span> <span class="n">Random</span><span class="p">().</span><span class="n">Next</span><span class="p">(</span><span class="m">1</span><span class="p">,</span> <span class="m">10000000</span><span class="p">)).</span><span class="n">ToString</span><span class="p">());</span>
-</span><span id="line-9">    <span class="p">}</span>
-</span><span id="line-10"><span class="p">}</span>
-</span></pre></div></code></pre></div>
+<pre><code  class="Csharp">string AppDomainName = string.Format("{0}||{1}", typeName, 
+DateTime.Now.ToFileTime().ToString()); //BUG Here
+lock (objLock)
+{
+    if (activeAppDomains.ContainsKey(assemblyName))
+    {
+        AppDomainName = string.Format("{0}||{1}", typeName, (DateTime.Now.ToFileTime() 
+        + new Random().Next(1, 10000000)).ToString());
+    }
+}
+</code></pre>
 
 <p>This was a sneaky one. Basically there would be a few threads queued up on the lock—all of them with the same time. The locks would release, but since the action is happening so fast a couple of threads end up getting the same quantum and the Random() would issue the same value. The fix was simple.</p>
 
-<div class="highlight"><pre><code class="language-Csharp"><div class="highlight"><pre><span id="line-1"><span class="k">lock</span> <span class="p">(</span><span class="n">objLock</span><span class="p">)</span>
-</span><span id="line-2"><span class="p">{</span>
-</span><span id="line-3">    <span class="kt">string</span> <span class="n">AppDomainName</span> <span class="p">=</span> <span class="kt">string</span><span class="p">.</span><span class="n">Format</span><span class="p">(</span><span class="s">&quot;{0}||{1}&quot;</span><span class="p">,</span> <span class="n">typeName</span><span class="p">,</span> 
-</span><span id="line-4">    <span class="n">DateTime</span><span class="p">.</span><span class="n">Now</span><span class="p">.</span><span class="n">ToFileTime</span><span class="p">().</span><span class="n">ToString</span><span class="p">());</span> <span class="c1">//No BUG Here</span>
-</span><span id="line-5">    <span class="k">if</span> <span class="p">(</span><span class="n">activeAppDomains</span><span class="p">.</span><span class="n">ContainsKey</span><span class="p">(</span><span class="n">assemblyName</span><span class="p">))</span>
-</span><span id="line-6">    <span class="p">{</span>
-</span><span id="line-7">        <span class="n">AppDomainName</span> <span class="p">=</span> <span class="kt">string</span><span class="p">.</span><span class="n">Format</span><span class="p">(</span><span class="s">&quot;{0}||{1}&quot;</span><span class="p">,</span> <span class="n">typeName</span><span class="p">,</span> <span class="p">(</span><span class="n">DateTime</span><span class="p">.</span><span class="n">Now</span><span class="p">.</span><span class="n">ToFileTime</span><span class="p">()</span> 
-</span><span id="line-8">        <span class="p">+</span> <span class="k">new</span> <span class="n">Random</span><span class="p">().</span><span class="n">Next</span><span class="p">(</span><span class="m">1</span><span class="p">,</span> <span class="m">10000000</span><span class="p">)).</span><span class="n">ToString</span><span class="p">());</span>
-</span><span id="line-9">    <span class="p">}</span>
-</span><span id="line-10"><span class="p">}</span>
-</span></pre></div></code></pre></div>
+<pre><code  class="Csharp">lock (objLock)
+{
+    string AppDomainName = string.Format("{0}||{1}", typeName, 
+    DateTime.Now.ToFileTime().ToString()); //No BUG Here
+    if (activeAppDomains.ContainsKey(assemblyName))
+    {
+        AppDomainName = string.Format("{0}||{1}", typeName, (DateTime.Now.ToFileTime() 
+        + new Random().Next(1, 10000000)).ToString());
+    }
+}
+</code></pre>
 
 <p>By moving the FileTime string creation to inside of the lock() I can guarantee that we should be gifted a unique time as the FileTime is in 100ns intervals. However, if for some reason we run faster than that I still have the Random() number being added just in case.</p>
 
@@ -260,6 +262,15 @@ git checkout e9dc6de
     
     <li>
       <h3>
+        <a href="http://www.debugthings.com/2015/10/08/rewriting-il-remotely-part3/">
+          Rewriting IL - Part 3 - Signatures and Compression
+          <small>08 Oct 2015</small>
+        </a>
+      </h3>
+    </li>
+    
+    <li>
+      <h3>
         <a href="http://www.debugthings.com/2015/09/28/rewriting-il-remotely-part2/">
           Rewriting IL - Part 2 - Tokens
           <small>28 Sep 2015</small>
@@ -272,15 +283,6 @@ git checkout e9dc6de
         <a href="http://www.debugthings.com/2015/09/16/rewriting-il-remotely-part1/">
           Rewriting IL - Part 1 - Metadata Interfaces
           <small>16 Sep 2015</small>
-        </a>
-      </h3>
-    </li>
-    
-    <li>
-      <h3>
-        <a href="http://www.debugthings.com/2015/09/06/simple%20beginings-chainsapm/">
-          Simple Beginnings - ChainsAPM
-          <small>06 Sep 2015</small>
         </a>
       </h3>
     </li>

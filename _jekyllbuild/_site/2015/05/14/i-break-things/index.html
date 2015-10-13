@@ -18,11 +18,13 @@
 
 
   <!-- CSS -->
-  <link rel="stylesheet" href="/public/css/monokai.css" />
   <link rel="stylesheet" href="/public/css/bootstrap.css" />
   <link rel="stylesheet" href="//maxcdn.bootstrapcdn.com/font-awesome/4.3.0/css/font-awesome.min.css">
   <link rel="stylesheet" href="/public/css/poole.css" />
 
+  <link rel="stylesheet" href="//cdnjs.cloudflare.com/ajax/libs/highlight.js/8.8.0/styles/monokai_sublime.min.css">
+  <script src="//cdnjs.cloudflare.com/ajax/libs/highlight.js/8.8.0/highlight.min.js"></script>
+  <script>hljs.initHighlightingOnLoad();</script>
 
   <script type="text/javascript" src="http://code.jquery.com/jquery-2.1.3.min.js"></script>
 
@@ -95,7 +97,7 @@
 <h2 id="the-analysis">The Analysis</h2>
 <p>I used WinDbg to open the devenv executable and see what was happening. Since the process was terminating I knew I’d see what was causing it. So I did my steps to reproduce the error and quickly found this:</p>
 
-<div class="highlight"><pre><code>(299c.1c08): Stack overflow - code c00000fd (first chance)
+<pre><code  class="nohighlight">(299c.1c08): Stack overflow - code c00000fd (first chance)
 First chance exceptions are reported before any exception handling.
 This exception may be expected and handled.
 eax=1bbf93bc ebx=00000001 ecx=1bcef0fc edx=0000000d esi=1bcef0fc edi=20687454
@@ -103,11 +105,11 @@ eip=1b6ed1b7 esp=1bbf8f6c ebp=1bbf918c iopl=0         nv up ei pl nz na pe nc
 cs=0023  ss=002b  ds=002b  es=002b  fs=0053  gs=002b             efl=00010206
 cslangsvc!ExpressionBinder::BindExpr+0x1a:
 1b6ed1b7 53              push    ebx
-</code></pre></div>
+</code></pre>
 
 <p>Yikes, it’s not often you see one of these in a “fully productionalized” application (:grin:)… Anyway, looking at the call stack I could see something that was quite obvious. We’re basically executing a bunch of these <code>cslangsvc!ExpressionBinder::BindExpr</code>. While I don’t know exactly what this does, I can make a few educated guesses. Let’s take a look at the stack to see what’s up.</p>
 
-<div class="highlight"><pre><code>0:028&gt; kb
+<pre><code  class="nohighlight">0:028&gt; kb
  # ChildEBP RetAddr  Args to Child
 00 1bbf918c 1b75cb4b 20687420 00000001 1d1155e1 cslangsvc!ExpressionBinder::BindExpr+0x1a
 01 1bbf93cc 1b75cb4b 20687454 00000001 1d1157a1 cslangsvc!ExpressionBinder::BindExpr+0x1211
@@ -116,13 +118,13 @@ cslangsvc!ExpressionBinder::BindExpr+0x1a:
 04 1bbf9a8c 1b75cb4b 206874f0 00000001 1d115ee1 cslangsvc!ExpressionBinder::BindExpr+0x1211
 05 1bbf9ccc 1b75cb4b 20687524 00000001 1d1158a1 cslangsvc!ExpressionBinder::BindExpr+0x1211
 &lt;&lt;&lt; REMOVED FOR CLARITY &gt;&gt;
-</code></pre></div>
+</code></pre>
 
 <blockquote>
   <p>The default number of frames shown is 20. To see more use kb 5000—or use the  .kframes command</p>
 </blockquote>
 
-<div class="highlight"><pre><code>0:028&gt; kb 5000
+<pre><code  class="nohighlight">0:028&gt; kb 5000
  # ChildEBP RetAddr  Args to Child
 00 1bbf918c 1b75cb4b 20687420 00000001 1d1155e1 cslangsvc!ExpressionBinder::BindExpr+0x1a
 01 1bbf93cc 1b75cb4b 20687454 00000001 1d1157a1 cslangsvc!ExpressionBinder::BindExpr+0x1211
@@ -153,13 +155,13 @@ cslangsvc!ExpressionBinder::BindExpr+0x1a:
 6e7 1bcef800 770c92b2 12cc5d10 740deae1 00000000 kernel32!BaseThreadInitThunk+0xe
 6e8 1bcef840 770c9285 1b7b0940 12cc5d10 00000000 ntdll!__RtlUserThreadStart+0x70
 6e9 1bcef858 00000000 1b7b0940 12cc5d10 00000000 ntdll!_RtlUserThreadStart+0x1b
-</code></pre></div>
+</code></pre>
 
 <p>So, as I said before, we can makes some educated guesses and see what’s going on here. It looks like when it’s trying to compile the code and generate all of the tokens it pukes. Let’s zoom in on frame 0x6d5. This is where we enter the method. We can see that it looks like a recursive function.</p>
 
 <p>Let’s inspect the stack to look for any clues as to what is going on. We should just grab a couple of frames worth of stack data. Since we’re in a stack overflow we’re possibly looking at 1MB of data to spin through. I’ll pick 10 frames starting from 0x6d5 and stopping at 0x6df; use the ChildEBP column to get the addresses.</p>
 
-<div class="highlight"><pre><code>0:028&gt; ?1bcef0c8-1bcedc8c
+<pre><code  class="nohighlight">0:028&gt; ?1bcef0c8-1bcedc8c
 Evaluate expression: 5180 = 0000143c
 
 0:028&gt; dc 1bcedc8c 1bcef0c8
@@ -181,13 +183,13 @@ Evaluate expression: 5180 = 0000143c
 1bcedd7c  2001f334 1bceddb4 1b72c0f7 200205fc  4.. ......r....
 1bcedd8c  1bcef0fc 20668ef4 206e4ab0 20652928  ......f .Jn ()e
 &lt;&lt;&lt; NOTHING USEFUL IN HERE &gt;&gt;&gt;
-</code></pre></div>
+</code></pre>
 
 <p>Woah! 5kb in just 10 frames! That is one hefty ass set of stack variables. Let’s see what we have in that 5k. I only displayed the first couple hundred bytes to show the output of the command. When looking at the rest of the output it looks the same. While it doesn’t look like much, I can see a lot of references to other places on the stack and out in the heap.</p>
 
 <p>Let’s use some pointer display commands to view what’s in the heap out there. I’ll start by using <code>dpu</code> this command will get the address pointed by the address on the stack and attempt to cast it to a set of unicode (wchar_t) strings.</p>
 
-<div class="highlight"><pre><code>0:028&gt; dpu 1bcedc8c 1bcef0c8
+<pre><code  class="nohighlight">0:028&gt; dpu 1bcedc8c 1bcef0c8
 &lt;&lt;&lt; REMOVED FOR CLARITY &gt;&gt;&gt;
 1bcee99c  20706590 "華.華.2"
 1bcee9a0  0000000b
@@ -212,20 +214,20 @@ Evaluate expression: 5180 = 0000143c
 1bcee9ec  1bf9f10c "."
 1bcee9f0  1bf9f10c "."
 &lt;&lt;&lt; REMOVED FOR CLARITY &gt;&gt;&gt;
-</code></pre></div>
+</code></pre>
 
 <p>I skimmed over a lot of the data to show you the only real readable references in there. <strong>__VIEWSTATE</strong>. Hmm, looks like it was possibly processing the VIEWSTATE in this coded webtest. I opened the output of the coded webtest in an external text editor and I could see a few places where I should start. The first one that caught my eye was this:</p>
 
-<div class="highlight"><pre><code class="language-Csharp"><div class="highlight"><pre><span id="line-1"><span class="n">request22Body</span><span class="p">.</span><span class="n">FormPostParameters</span><span class="p">.</span><span class="n">Add</span><span class="p">(</span><span class="s">&quot;__VIEWSTATE&quot;</span><span class="p">,</span>
-</span><span id="line-2"><span class="s">&quot;/wEPDwUJMzE5NDE5MjIzD2QWAgIDD2QWCAICDw8WAh4HVmlzaWJsZWhkZAIFDxQrAAUPFgQeFE1lbnVIa&quot;</span> <span class="p">+</span>
-</span><span id="line-3"><span class="s">&quot;WdobGlnaHRUb3BNZW51Zx8AaGRkZBQrAAQQFgoeBkl0ZW1JRAURY3RsMDUtbWVudUl0ZW0wMDEeCEl0Z&quot;</span> <span class="p">+</span>
-</span><span id="line-4"><span class="s">&quot;W1UZXh0BRBFdmVudCBNYW5hZ2VtZW50HhBNZW51SXRlbUNzc0NsYXNzBQdhcHBtZW51HhVJdGVtTW91c&quot;</span> <span class="p">+</span>
-</span><span id="line-5"><span class="s">&quot;2VPdmVyQ3NzQ2xhc3MFDGFwcG1lbnVob3Zlch4OTWVudUl0ZW1IZWlnaHQbAAAAAAAACEABAAAAFCsAA&quot;</span> <span class="p">+</span>
-</span><span id="line-6"><span class="s">&quot;hAWCh8CBSVjdGwwNS1tZW51SXRlbTAwMS1zdWJNZW51LW1lbnVJdGVtMDAwHwMFEU1hbmFnZSBFdmVud&quot;</span> <span class="p">+</span>
-</span><span id="line-7"><span class="s">&quot;CBUeXBlHgdJdGVtVVJMBUsvRmNzdFRvb2xLaXRXZWIvRXZlbnRNYW5hZ2VtZW50L01hbmFnZUV2ZW50L&quot;</span> <span class="p">+</span> <span class="s">&quot;....&quot;</span><span class="p">;</span>
-</span><span id="line-8">
-</span><span id="line-9"><span class="c1">// This goes on for about 4000 lines</span>
-</span></pre></div></code></pre></div>
+<pre><code  class="Csharp">request22Body.FormPostParameters.Add("__VIEWSTATE",
+"/wEPDwUJMzE5NDE5MjIzD2QWAgIDD2QWCAICDw8WAh4HVmlzaWJsZWhkZAIFDxQrAAUPFgQeFE1lbnVIa" +
+"WdobGlnaHRUb3BNZW51Zx8AaGRkZBQrAAQQFgoeBkl0ZW1JRAURY3RsMDUtbWVudUl0ZW0wMDEeCEl0Z" +
+"W1UZXh0BRBFdmVudCBNYW5hZ2VtZW50HhBNZW51SXRlbUNzc0NsYXNzBQdhcHBtZW51HhVJdGVtTW91c" +
+"2VPdmVyQ3NzQ2xhc3MFDGFwcG1lbnVob3Zlch4OTWVudUl0ZW1IZWlnaHQbAAAAAAAACEABAAAAFCsAA" +
+"hAWCh8CBSVjdGwwNS1tZW51SXRlbTAwMS1zdWJNZW51LW1lbnVJdGVtMDAwHwMFEU1hbmFnZSBFdmVud" +
+"CBUeXBlHgdJdGVtVVJMBUsvRmNzdFRvb2xLaXRXZWIvRXZlbnRNYW5hZ2VtZW50L01hbmFnZUV2ZW50L" + "....";
+
+// This goes on for about 4000 lines
+</code></pre>
 
 <p><strong>FOUR THOUSAND LINES!!</strong> Knowing that I have such a large amount of strings that have to be concatenated/tokenized, and knowing that we had a stack overflow, <em>AND</em> knowing the VIEWSTATE is in the stack, I jumped to the conclusion that this was dependent on the amount of lines or the amount of data. Jump to the repro section for more info. <strong>Spoiler alert, it doesn’t matter about the amount of characters.</strong></p>
 
@@ -239,7 +241,7 @@ Evaluate expression: 5180 = 0000143c
 
 <p>Yep, we see a call into <code>cslangsvc!ExpressionBinder::BindExpr</code>. In order to see what was going on I unassembled the function like normal.</p>
 
-<div class="highlight"><pre><code>0:028&gt; ub 1b75cb4b
+<pre><code  class="nohighlight">0:028&gt; ub 1b75cb4b
 cslangsvc!DefaultAttrBind::CompileEarly+0x6b:
 1b75cb30 8bf8            mov     edi,eax
 1b75cb32 85ff            test    edi,edi
@@ -260,13 +262,13 @@ cslangsvc!ExpressionBinder::BindExpr:
 1b6ed1aa 64a100000000    mov     eax,dword ptr fs:[00000000h]
 1b6ed1b0 50              push    eax
 1b6ed1b1 81ec10020000    sub     esp,210h
-</code></pre></div>
+</code></pre>
 
 <p>The assembly command <code>sub esp,210h</code> let’s us know that the compiler has decided to reserve 528 bytes of space for this method—16bytes for what’s pushed before the alloc, plus 512bytes. While that’s not a lot of space, it certainly can add up since this is a (possible infinitley) recursive function.</p>
 
 <p>So if we do the math, I have about 4000 lines of text to tokenize so it would take about 2MB of stack space. This won’t work since the standard stack space is 1MB. At the top of my stack we can see my address is close to the stack limit.</p>
 
-<div class="highlight"><pre><code>0:028&gt; !teb
+<pre><code  class="nohighlight">0:028&gt; !teb
 TEB at fff02000
     ExceptionList:        1bbf93bc
     StackBase:            1bcf0000
@@ -284,7 +286,7 @@ TEB at fff02000
     LastStatusValue:      c000007c
     Count Owned Locks:    0
     HardErrorMode:        0
-</code></pre></div>
+</code></pre>
 
 <p>But in reality, there’s 32k left—we could squeeze another 64 lines out of that. So, why did we trigger a stack overflow when we have that much space left? The short answer is Windows loves you and does not want to let you fail. If you look at the amount of stack space that is allocated we see  there is a total of 1,044,480 (0xFF000), which is exactly 255 4kb (0x1000) pages.</p>
 
@@ -292,7 +294,7 @@ TEB at fff02000
 
 <p>If you don’t heed this warning, the stack overflow exception won’t stop your execution (unless you have an exception handler which this does not). Instead it will allow it to continue on until you have a hard fault. If you were to let this application continue you will will eventually get an access violation.</p>
 
-<div class="highlight"><pre><code>0:028&gt; g
+<pre><code  class="nohighlight">0:028&gt; g
 (299c.1c08): Access violation - code c0000005 (first chance)
 First chance exceptions are reported before any exception handling.
 This exception may be expected and handled.
@@ -301,18 +303,18 @@ eip=1b6ed1b7 esp=1bbf0f2c ebp=1bbf114c iopl=0         nv up ei pl nz na po nc
 cs=0023  ss=002b  ds=002b  es=002b  fs=0053  gs=002b             efl=00010202
 cslangsvc!ExpressionBinder::BindExpr+0x1a:
 1b6ed1b7 53              push    ebx
-</code></pre></div>
+</code></pre>
 
 <p>The instruction that makes it fail is <code>push ebx</code> it fails because it’s trying to access <code>1bbf0f2c</code>. If we inspect the memory here we will see invalid marks. So the unhandled access violation is the problem here.</p>
 
-<div class="highlight"><pre><code>0:028&gt; dp @esp L 1
+<pre><code  class="nohighlight">0:028&gt; dp @esp L 1
 1bbf0f2c  ????????
-</code></pre></div>
+</code></pre>
 
 <h2 id="side-note-about-symbols">Side Note About Symbols</h2>
 <p><em>Wait! I noticed you used the raw addresses a lot, why didn’t you just disassemble the symbol <code>cslangsvc!ExpressionBinder::BindExpr+0x1211</code>?</em>  Well, the symbol is resolved to the best of WinDbg’s ability. If you use this symbol across different functions you will see different behavior. As a matter of fact if you try to unassemble it you get some invalid assembly.</p>
 
-<div class="highlight"><pre><code>0:028&gt; ? cslangsvc!ExpressionBinder::BindExpr+0x1211
+<pre><code  class="nohighlight">0:028&gt; ? cslangsvc!ExpressionBinder::BindExpr+0x1211
 Evaluate expression: 460252078 = 1b6ee3ae
 
 0:028&gt; u cslangsvc!ExpressionBinder::BindExpr+0x1211
@@ -331,7 +333,7 @@ cslangsvc!StatementBinder::bindStatementWorker+0xd8:
 
 0:028&gt; ln 1b75cb4b
 (1b6ed19d)   cslangsvc!ExpressionBinder::BindExpr+0x1211   |  (1b6edf47)   cslangsvc!BindingContext::BindingContext
-</code></pre></div>
+</code></pre>
 
 <h2 id="reproduction-and-solutions">Reproduction and Solutions</h2>
 
@@ -339,24 +341,24 @@ cslangsvc!StatementBinder::bindStatementWorker+0xd8:
 
 <p>If you want to see this behavior for yourself. Create a blank console application and create a bunch of string concats. Notice that the problem isn’t dependent on how much data is inside of your methods.</p>
 
-<div class="highlight"><pre><code class="language-Csharp"><div class="highlight"><pre><span id="line-1"><span class="k">using</span> <span class="nn">System</span><span class="p">;</span>
-</span><span id="line-2">
-</span><span id="line-3"><span class="k">namespace</span> <span class="nn">WillBreakIDE</span>
-</span><span id="line-4"><span class="p">{</span>
-</span><span id="line-5">  <span class="k">class</span> <span class="nc">Program</span>
-</span><span id="line-6">  <span class="p">{</span>
-</span><span id="line-7">    <span class="kt">string</span> <span class="n">willbreakide</span> <span class="p">=</span> <span class="s">&quot; &quot;</span> <span class="p">+</span>
-</span><span id="line-8">                          <span class="s">&quot; &quot;</span> <span class="p">+</span>
-</span><span id="line-9">                          <span class="s">&quot; &quot;</span> <span class="p">+</span>
-</span><span id="line-10">                          <span class="s">&quot; &quot;</span> <span class="p">+</span>
-</span><span id="line-11">                          <span class="c1">// Repeat this patern until you have about 2000 lines.</span>
-</span><span id="line-12">                          <span class="s">&quot; &quot;</span><span class="p">;</span>
-</span><span id="line-13">    <span class="k">static</span> <span class="k">void</span> <span class="nf">Main</span><span class="p">(</span><span class="kt">string</span><span class="p">[]</span> <span class="n">args</span><span class="p">)</span>
-</span><span id="line-14">    <span class="p">{</span>
-</span><span id="line-15">    <span class="p">}</span>
-</span><span id="line-16">  <span class="p">}</span>
-</span><span id="line-17"><span class="p">}</span>
-</span></pre></div></code></pre></div>
+<pre><code  class="Csharp">using System;
+
+namespace WillBreakIDE
+{
+  class Program
+  {
+    string willbreakide = " " +
+                          " " +
+                          " " +
+                          " " +
+                          // Repeat this patern until you have about 2000 lines.
+                          " ";
+    static void Main(string[] args)
+    {
+    }
+  }
+}
+</code></pre>
 <p>j</p>
 
 </div>
@@ -385,6 +387,15 @@ cslangsvc!StatementBinder::bindStatementWorker+0xd8:
     
     <li>
       <h3>
+        <a href="http://www.debugthings.com/2015/10/08/rewriting-il-remotely-part3/">
+          Rewriting IL - Part 3 - Signatures and Compression
+          <small>08 Oct 2015</small>
+        </a>
+      </h3>
+    </li>
+    
+    <li>
+      <h3>
         <a href="http://www.debugthings.com/2015/09/28/rewriting-il-remotely-part2/">
           Rewriting IL - Part 2 - Tokens
           <small>28 Sep 2015</small>
@@ -397,15 +408,6 @@ cslangsvc!StatementBinder::bindStatementWorker+0xd8:
         <a href="http://www.debugthings.com/2015/09/16/rewriting-il-remotely-part1/">
           Rewriting IL - Part 1 - Metadata Interfaces
           <small>16 Sep 2015</small>
-        </a>
-      </h3>
-    </li>
-    
-    <li>
-      <h3>
-        <a href="http://www.debugthings.com/2015/09/06/simple%20beginings-chainsapm/">
-          Simple Beginnings - ChainsAPM
-          <small>06 Sep 2015</small>
         </a>
       </h3>
     </li>

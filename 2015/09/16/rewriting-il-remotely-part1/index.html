@@ -18,11 +18,13 @@
 
 
   <!-- CSS -->
-  <link rel="stylesheet" href="/public/css/monokai.css" />
   <link rel="stylesheet" href="/public/css/bootstrap.css" />
   <link rel="stylesheet" href="//maxcdn.bootstrapcdn.com/font-awesome/4.3.0/css/font-awesome.min.css">
   <link rel="stylesheet" href="/public/css/poole.css" />
 
+  <link rel="stylesheet" href="//cdnjs.cloudflare.com/ajax/libs/highlight.js/8.8.0/styles/monokai_sublime.min.css">
+  <script src="//cdnjs.cloudflare.com/ajax/libs/highlight.js/8.8.0/highlight.min.js"></script>
+  <script>hljs.initHighlightingOnLoad();</script>
 
   <script type="text/javascript" src="http://code.jquery.com/jquery-2.1.3.min.js"></script>
 
@@ -106,12 +108,12 @@
 
 <p>In order to monitor these loads I set the <a href="view-source:https://msdn.microsoft.com/en-us/library/ms231874(v=vs.110).aspx"><code>COR_PRF_MONITOR_MODULE_LOADS</code></a> flag using <a href="https://msdn.microsoft.com/en-us/library/ms230853(v=vs.110).aspx"><code>ICorProfilerInfo::SetEventMask</code></a>. A full code example can be found in the <a href="https://github.com/chainsapm/chainsapm/blob/7719622aa908954807c339b704f77acafcf467be/clrprofiler/src/profiler/profilermain.cpp#L476-L551"><code>Cprofilermain::SetMask()</code></a> in the ChainsAPM project. You should note that <code>SetEventMask2()</code> is preferred. For now you can use the non versioned one.</p>
 
-<div class="highlight"><pre><code class="language-cpp"><div class="highlight"><pre><span id="line-1"><span class="n">Cprofilermain</span><span class="o">::</span><span class="n">SetMask</span><span class="p">()</span> <span class="p">{</span>
-</span><span id="line-2">  <span class="c1">// Trimmed down version for example</span>
-</span><span id="line-3">  <span class="n">DWORD</span> <span class="n">eventMask</span> <span class="o">=</span> <span class="p">(</span><span class="n">DWORD</span><span class="p">)(</span><span class="n">COR_PRF_MONITOR_MODULE_LOADS</span><span class="p">);</span>
-</span><span id="line-4">  <span class="n">m_pICorProfilerInfo</span><span class="o">-&gt;</span><span class="n">SetEventMask</span><span class="p">(</span><span class="n">eventMask</span><span class="p">);</span>
-</span><span id="line-5"><span class="p">}</span>
-</span></pre></div></code></pre></div>
+<pre><code  class="cpp">Cprofilermain::SetMask() {
+  // Trimmed down version for example
+  DWORD eventMask = (DWORD)(COR_PRF_MONITOR_MODULE_LOADS);
+  m_pICorProfilerInfo-&gt;SetEventMask(eventMask);
+}
+</code></pre>
 
 <p>After this flag is set the <a href="https://msdn.microsoft.com/en-US/library/ms231897(v=VS.110).aspx"><code>ICorProfilerCallback::ModuleLoadStarted()</code></a> and <a href="https://msdn.microsoft.com/en-us/library/ms230105(v=vs.110).aspx"><code>ICorProfilerCallback::ModuleLoadFinished()</code></a> interfaces are now wired up. These will execute for each module that is loaded whether it is bound to an assembly or not. So, this means you may run into a case where you try to find the parent assembly but it’s NULL. So in that case you can look for it in <a href="https://msdn.microsoft.com/en-us/library/ms232480(v=vs.110).aspx"><code>ICorProfilerCallback::ModuleAttachedToAssembly()</code></a>. See the note below for a longer explanation.</p>
 
@@ -122,26 +124,27 @@
 <h2 id="get-the-module-metadata-interface">#4 Get the Module Metadata Interface</h2>
 <p>Now that the profiler is letting us know that we have modules loading, unloading and attaching we can go about the business of getting the metadata Interfaces. These interfaces are the heart and soul of how we’re going to start rewriting. In order to do this there is a method you call from the <code>ICorProfilerInfo</code> interface you got from the mysterious steps 1 and 2. You use that interface to call this method <a href="https://msdn.microsoft.com/en-us/library/ms231432(v=vs.110).aspx"><code>ICorProfilerInfo::GetModuleMetaData()</code></a>.</p>
 
-<div class="highlight"><pre><code class="language-cpp"><div class="highlight"><pre><span id="line-1"><span class="n">ICorProfilerCallback</span><span class="o">::</span><span class="n">ModuleLoadFinished</span><span class="p">(</span><span class="n">ModuleID</span> <span class="n">moduleID</span><span class="p">,</span> <span class="n">HRESULT</span> <span class="n">hrStatus</span><span class="p">)</span> <span class="p">{}</span>
-</span><span id="line-2">  <span class="n">CComPtr</span><span class="o">&lt;</span><span class="n">IMetaDataImport</span><span class="o">&gt;</span> <span class="n">pImport</span><span class="p">;</span>
-</span><span id="line-3">  <span class="p">{</span>
-</span><span id="line-4">  	<span class="n">CComPtr</span><span class="o">&lt;</span><span class="n">IUnknown</span><span class="o">&gt;</span> <span class="n">pUnk</span><span class="p">;</span>
-</span><span id="line-5">
-</span><span id="line-6">  	<span class="n">hr</span> <span class="o">=</span> <span class="n">m_pICorProfilerInfo</span><span class="o">-&gt;</span><span class="n">GetModuleMetaData</span><span class="p">(</span><span class="n">moduleID</span><span class="p">,</span> <span class="n">ofRead</span><span class="p">,</span> <span class="n">IID_IMetaDataImport</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">pUnk</span><span class="p">);</span>
-</span><span id="line-7">  	<span class="n">hr</span> <span class="o">=</span> <span class="n">pUnk</span><span class="o">-&gt;</span><span class="n">QueryInterface</span><span class="p">(</span><span class="n">IID_IMetaDataImport</span><span class="p">,</span> <span class="p">(</span><span class="n">LPVOID</span> <span class="o">*</span> <span class="p">)</span> <span class="o">&amp;</span><span class="n">pImport</span><span class="p">);</span>
-</span><span id="line-8">  <span class="p">}</span>
-</span><span id="line-9">
-</span><span id="line-10">
-</span><span id="line-11">  <span class="n">CComPtr</span><span class="o">&lt;</span><span class="n">IMetaDataAssemblyImport</span><span class="o">&gt;</span> <span class="n">pAssemblyImport</span><span class="p">;</span>
-</span><span id="line-12">  <span class="p">{</span>
-</span><span id="line-13">    <span class="n">CComPtr</span><span class="o">&lt;</span><span class="n">IUnknown</span><span class="o">&gt;</span> <span class="n">pUnk</span><span class="p">;</span>
-</span><span id="line-14">
-</span><span id="line-15">    <span class="n">hr</span> <span class="o">=</span> <span class="n">m_pICorProfilerInfo</span><span class="o">-&gt;</span><span class="n">GetModuleMetaData</span><span class="p">(</span><span class="n">moduleID</span><span class="p">,</span> <span class="n">ofRead</span><span class="p">,</span> <span class="n">IID_IMetaDataAssemblyImport</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">pUnk</span><span class="p">);</span>
-</span><span id="line-16">    <span class="n">hr</span> <span class="o">=</span> <span class="n">pUnk</span><span class="o">-&gt;</span><span class="n">QueryInterface</span><span class="p">(</span><span class="n">IID_IMetaDataAssemblyImport</span><span class="p">,</span> <span class="p">(</span><span class="n">LPVOID</span> <span class="o">*</span> <span class="p">)</span><span class="o">&amp;</span><span class="n">pAssemblyImport</span><span class="p">);</span>
-</span><span id="line-17">
-</span><span id="line-18">  <span class="p">}</span>
-</span><span id="line-19"><span class="p">}</span>
-</span></pre></div></code></pre></div>
+<pre><code  class="cpp">ICorProfilerCallback::ModuleLoadFinished(ModuleID moduleID, HRESULT hrStatus) {
+  CComPtr&lt;IMetaDataImport&gt; pImport;
+  {
+  	CComPtr&lt;IUnknown&gt; pUnk;
+
+  	hr = m_pICorProfilerInfo-&gt;GetModuleMetaData(moduleID, ofRead, IID_IMetaDataImport, &amp;pUnk);
+  	hr = pUnk-&gt;QueryInterface(IID_IMetaDataImport, (LPVOID * ) &amp;pImport);
+  }
+
+
+  CComPtr&lt;IMetaDataAssemblyImport&gt; pAssemblyImport;
+  {
+    CComPtr&lt;IUnknown&gt; pUnk;
+
+    hr = m_pICorProfilerInfo-&gt;GetModuleMetaData(moduleID, ofRead, IID_IMetaDataAssemblyImport, &amp;pUnk);
+    hr = pUnk-&gt;QueryInterface(IID_IMetaDataAssemblyImport,
+      (LPVOID *) &amp;pAssemblyImport);
+
+  }
+}
+</code></pre>
 
 <p>This snippet shows that we can use the <code>ICorProfilerCallback::ModuleLoadFinished</code> callback to grab the metadata for this specific module. Now we have the keys to the <em>meta</em>-phorical kingdom (see what I did there?) Yeah, I want to kill me for making that joke too. Anyway, we now can do just about anything the CLR does to resolve your code.</p>
 
@@ -150,146 +153,146 @@
 <h3 id="enumerate-all-referenced-assemblies">Enumerate all referenced assemblies</h3>
 <p>Using this you can see what assemblies your module’s assembly is referencing—that is of course if the module is bound to an assembly. Knowing this you can easily do a TypeRef lookup against that assembly if you know the type name.</p>
 
-<div class="highlight"><pre><code class="language-cpp"><div class="highlight"><pre><span id="line-1"><span class="c1">// Generic buffers for enumeration</span>
-</span><span id="line-2"><span class="n">HCORENUM</span> <span class="n">hEnumAssembly</span> <span class="o">=</span> <span class="nb">NULL</span><span class="p">;</span>
-</span><span id="line-3"><span class="n">mdAssemblyRef</span> <span class="n">rgAssemblyRefs</span><span class="p">[</span><span class="mi">1024</span><span class="p">]{</span> <span class="mi">0</span> <span class="p">};</span>
-</span><span id="line-4"><span class="n">ULONG</span> <span class="n">numberOfTokens</span><span class="p">;</span>
-</span><span id="line-5"><span class="kt">wchar_t</span> <span class="n">assemblyRefNameBuffer</span><span class="p">[</span><span class="mi">255</span><span class="p">];</span>
-</span><span id="line-6"><span class="n">ULONG</span> <span class="n">numChars</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>
-</span><span id="line-7"><span class="c1">// Resuable buffers for assembly info</span>
-</span><span id="line-8"><span class="kt">char</span> <span class="o">*</span><span class="n">publicKeyToken</span> <span class="o">=</span> <span class="nb">NULL</span><span class="p">;</span>
-</span><span id="line-9"><span class="kt">char</span> <span class="o">*</span><span class="n">hashVal</span> <span class="o">=</span> <span class="nb">NULL</span><span class="p">;</span>
-</span><span id="line-10"><span class="n">ULONG</span> <span class="n">pktLen</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>
-</span><span id="line-11"><span class="n">ULONG</span> <span class="n">hashLen</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>
-</span><span id="line-12"><span class="n">DWORD</span> <span class="n">flags</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>
-</span><span id="line-13"><span class="n">ASSEMBLYMETADATA</span> <span class="n">amd</span><span class="p">{</span> <span class="mi">0</span> <span class="p">};</span>
-</span><span id="line-14"><span class="k">do</span>
-</span><span id="line-15"><span class="p">{</span>
-</span><span id="line-16">  <span class="n">hr</span> <span class="o">=</span> <span class="n">pAssemblyImport</span><span class="o">-&gt;</span><span class="n">EnumAssemblyRefs</span><span class="p">(</span>
-</span><span id="line-17">    <span class="o">&amp;</span><span class="n">hEnumAssembly</span><span class="p">,</span>
-</span><span id="line-18">    <span class="n">rgAssemblyRefs</span><span class="p">,</span>
-</span><span id="line-19">    <span class="n">_countof</span><span class="p">(</span><span class="n">rgAssemblyRefs</span><span class="p">),</span>
-</span><span id="line-20">    <span class="o">&amp;</span><span class="n">numberOfTokens</span><span class="p">);</span>
-</span><span id="line-21">
-</span><span id="line-22">  <span class="k">for</span> <span class="p">(</span><span class="kt">size_t</span> <span class="n">i</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span> <span class="n">i</span> <span class="o">&lt;</span> <span class="n">numberOfTokens</span><span class="p">;</span> <span class="n">i</span><span class="o">++</span><span class="p">)</span>
-</span><span id="line-23">  <span class="p">{</span>
-</span><span id="line-24">
-</span><span id="line-25">    <span class="n">pAssemblyImport</span><span class="o">-&gt;</span><span class="n">GetAssemblyRefProps</span><span class="p">(</span><span class="n">rgAssemblyRefs</span><span class="p">[</span><span class="n">i</span><span class="p">],</span>
-</span><span id="line-26">    <span class="p">(</span><span class="k">const</span> <span class="kt">void</span><span class="o">**</span><span class="p">)</span><span class="o">&amp;</span><span class="n">publicKeyToken</span><span class="p">,</span>
-</span><span id="line-27">      <span class="o">&amp;</span><span class="n">pktLen</span><span class="p">,</span>
-</span><span id="line-28">      <span class="n">assemblyRefNameBuffer</span><span class="p">,</span>
-</span><span id="line-29">      <span class="n">_countof</span><span class="p">(</span><span class="n">assemblyRefNameBuffer</span><span class="p">),</span>
-</span><span id="line-30">      <span class="o">&amp;</span><span class="n">numChars</span><span class="p">,</span>
-</span><span id="line-31">      <span class="o">&amp;</span><span class="n">amd</span><span class="p">,</span>
-</span><span id="line-32">      <span class="p">(</span><span class="k">const</span> <span class="kt">void</span><span class="o">**</span><span class="p">)</span><span class="o">&amp;</span><span class="n">hashVal</span><span class="p">,</span>
-</span><span id="line-33">      <span class="o">&amp;</span><span class="n">hashLen</span><span class="p">,</span>
-</span><span id="line-34">      <span class="o">&amp;</span><span class="n">flags</span><span class="p">);</span>
-</span><span id="line-35">  <span class="p">}</span>
-</span><span id="line-36"><span class="p">}</span> <span class="k">while</span> <span class="p">(</span><span class="n">hr</span> <span class="o">==</span> <span class="n">S_OK</span><span class="p">);</span>
-</span><span id="line-37"><span class="n">pImport</span><span class="o">-&gt;</span><span class="n">CloseEnum</span><span class="p">(</span><span class="n">hEnumAssembly</span><span class="p">);</span>
-</span></pre></div></code></pre></div>
+<pre><code  class="cpp">// Generic buffers for enumeration
+HCORENUM hEnumAssembly = NULL;
+mdAssemblyRef rgAssemblyRefs[1024]{ 0 };
+ULONG numberOfTokens;
+wchar_t assemblyRefNameBuffer[255];
+ULONG numChars = 0;
+// Resuable buffers for assembly info
+char *publicKeyToken = NULL;
+char *hashVal = NULL;
+ULONG pktLen = 0;
+ULONG hashLen = 0;
+DWORD flags = 0;
+ASSEMBLYMETADATA amd{ 0 };
+do
+{
+  hr = pAssemblyImport-&gt;EnumAssemblyRefs(
+    &amp;hEnumAssembly,
+    rgAssemblyRefs,
+    _countof(rgAssemblyRefs),
+    &amp;numberOfTokens);
+
+  for (size_t i = 0; i &lt; numberOfTokens; i++)
+  {
+
+    pAssemblyImport-&gt;GetAssemblyRefProps(rgAssemblyRefs[i],
+    (const void**)&amp;publicKeyToken,
+      &amp;pktLen,
+      assemblyRefNameBuffer,
+      _countof(assemblyRefNameBuffer),
+      &amp;numChars,
+      &amp;amd,
+      (const void**)&amp;hashVal,
+      &amp;hashLen,
+      &amp;flags);
+  }
+} while (hr == S_OK);
+pImport-&gt;CloseEnum(hEnumAssembly);
+</code></pre>
 
 <h3 id="enumerate-all-defined-types">Enumerate all defined types</h3>
 <p>All types (classes, value types, etc.) are defined inside of your module. You can use this enumeration to find all of your types and use these type definitions to enumerate all of your methods, properties, events, signatures, everything.</p>
 
-<div class="highlight"><pre><code class="language-cpp"><div class="highlight"><pre><span id="line-1"><span class="c1">// Enum Type Defs</span>
-</span><span id="line-2">
-</span><span id="line-3"><span class="n">HCORENUM</span> <span class="n">hEnumTypeDefs</span> <span class="o">=</span> <span class="nb">NULL</span><span class="p">;</span>
-</span><span id="line-4"><span class="n">mdTypeDef</span> <span class="n">rgTypeDefs</span><span class="p">[</span><span class="mi">1024</span><span class="p">]{</span> <span class="mi">0</span> <span class="p">};</span>
-</span><span id="line-5"><span class="n">ULONG</span> <span class="n">numberOfTokens</span><span class="p">;</span>
-</span><span id="line-6"><span class="kt">wchar_t</span> <span class="n">typeDeffNameBuffer</span><span class="p">[</span><span class="mi">255</span><span class="p">];</span>
-</span><span id="line-7"><span class="n">ULONG</span> <span class="n">numChars</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>
-</span><span id="line-8"><span class="n">DWORD</span> <span class="n">attrFlags</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>
-</span><span id="line-9"><span class="n">mdToken</span> <span class="n">tkExtends</span> <span class="o">=</span> <span class="n">mdTokenNil</span><span class="p">;</span>
-</span><span id="line-10">
-</span><span id="line-11"><span class="k">do</span>
-</span><span id="line-12"><span class="p">{</span>
-</span><span id="line-13">  <span class="n">hr</span> <span class="o">=</span> <span class="n">pImport</span><span class="o">-&gt;</span><span class="n">EnumTypeDefs</span><span class="p">(</span>
-</span><span id="line-14">    <span class="o">&amp;</span><span class="n">hEnumTypeDefs</span><span class="p">,</span>
-</span><span id="line-15">    <span class="n">rgTypeDefs</span><span class="p">,</span>
-</span><span id="line-16">    <span class="n">_countof</span><span class="p">(</span><span class="n">rgTypeDefs</span><span class="p">),</span>
-</span><span id="line-17">    <span class="o">&amp;</span><span class="n">numberOfTokens</span><span class="p">);</span>
-</span><span id="line-18">
-</span><span id="line-19">  <span class="k">for</span> <span class="p">(</span><span class="kt">size_t</span> <span class="n">i</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span> <span class="n">i</span> <span class="o">&lt;</span> <span class="n">numberOfTokens</span><span class="p">;</span> <span class="n">i</span><span class="o">++</span><span class="p">)</span>
-</span><span id="line-20">  <span class="p">{</span>
-</span><span id="line-21">    <span class="n">pImport</span><span class="o">-&gt;</span><span class="n">GetTypeDefProps</span><span class="p">(</span><span class="n">rgTypeDefs</span><span class="p">[</span><span class="n">i</span><span class="p">],</span>
-</span><span id="line-22">    	<span class="n">typeDeffNameBuffer</span><span class="p">,</span>
-</span><span id="line-23">    	<span class="mi">255</span><span class="p">,</span>
-</span><span id="line-24">    	<span class="o">&amp;</span><span class="n">numChars</span><span class="p">,</span>
-</span><span id="line-25">    	<span class="o">&amp;</span><span class="n">attrFlags</span><span class="p">,</span>
-</span><span id="line-26">    	<span class="o">&amp;</span><span class="n">tkExtends</span><span class="p">);</span>
-</span><span id="line-27">    <span class="k">auto</span> <span class="n">s</span> <span class="o">=</span> <span class="n">std</span><span class="o">::</span><span class="n">wstring</span><span class="p">(</span><span class="n">typeDeffNameBuffer</span><span class="p">);</span>
-</span><span id="line-28">  <span class="p">}</span>
-</span><span id="line-29">
-</span><span id="line-30"><span class="p">}</span> <span class="k">while</span> <span class="p">(</span><span class="n">hr</span> <span class="o">==</span> <span class="n">S_OK</span><span class="p">);</span>
-</span><span id="line-31">
-</span><span id="line-32"><span class="n">pImport</span><span class="o">-&gt;</span><span class="n">CloseEnum</span><span class="p">(</span><span class="n">hEnumTypeDefs</span><span class="p">);</span>
-</span></pre></div></code></pre></div>
+<pre><code  class="cpp">// Enum Type Defs
+
+HCORENUM hEnumTypeDefs = NULL;
+mdTypeDef rgTypeDefs[1024]{ 0 };
+ULONG numberOfTokens;
+wchar_t typeDeffNameBuffer[255];
+ULONG numChars = 0;
+DWORD attrFlags = 0;
+mdToken tkExtends = mdTokenNil;
+
+do
+{
+  hr = pImport-&gt;EnumTypeDefs(
+    &amp;hEnumTypeDefs,
+    rgTypeDefs,
+    _countof(rgTypeDefs),
+    &amp;numberOfTokens);
+
+  for (size_t i = 0; i &lt; numberOfTokens; i++)
+  {
+    pImport-&gt;GetTypeDefProps(rgTypeDefs[i],
+    	typeDeffNameBuffer,
+    	255,
+    	&amp;numChars,
+    	&amp;attrFlags,
+    	&amp;tkExtends);
+    auto s = std::wstring(typeDeffNameBuffer);
+  }
+
+} while (hr == S_OK);
+
+pImport-&gt;CloseEnum(hEnumTypeDefs);
+</code></pre>
 
 <h3 id="enumerate-all-referenced-types">Enumerate all referenced types</h3>
 <p>Any type that is not defined in your assembly will have a TypeRef defined for some other distinct type. For instance you might call System.Threading.Thread.Sleep(). This would have an AssemblyRef to <code>mscorlib</code> and a TypeRef to <code>System.Threading.Thread</code>. You would them have a <code>MemberRef</code> to the <code>Sleep()</code> method.</p>
 
-<div class="highlight"><pre><code class="language-cpp"><div class="highlight"><pre><span id="line-1"><span class="c1">//Enum TypeRefs</span>
-</span><span id="line-2">
-</span><span id="line-3"><span class="n">HCORENUM</span> <span class="n">hEnumTypeRefs</span> <span class="o">=</span> <span class="nb">NULL</span><span class="p">;</span>
-</span><span id="line-4"><span class="n">mdTypeRef</span> <span class="n">rgTypeRefs</span><span class="p">[</span><span class="mi">1024</span><span class="p">]{</span> <span class="mi">0</span> <span class="p">};</span>
-</span><span id="line-5"><span class="n">ULONG</span> <span class="n">numberOfTokens</span><span class="p">;</span>
-</span><span id="line-6"><span class="kt">wchar_t</span> <span class="n">typeDeffNameBuffer</span><span class="p">[</span><span class="mi">255</span><span class="p">];</span>
-</span><span id="line-7">
-</span><span id="line-8"><span class="n">ULONG</span> <span class="n">numChars</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>
-</span><span id="line-9"><span class="n">DWORD</span> <span class="n">attrFlags</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>
-</span><span id="line-10"><span class="n">mdToken</span> <span class="n">tkExtends</span> <span class="o">=</span> <span class="n">mdTokenNil</span><span class="p">;</span>
-</span><span id="line-11"><span class="n">mdToken</span> <span class="n">resolutionScope</span><span class="p">;</span>
-</span><span id="line-12">
-</span><span id="line-13"><span class="k">do</span> <span class="p">{</span>
-</span><span id="line-14">  <span class="n">hr</span> <span class="o">=</span> <span class="n">pImport</span><span class="o">-&gt;</span><span class="n">EnumTypeRefs</span><span class="p">(</span>
-</span><span id="line-15">    <span class="o">&amp;</span><span class="n">hEnumTypeRefs</span><span class="p">,</span>
-</span><span id="line-16">    <span class="n">rgTypeRefs</span><span class="p">,</span>
-</span><span id="line-17">    <span class="n">_countof</span><span class="p">(</span><span class="n">rgTypeRefs</span><span class="p">),</span>
-</span><span id="line-18">    <span class="o">&amp;</span><span class="n">numberOfTokens</span><span class="p">);</span>
-</span><span id="line-19">
-</span><span id="line-20">    <span class="k">for</span> <span class="p">(</span><span class="kt">size_t</span> <span class="n">i</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span> <span class="n">i</span> <span class="o">&lt;</span> <span class="n">numberOfTokens</span><span class="p">;</span> <span class="n">i</span><span class="o">++</span><span class="p">)</span>
-</span><span id="line-21">    <span class="p">{</span>
-</span><span id="line-22">      <span class="n">pImport</span><span class="o">-&gt;</span><span class="n">GetTypeRefProps</span><span class="p">(</span><span class="n">rgTypeRefs</span><span class="p">[</span><span class="n">i</span><span class="p">],</span>
-</span><span id="line-23">        <span class="o">&amp;</span><span class="n">resolutionScope</span><span class="p">,</span>
-</span><span id="line-24">        <span class="n">typeDeffNameBuffer</span><span class="p">,</span>
-</span><span id="line-25">        <span class="mi">255</span><span class="p">,</span>
-</span><span id="line-26">        <span class="o">&amp;</span><span class="n">numChars</span><span class="p">);</span>
-</span><span id="line-27">      <span class="k">if</span> <span class="p">((</span><span class="n">resolutionScope</span> <span class="o">&amp;</span> <span class="mh">0x1A000000</span><span class="p">)</span> <span class="o">==</span> <span class="mh">0x1A000000</span><span class="p">)</span>
-</span><span id="line-28">      <span class="p">{</span>
-</span><span id="line-29">        <span class="n">pImport</span><span class="o">-&gt;</span><span class="n">GetModuleRefProps</span><span class="p">(</span><span class="n">resolutionScope</span><span class="p">,</span>
-</span><span id="line-30">        <span class="n">modRefNameBuffer</span><span class="p">,</span>
-</span><span id="line-31">        <span class="mi">255</span><span class="p">,</span>
-</span><span id="line-32">        <span class="o">&amp;</span><span class="n">numChars</span><span class="p">);</span>
-</span><span id="line-33">        <span class="k">auto</span> <span class="n">s2</span> <span class="o">=</span> <span class="n">std</span><span class="o">::</span><span class="n">wstring</span><span class="p">(</span><span class="n">typeDeffNameBuffer</span><span class="p">);</span>
-</span><span id="line-34">      <span class="p">}</span>
-</span><span id="line-35">
-</span><span id="line-36">      <span class="k">if</span> <span class="p">((</span><span class="n">resolutionScope</span> <span class="o">&amp;</span> <span class="mh">0x23000000</span><span class="p">)</span> <span class="o">==</span> <span class="mh">0x23000000</span><span class="p">)</span>
-</span><span id="line-37">      <span class="p">{</span>
-</span><span id="line-38">        <span class="kt">char</span> <span class="n">publicKeyToken</span><span class="p">[</span><span class="mi">1024</span><span class="p">];</span>
-</span><span id="line-39">        <span class="kt">char</span> <span class="n">hashVal</span><span class="p">[</span><span class="mi">1024</span><span class="p">];</span>
-</span><span id="line-40">        <span class="n">ULONG</span> <span class="n">pktLen</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>
-</span><span id="line-41">        <span class="n">ULONG</span> <span class="n">hashLen</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>
-</span><span id="line-42">        <span class="n">DWORD</span> <span class="n">flags</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>
-</span><span id="line-43">        <span class="n">ASSEMBLYMETADATA</span> <span class="n">amd</span><span class="p">{</span> <span class="mi">0</span> <span class="p">};</span>
-</span><span id="line-44">        <span class="n">pAssemblyImport</span><span class="o">-&gt;</span><span class="n">GetAssemblyRefProps</span><span class="p">(</span><span class="n">resolutionScope</span><span class="p">,</span>
-</span><span id="line-45">          <span class="p">(</span><span class="k">const</span> <span class="kt">void</span><span class="o">**</span><span class="p">)</span><span class="o">&amp;</span><span class="n">publicKeyToken</span><span class="p">,</span>
-</span><span id="line-46">          <span class="o">&amp;</span><span class="n">pktLen</span><span class="p">,</span>
-</span><span id="line-47">          <span class="n">modRefNameBuffer</span><span class="p">,</span>
-</span><span id="line-48">          <span class="mi">255</span><span class="p">,</span>
-</span><span id="line-49">          <span class="o">&amp;</span><span class="n">numChars</span><span class="p">,</span>
-</span><span id="line-50">          <span class="o">&amp;</span><span class="n">amd</span><span class="p">,</span>
-</span><span id="line-51">          <span class="p">(</span><span class="k">const</span> <span class="kt">void</span><span class="o">**</span><span class="p">)</span><span class="o">&amp;</span><span class="n">hashVal</span><span class="p">,</span>
-</span><span id="line-52">          <span class="o">&amp;</span><span class="n">hashLen</span><span class="p">,</span>
-</span><span id="line-53">          <span class="o">&amp;</span><span class="n">flags</span><span class="p">);</span>
-</span><span id="line-54">
-</span><span id="line-55">        <span class="k">auto</span> <span class="n">s2</span> <span class="o">=</span> <span class="n">std</span><span class="o">::</span><span class="n">wstring</span><span class="p">(</span><span class="n">typeDeffNameBuffer</span><span class="p">);</span>
-</span><span id="line-56">      <span class="p">}</span>
-</span><span id="line-57">    <span class="p">}</span>
-</span><span id="line-58"><span class="p">}</span> <span class="k">while</span> <span class="p">(</span><span class="n">hr</span> <span class="o">==</span> <span class="n">S_OK</span><span class="p">);</span>
-</span><span id="line-59">
-</span><span id="line-60"><span class="n">pImport</span><span class="o">-&gt;</span><span class="n">CloseEnum</span><span class="p">(</span><span class="n">hEnumTypeRefs</span><span class="p">);</span>
-</span></pre></div></code></pre></div>
+<pre><code  class="cpp">//Enum TypeRefs
+
+HCORENUM hEnumTypeRefs = NULL;
+mdTypeRef rgTypeRefs[1024]{ 0 };
+ULONG numberOfTokens;
+wchar_t typeDeffNameBuffer[255];
+
+ULONG numChars = 0;
+DWORD attrFlags = 0;
+mdToken tkExtends = mdTokenNil;
+mdToken resolutionScope;
+
+do {
+  hr = pImport-&gt;EnumTypeRefs(
+    &amp;hEnumTypeRefs,
+    rgTypeRefs,
+    _countof(rgTypeRefs),
+    &amp;numberOfTokens);
+
+    for (size_t i = 0; i &lt; numberOfTokens; i++)
+    {
+      pImport-&gt;GetTypeRefProps(rgTypeRefs[i],
+        &amp;resolutionScope,
+        typeDeffNameBuffer,
+        255,
+        &amp;numChars);
+      if ((resolutionScope &amp; 0x1A000000) == 0x1A000000)
+      {
+        pImport-&gt;GetModuleRefProps(resolutionScope,
+        modRefNameBuffer,
+        255,
+        &amp;numChars);
+        auto s2 = std::wstring(typeDeffNameBuffer);
+      }
+
+      if ((resolutionScope &amp; 0x23000000) == 0x23000000)
+      {
+        char publicKeyToken[1024];
+        char hashVal[1024];
+        ULONG pktLen = 0;
+        ULONG hashLen = 0;
+        DWORD flags = 0;
+        ASSEMBLYMETADATA amd{ 0 };
+        pAssemblyImport-&gt;GetAssemblyRefProps(resolutionScope,
+          (const void**)&amp;publicKeyToken,
+          &amp;pktLen,
+          modRefNameBuffer,
+          255,
+          &amp;numChars,
+          &amp;amd,
+          (const void**)&amp;hashVal,
+          &amp;hashLen,
+          &amp;flags);
+
+        auto s2 = std::wstring(typeDeffNameBuffer);
+      }
+    }
+} while (hr == S_OK);
+
+pImport-&gt;CloseEnum(hEnumTypeRefs);
+</code></pre>
 
 <h2 id="whats-next">What’s next?</h2>
 <p>Now that we’ve seen how we can get this well defined data we can start making some smart decisions on how we want to rewrite our IL. As stated I could get type  references to other classes and call <code>newobj</code> using that TypeRef to create a brand new <code>System.Diagnostics.Stopwatch</code>. I could then get a MemberRef to <code>calllvirt Start()</code>.</p>
@@ -323,6 +326,15 @@
     
     <li>
       <h3>
+        <a href="http://www.debugthings.com/2015/10/08/rewriting-il-remotely-part3/">
+          Rewriting IL - Part 3 - Signatures and Compression
+          <small>08 Oct 2015</small>
+        </a>
+      </h3>
+    </li>
+    
+    <li>
+      <h3>
         <a href="http://www.debugthings.com/2015/09/28/rewriting-il-remotely-part2/">
           Rewriting IL - Part 2 - Tokens
           <small>28 Sep 2015</small>
@@ -335,15 +347,6 @@
         <a href="http://www.debugthings.com/2015/09/06/simple%20beginings-chainsapm/">
           Simple Beginnings - ChainsAPM
           <small>06 Sep 2015</small>
-        </a>
-      </h3>
-    </li>
-    
-    <li>
-      <h3>
-        <a href="http://www.debugthings.com/2015/09/01/a-year-of-procrastination/">
-          A Year of Procrastination
-          <small>01 Sep 2015</small>
         </a>
       </h3>
     </li>

@@ -18,11 +18,13 @@
 
 
   <!-- CSS -->
-  <link rel="stylesheet" href="/public/css/monokai.css" />
   <link rel="stylesheet" href="/public/css/bootstrap.css" />
   <link rel="stylesheet" href="//maxcdn.bootstrapcdn.com/font-awesome/4.3.0/css/font-awesome.min.css">
   <link rel="stylesheet" href="/public/css/poole.css" />
 
+  <link rel="stylesheet" href="//cdnjs.cloudflare.com/ajax/libs/highlight.js/8.8.0/styles/monokai_sublime.min.css">
+  <script src="//cdnjs.cloudflare.com/ajax/libs/highlight.js/8.8.0/highlight.min.js"></script>
+  <script>hljs.initHighlightingOnLoad();</script>
 
   <script type="text/javascript" src="http://code.jquery.com/jquery-2.1.3.min.js"></script>
 
@@ -93,7 +95,7 @@
 
 <p>Let’s take a look at the mklink command. I list all of the options here but since I’m only looking at creating a symlink. Below the help text is the command I executed.</p>
 
-<div class="highlight"><pre><code>&gt;mklink
+<pre><code  class="nohighlight">&gt;mklink
 Creates a symbolic link.
 
 MKLINK [[/D] | [/H] | [/J]] Link Target
@@ -105,11 +107,11 @@ MKLINK [[/D] | [/H] | [/J]] Link Target
         Link    specifies the new symbolic link name.
         Target  specifies the path (relative or absolute) that the new link
                 refers to.
-</code></pre></div>
+</code></pre>
 
-<div class="highlight"><pre><code>mklink MySQLHostManager.cs ..\mysql_managed_interface\MySQLHostManager.cs
+<pre><code  class="nohighlight">mklink MySQLHostManager.cs ..\mysql_managed_interface\MySQLHostManager.cs
 symbolic link created for MySQLHostManager.cs &lt;&lt;===&gt;&gt; ..\mysql_managed_interface\MySQLHostManager.cs
-</code></pre></div>
+</code></pre>
 
 <p>That previous command created a new link to <code>MySQLHostManager.cs</code> from the actual <code>MySQLHostManager.cs</code> file in another directory. The great think about this link is it is relative. So, if you happen to move the entire directory structure up or down a level this will be honored.</p>
 
@@ -118,9 +120,9 @@ symbolic link created for MySQLHostManager.cs &lt;&lt;===&gt;&gt; ..\mysql_manag
 
 <p>Inside of my solution I have a project for the v4.0 version of my assembly. Complete with new references for the new CLR. I added a build event to my assembly to make this link before each run. The problem here is we need to be able to make sure that we don’t run the <code>mklink</code> command each and every time. Again, falling back to my bag of tricks I used a simple one line batch <a href="http://technet.microsoft.com/en-us/library/bb490920.aspx">IF command</a>.</p>
 
-<div class="highlight"><pre><code>IF EXIST MySQLHostManager.cs ( echo "Link Exists") 
+<pre><code  class="nohighlight">IF EXIST MySQLHostManager.cs ( echo "Link Exists") 
 ELSE (mklink MySQLHostManager.cs ..\mysql_managed_interface\MySQLHostManager.cs)
-</code></pre></div>
+</code></pre>
 
 <p>I placed this command inside of my project properties in the pre-build event section. This will guarantee that the link is created the first time you run the build and it will not be attempted to be created after the build.</p>
 
@@ -133,15 +135,15 @@ ELSE (mklink MySQLHostManager.cs ..\mysql_managed_interface\MySQLHostManager.cs)
 
 <p><img src="/images/props_compilation_symbol.png" alt="Compilation Symbol" /></p>
 
-<div class="highlight"><pre><code class="language-Csharp"><div class="highlight"><pre><span id="line-1"><span class="k">static</span> <span class="k">void</span> <span class="nf">ADIDelegate</span><span class="p">(</span><span class="kt">string</span><span class="p">[]</span> <span class="n">args</span><span class="p">)</span>
-</span><span id="line-2"><span class="p">{</span>
-</span><span id="line-3"><span class="cp">#if DOTNET40</span>
-</span><span id="line-4">  <span class="kt">var</span> <span class="n">asm</span> <span class="p">=</span> <span class="n">Assembly</span><span class="p">.</span><span class="n">Load</span><span class="p">(</span><span class="n">args</span><span class="p">[</span><span class="m">0</span><span class="p">]);</span> 
-</span><span id="line-5"><span class="cp">#else</span>
-</span><span id="line-6">  <span class="kt">var</span> <span class="n">asm</span> <span class="p">=</span> <span class="n">AppDomain</span><span class="p">.</span><span class="n">CurrentDomain</span><span class="p">.</span><span class="n">Load</span><span class="p">(</span><span class="n">args</span><span class="p">[</span><span class="m">0</span><span class="p">]);</span>
-</span><span id="line-7"><span class="cp">#endif</span>
-</span><span id="line-8"><span class="p">}</span>
-</span></pre></div></code></pre></div>
+<pre><code  class="Csharp">static void ADIDelegate(string[] args)
+{
+#if DOTNET40
+  var asm = Assembly.Load(args[0]); 
+#else
+  var asm = AppDomain.CurrentDomain.Load(args[0]);
+#endif
+}
+</code></pre>
 
 <h2 id="easy-right">Easy, right?</h2>
 <p>Well this wasn’t a super technical post, but I wanted to get this written down because I couldn’t find a good way to compile for both v2.0 and v4.0 AND get updated project references.</p>
@@ -175,6 +177,15 @@ ELSE (mklink MySQLHostManager.cs ..\mysql_managed_interface\MySQLHostManager.cs)
     
     <li>
       <h3>
+        <a href="http://www.debugthings.com/2015/10/08/rewriting-il-remotely-part3/">
+          Rewriting IL - Part 3 - Signatures and Compression
+          <small>08 Oct 2015</small>
+        </a>
+      </h3>
+    </li>
+    
+    <li>
+      <h3>
         <a href="http://www.debugthings.com/2015/09/28/rewriting-il-remotely-part2/">
           Rewriting IL - Part 2 - Tokens
           <small>28 Sep 2015</small>
@@ -187,15 +198,6 @@ ELSE (mklink MySQLHostManager.cs ..\mysql_managed_interface\MySQLHostManager.cs)
         <a href="http://www.debugthings.com/2015/09/16/rewriting-il-remotely-part1/">
           Rewriting IL - Part 1 - Metadata Interfaces
           <small>16 Sep 2015</small>
-        </a>
-      </h3>
-    </li>
-    
-    <li>
-      <h3>
-        <a href="http://www.debugthings.com/2015/09/06/simple%20beginings-chainsapm/">
-          Simple Beginnings - ChainsAPM
-          <small>06 Sep 2015</small>
         </a>
       </h3>
     </li>

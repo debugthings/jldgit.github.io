@@ -18,11 +18,13 @@
 
 
   <!-- CSS -->
-  <link rel="stylesheet" href="/public/css/monokai.css" />
   <link rel="stylesheet" href="/public/css/bootstrap.css" />
   <link rel="stylesheet" href="//maxcdn.bootstrapcdn.com/font-awesome/4.3.0/css/font-awesome.min.css">
   <link rel="stylesheet" href="/public/css/poole.css" />
 
+  <link rel="stylesheet" href="//cdnjs.cloudflare.com/ajax/libs/highlight.js/8.8.0/styles/monokai_sublime.min.css">
+  <script src="//cdnjs.cloudflare.com/ajax/libs/highlight.js/8.8.0/highlight.min.js"></script>
+  <script>hljs.initHighlightingOnLoad();</script>
 
   <script type="text/javascript" src="http://code.jquery.com/jquery-2.1.3.min.js"></script>
 
@@ -102,7 +104,7 @@
 
 <p>When we first navigate to <a href="http://www.microsoft.com/">www.microsoft.com</a> we will see the total amount of requests that are sent over. We can see this by selecting all of the requests that make up a page. In this case the home page. I have trimmed off some extra data for brevity.</p>
 
-<div class="highlight"><pre><code>Request Count:   51
+<pre><code  class="nohighlight">Request Count:   51
 Unique Hosts:    14
 Bytes Sent:      36,471		(headers:36,471; body:0)
 Bytes Received:  884,345	(headers:27,698; body:856,647)
@@ -131,21 +133,21 @@ application/octet-stream: 86,289
                image/gif: 6,757
 
 ... hosts and timing estimates removed ...
-</code></pre></div>
+</code></pre>
 
 <p>For my purposes a very important line was needed. In particular the amount of bytes. More over we need to convert this to bits.</p>
 
-<div class="highlight"><pre><code>Bytes Received:  884,345		(headers:27,698; body:856,647)
-</code></pre></div>
+<pre><code  class="nohighlight">Bytes Received:  884,345		(headers:27,698; body:856,647)
+</code></pre>
 
 <p>Armed with this information I could start calculating some of this fuzzy math. I knew that if we had 100Mbit of bandwidth and the majority of our users would get <strong>about</strong> the same speed then we can use this formula going forward. This generates a theoretical maximum.</p>
 
-<div class="highlight"><pre><code>((Bytes Received) * 8) / (Sequence (clock) duration) = effective bandwidth
+<pre><code  class="nohighlight">((Bytes Received) * 8) / (Sequence (clock) duration) = effective bandwidth
 
 (884,345B * 8b) / 2.98s = 2,374,080 = 2.4Mbit/sec
 
 100Mbit/sec / 2.4Mbit/sec = 42 THEORETICAL simultaneous NEW page transfers in 3 seconds (14/sec)
-</code></pre></div>
+</code></pre>
 
 <p>In reality we more than likely won’t be able to hit 42. If we kind of squint our eyes and do some estimating we will need to reduce the number of actual page transfers. I always use the 80% rule. So really we could do about 34 new page loads at one time and be safe.</p>
 
@@ -167,7 +169,7 @@ application/octet-stream: 86,289
 
 <p>If we visit the same page(s) as before we can capture the same Fiddler statistics to get an idea of our cached content. If you look at the data below it looks as as if we have 20 times LESS data than before. So, in the naive approach we can transfer about 20 times the amount of page views when we have 100% return visitors. Here is an <a href="http://msdn.microsoft.com/en-us/library/bb250442(v=vs.85).aspx">excellent MSDN article</a> on HTTP performance using Fiddler; read it.</p>
 
-<div class="highlight"><pre><code>Request Count:   17
+<pre><code  class="nohighlight">Request Count:   17
 Unique Hosts:    9
 Bytes Sent:      15,501		(headers:15,501; body:0)
 Bytes Received:  48,860		(headers:5,252; body:43,608)
@@ -194,13 +196,13 @@ application/x-javascript: 2,978
          text/javascript: 401
                image/gif: 86
 
-</code></pre></div>
+</code></pre>
 
 <p>In the real world you won’t have that many return visitors. Depending on the type of requests you have (dynamic v. static) and what your business model is like (information or sales) you could be more in the camp of 30% to 50% return. You know your data best. I could offer some foolhardy estimates based on experience, but it would do you a disservice. Explore your data and know your numbers.</p>
 
 <p>Now, lets take this data and apply some fuzz to it and see what our effective rate at load would be.</p>
 
-<div class="highlight"><pre><code>New users:
+<pre><code  class="nohighlight">New users:
 14 pages/sec * 60sec = 840pages/minute * 50% = 420
 
 Return Users:
@@ -212,7 +214,7 @@ Total:
 Fuzzed number (80%):
 7056 pages per minute
 
-</code></pre></div>
+</code></pre>
 
 <p>Now, this number sounds more like a enterprise level application. But, it seems kind of high.</p>
 
@@ -292,10 +294,10 @@ Fuzzed number (80%):
 
 <p>Knowing my goal allowed me to save a lot of money. The going rate for testing in the cloud at the time of this writing is $0.002 per user minute. For example:</p>
 
-<div class="highlight"><pre><code>1000 virtual users x 30 minutes = 30,000 virtual user minutes * $0.002 = $60
+<pre><code  class="nohighlight">1000 virtual users x 30 minutes = 30,000 virtual user minutes * $0.002 = $60
 5000 virtual users x 30 minutes = 150,000 virtual user minutes * $0.002 = $300
 5000 virtual users x 60 minutes = 300,000 virtual user minutes * $0.002 = $600
-</code></pre></div>
+</code></pre>
 
 <p>If you can afford some bad response times at the beginning of your test you should attempt to shorten your ramp-up time. So, if your normal user load takes 2 hours to be at capacity you can try shortening that to 10 or 20 minutes on an internal load test and see how your system handles it. Once you confirm you can take that kind of hit you should alter your load test to match that. Next, if your test had normally run for a couple of hours, you should consider only running for 30 minutes. </p>
 
@@ -333,6 +335,15 @@ Fuzzed number (80%):
     
     <li>
       <h3>
+        <a href="http://www.debugthings.com/2015/10/08/rewriting-il-remotely-part3/">
+          Rewriting IL - Part 3 - Signatures and Compression
+          <small>08 Oct 2015</small>
+        </a>
+      </h3>
+    </li>
+    
+    <li>
+      <h3>
         <a href="http://www.debugthings.com/2015/09/28/rewriting-il-remotely-part2/">
           Rewriting IL - Part 2 - Tokens
           <small>28 Sep 2015</small>
@@ -345,15 +356,6 @@ Fuzzed number (80%):
         <a href="http://www.debugthings.com/2015/09/16/rewriting-il-remotely-part1/">
           Rewriting IL - Part 1 - Metadata Interfaces
           <small>16 Sep 2015</small>
-        </a>
-      </h3>
-    </li>
-    
-    <li>
-      <h3>
-        <a href="http://www.debugthings.com/2015/09/06/simple%20beginings-chainsapm/">
-          Simple Beginnings - ChainsAPM
-          <small>06 Sep 2015</small>
         </a>
       </h3>
     </li>

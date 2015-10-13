@@ -18,11 +18,13 @@
 
 
   <!-- CSS -->
-  <link rel="stylesheet" href="/public/css/monokai.css" />
   <link rel="stylesheet" href="/public/css/bootstrap.css" />
   <link rel="stylesheet" href="//maxcdn.bootstrapcdn.com/font-awesome/4.3.0/css/font-awesome.min.css">
   <link rel="stylesheet" href="/public/css/poole.css" />
 
+  <link rel="stylesheet" href="//cdnjs.cloudflare.com/ajax/libs/highlight.js/8.8.0/styles/monokai_sublime.min.css">
+  <script src="//cdnjs.cloudflare.com/ajax/libs/highlight.js/8.8.0/highlight.min.js"></script>
+  <script>hljs.initHighlightingOnLoad();</script>
 
   <script type="text/javascript" src="http://code.jquery.com/jquery-2.1.3.min.js"></script>
 
@@ -88,7 +90,7 @@
 
 <p>Enter the following commands in your GIT command prompt. It’s that simple. All code changes as I have shown them in this blog post should be there. If you come across this post at a way later date, try increasing the range from 5 to 10, and so on.</p>
 
-<div class="highlight"><pre><code>git clone https://github.com/jldgit/mysql_udf_dotnet.git -b wip-nextversion
+<pre><code  class="nohighlight">git clone https://github.com/jldgit/mysql_udf_dotnet.git -b wip-nextversion
 git log --abbrev-commit -n 5 --pretty=oneline
 
 6d017b0 Changes relating to post 5
@@ -98,7 +100,7 @@ git log --abbrev-commit -n 5 --pretty=oneline
 f1696c3 Merge branch 'master' of https://github.com/jldgit/mysql_udf.git
 
 git checkout 6d017b0
-</code></pre></div>
+</code></pre>
 
 <h2 id="whats-changed">What’s Changed?</h2>
 <p>Not a lot has changed in this version. We are now in at a good cruising speed to add in new components as needed. The major changes here are adding in some new configuration sections relating to permission groups (permission sets) that we can arbitrarily create. I’ve also added in <a href="http://msdn.microsoft.com/en-us/library/system.security.permissions.hostprotectionattribute(v=vs.110).aspx">Host Access Protection</a> which will block some features that are useful but dangerous when working in a shared server environment. You can get around them, but you have to go FullTrust.</p>
@@ -106,42 +108,42 @@ git checkout 6d017b0
 <h3 id="updated-appdomain-manager-mysqlhostmanager">Updated AppDomain Manager (MySQLHostManager)</h3>
 <p>Added in a new configuration section that allows us to define very specific security for the assemblies that are to be loaded in our MySQL process. The example below shows how these items relate. As mentioned in <a href="/2014/11/26/extending-mysql-server-part4/">part 4</a> of this series the default execution mode is <a href="http://msdn.microsoft.com/en-us/library/system.security.permissions.securitypermissionflag%28v=vs.110%29.aspx">SecurityPermissionFlag.Execution</a>. This allows very simplistic computation to be done, but a lot of powerful features in .NET are stripped away. Now, we can grant FullTrust or a very specific set of permissions. </p>
 
-<div class="highlight"><pre><code class="language-XML"><div class="highlight"><pre><span id="line-1"><span class="cp">&lt;?xml version=&quot;1.0&quot; encoding=&quot;utf-8&quot; ?&gt;</span>
-</span><span id="line-2"><span class="nt">&lt;configuration&gt;</span>
-</span><span id="line-3">
-</span><span id="line-4">  <span class="nt">&lt;configSections&gt;</span>
-</span><span id="line-5">    <span class="nt">&lt;section</span> <span class="na">name =</span><span class="s">&quot;mysqlassemblies&quot;</span> <span class="na">type=</span><span class="s">&quot;MySQLHostManager.MySQLAssemblyList, </span>
-</span><span id="line-6"><span class="s">             MySQLHostManager, Version=1.0.0.0, PublicKeyToken=71c4a5d4270bd29c&quot;</span><span class="nt">/&gt;</span>
-</span><span id="line-7">  <span class="nt">&lt;/configSections&gt;</span>
-</span><span id="line-8">
-</span><span id="line-9">  <span class="nt">&lt;mysqlassemblies&gt;</span>
-</span><span id="line-10">    <span class="nt">&lt;permissionsets&gt;</span>
-</span><span id="line-11">
-</span><span id="line-12">      <span class="nt">&lt;permissionset</span> <span class="na">name=</span><span class="s">&quot;MySQLPartial&quot;</span><span class="nt">&gt;</span>
-</span><span id="line-13">        <span class="nt">&lt;permissions&gt;</span>
-</span><span id="line-14">          <span class="nt">&lt;add</span> <span class="na">name=</span><span class="s">&quot;FileIOPermission&quot;</span> <span class="nt">/&gt;</span>
-</span><span id="line-15">        <span class="nt">&lt;/permissions&gt;</span>
-</span><span id="line-16">      <span class="nt">&lt;/permissionset&gt;</span>
-</span><span id="line-17">
-</span><span id="line-18">    <span class="nt">&lt;/permissionsets&gt;</span>
-</span><span id="line-19">
-</span><span id="line-20">    <span class="nt">&lt;assemblies&gt;</span>
-</span><span id="line-21">      <span class="c">&lt;!--No specific permission set assigned to this assembly; uses default (MySQLPartial)--&gt;</span>
-</span><span id="line-22">      <span class="nt">&lt;assembly</span> <span class="na">name=</span><span class="s">&quot;MySQLCustomClass.CustomMySQLClass&quot;</span> <span class="na">fullname =</span><span class="s">&quot;MySQLCustomClass, </span>
-</span><span id="line-23"><span class="s">                Version=1.0.0.0, PublicKeyToken=a55d172c54d273f4&quot;</span> <span class="na">clrversion=</span><span class="s">&quot;2.0&quot;</span> <span class="nt">/&gt;</span>
-</span><span id="line-24">
-</span><span id="line-25">      <span class="c">&lt;!--FullTrust Granted to this assembly--&gt;</span>
-</span><span id="line-26">      <span class="nt">&lt;assembly</span> <span class="na">name=</span><span class="s">&quot;MySQLCustomClass.FullTrustAssemblyDemo&quot;</span> <span class="na">fullname =</span><span class="s">&quot;MySQLCustomClass, </span>
-</span><span id="line-27"><span class="s">                Version=1.0.0.0, PublicKeyToken=a55d172c54d273f4&quot;</span> <span class="na">clrversion=</span><span class="s">&quot;2.0&quot;</span>
-</span><span id="line-28">                <span class="na">permissions=</span><span class="s">&quot;FullTrust&quot;</span><span class="nt">/&gt;</span>
-</span><span id="line-29">      <span class="c">&lt;!--MySQLPartial Granted to this assembly--&gt;</span>
-</span><span id="line-30">      <span class="nt">&lt;assembly</span> <span class="na">name=</span><span class="s">&quot;MySQLCustomClass.PartialTrustAssemblyDemo&quot;</span> <span class="na">fullname =</span><span class="s">&quot;MySQLCustomClass, </span>
-</span><span id="line-31"><span class="s">                Version=1.0.0.0, PublicKeyToken=a55d172c54d273f4&quot;</span> <span class="na">clrversion=</span><span class="s">&quot;2.0&quot;</span>
-</span><span id="line-32">                <span class="na">permissions=</span><span class="s">&quot;MySQLPartial&quot;</span><span class="nt">/&gt;</span>
-</span><span id="line-33">    <span class="nt">&lt;/assemblies&gt;</span>
-</span><span id="line-34">  <span class="nt">&lt;/mysqlassemblies&gt;</span>
-</span><span id="line-35"><span class="nt">&lt;/configuration&gt;</span>
-</span></pre></div></code></pre></div>
+<pre><code  class="XML">&lt;?xml version="1.0" encoding="utf-8" ?&gt;
+&lt;configuration&gt;
+
+  &lt;configSections&gt;
+    &lt;section name ="mysqlassemblies" type="MySQLHostManager.MySQLAssemblyList, 
+             MySQLHostManager, Version=1.0.0.0, PublicKeyToken=71c4a5d4270bd29c"/&gt;
+  &lt;/configSections&gt;
+
+  &lt;mysqlassemblies&gt;
+    &lt;permissionsets&gt;
+
+      &lt;permissionset name="MySQLPartial"&gt;
+        &lt;permissions&gt;
+          &lt;add name="FileIOPermission" /&gt;
+        &lt;/permissions&gt;
+      &lt;/permissionset&gt;
+
+    &lt;/permissionsets&gt;
+
+    &lt;assemblies&gt;
+      &lt;!--No specific permission set assigned to this assembly; uses default (MySQLPartial)--&gt;
+      &lt;assembly name="MySQLCustomClass.CustomMySQLClass" fullname ="MySQLCustomClass, 
+                Version=1.0.0.0, PublicKeyToken=a55d172c54d273f4" clrversion="2.0" /&gt;
+
+      &lt;!--FullTrust Granted to this assembly--&gt;
+      &lt;assembly name="MySQLCustomClass.FullTrustAssemblyDemo" fullname ="MySQLCustomClass, 
+                Version=1.0.0.0, PublicKeyToken=a55d172c54d273f4" clrversion="2.0"
+                permissions="FullTrust"/&gt;
+      &lt;!--MySQLPartial Granted to this assembly--&gt;
+      &lt;assembly name="MySQLCustomClass.PartialTrustAssemblyDemo" fullname ="MySQLCustomClass, 
+                Version=1.0.0.0, PublicKeyToken=a55d172c54d273f4" clrversion="2.0"
+                permissions="MySQLPartial"/&gt;
+    &lt;/assemblies&gt;
+  &lt;/mysqlassemblies&gt;
+&lt;/configuration&gt;
+</code></pre>
 
 <blockquote>
   <p><strong>NOTE:</strong>The clrversion attribute has not been implemented yet. I will get to that in the next blog post.</p>
@@ -193,61 +195,61 @@ git checkout 6d017b0
 
 <p>If we happen to have the phrase FullTrust in the assembly permissions attribute, we give the app domain an Unrestricted permission state. This is the same as adding each permission. This means that <strong>ALL</strong> assemblies loaded in this domain will have full trust. We will circle back in later blog posts to fix a possible security flaw in this design.</p>
 
-<div class="highlight"><pre><code class="language-csharp"><div class="highlight"><pre><span id="line-1"><span class="k">private</span> <span class="n">PermissionSet</span> <span class="nf">GetAssemblyPermissions</span><span class="p">(</span><span class="n">MySQLAsembly</span> <span class="n">typeName</span><span class="p">)</span>
-</span><span id="line-2"><span class="p">{</span>
-</span><span id="line-3">  <span class="n">PermissionSet</span> <span class="n">permissions</span> <span class="p">=</span> <span class="k">new</span> <span class="n">PermissionSet</span><span class="p">(</span><span class="n">PermissionState</span><span class="p">.</span><span class="n">None</span><span class="p">);</span>
-</span><span id="line-4">  <span class="n">permissions</span><span class="p">.</span><span class="n">AddPermission</span><span class="p">(</span><span class="k">new</span> <span class="n">SecurityPermission</span><span class="p">(</span><span class="n">SecurityPermissionFlag</span><span class="p">.</span><span class="n">Execution</span><span class="p">));</span>
-</span><span id="line-5">
-</span><span id="line-6">  <span class="k">if</span> <span class="p">(!</span><span class="kt">string</span><span class="p">.</span><span class="n">IsNullOrEmpty</span><span class="p">(</span><span class="n">typeName</span><span class="p">.</span><span class="n">permissions</span><span class="p">))</span>
-</span><span id="line-7">  <span class="p">{</span>
-</span><span id="line-8">    <span class="k">if</span> <span class="p">(</span><span class="n">typeName</span><span class="p">.</span><span class="n">permissions</span><span class="p">.</span><span class="n">Equals</span><span class="p">(</span><span class="s">&quot;fulltrust&quot;</span><span class="p">,</span> <span class="n">StringComparison</span><span class="p">.</span><span class="n">InvariantCultureIgnoreCase</span><span class="p">))</span>
-</span><span id="line-9">    <span class="p">{</span>
-</span><span id="line-10">      <span class="c1">// override the default permission set with a full trust permission set.</span>
-</span><span id="line-11">      <span class="n">permissions</span> <span class="p">=</span> <span class="k">new</span> <span class="n">PermissionSet</span><span class="p">(</span><span class="n">PermissionState</span><span class="p">.</span><span class="n">Unrestricted</span><span class="p">);</span>
-</span><span id="line-12">    <span class="p">}</span>
-</span><span id="line-13">    <span class="k">else</span>
-</span><span id="line-14">    <span class="p">{</span>
-</span><span id="line-15">      <span class="kt">var</span> <span class="n">section2</span> <span class="p">=</span> <span class="n">System</span><span class="p">.</span><span class="n">Configuration</span><span class="p">.</span><span class="n">ConfigurationManager</span><span class="p">.</span><span class="n">GetSection</span><span class="p">(</span><span class="s">&quot;mysqlassemblies&quot;</span><span class="p">)</span> 
-</span><span id="line-16">      <span class="k">as</span> <span class="n">MySQLAssemblyList</span><span class="p">;</span>
-</span><span id="line-17">      <span class="kt">var</span> <span class="n">permlists</span> <span class="p">=</span> <span class="n">section2</span><span class="p">.</span><span class="n">permissionsetscollection</span><span class="p">;</span>
-</span><span id="line-18">      <span class="kt">var</span> <span class="n">permlist</span> <span class="p">=</span> <span class="n">permlists</span><span class="p">[</span><span class="n">typeName</span><span class="p">.</span><span class="n">permissions</span><span class="p">];</span>
-</span><span id="line-19">
-</span><span id="line-20">  
-</span><span id="line-21">      <span class="k">foreach</span> <span class="p">(</span><span class="n">MySQLPermission</span> <span class="n">permission</span> <span class="k">in</span> <span class="n">permlist</span><span class="p">.</span><span class="n">permissionscollection</span><span class="p">)</span>
-</span><span id="line-22">      <span class="p">{</span>
-</span><span id="line-23">          <span class="k">switch</span> <span class="p">(</span><span class="n">permission</span><span class="p">.</span><span class="n">Name</span><span class="p">)</span>
-</span><span id="line-24">          <span class="p">{</span>
-</span><span id="line-25">            <span class="c1">// Removed code for brevity ...</span>
-</span><span id="line-26">            <span class="k">case</span> <span class="s">&quot;OdbcPermission&quot;</span><span class="p">:</span> <span class="n">permissions</span><span class="p">.</span><span class="n">AddPermission</span><span class="p">(</span>
-</span><span id="line-27">              <span class="k">new</span> <span class="n">System</span><span class="p">.</span><span class="n">Data</span><span class="p">.</span><span class="n">Odbc</span><span class="p">.</span><span class="n">OdbcPermission</span><span class="p">(</span><span class="n">PermissionState</span><span class="p">.</span><span class="n">Unrestricted</span><span class="p">));</span>
-</span><span id="line-28">                <span class="k">break</span><span class="p">;</span>
-</span><span id="line-29">            <span class="k">case</span> <span class="s">&quot;OleDbPermission&quot;</span><span class="p">:</span> <span class="n">permissions</span><span class="p">.</span><span class="n">AddPermission</span><span class="p">(</span>
-</span><span id="line-30">              <span class="k">new</span> <span class="n">System</span><span class="p">.</span><span class="n">Data</span><span class="p">.</span><span class="n">OleDb</span><span class="p">.</span><span class="n">OleDbPermission</span><span class="p">(</span><span class="n">PermissionState</span><span class="p">.</span><span class="n">Unrestricted</span><span class="p">));</span>
-</span><span id="line-31">                <span class="k">break</span><span class="p">;</span>
-</span><span id="line-32">            <span class="k">case</span> <span class="s">&quot;SqlClientPermission&quot;</span><span class="p">:</span> <span class="n">permissions</span><span class="p">.</span><span class="n">AddPermission</span><span class="p">(</span>
-</span><span id="line-33">              <span class="k">new</span> <span class="n">System</span><span class="p">.</span><span class="n">Data</span><span class="p">.</span><span class="n">SqlClient</span><span class="p">.</span><span class="n">SqlClientPermission</span><span class="p">(</span><span class="n">PermissionState</span><span class="p">.</span><span class="n">Unrestricted</span><span class="p">));</span>
-</span><span id="line-34">                <span class="k">break</span><span class="p">;</span>
-</span><span id="line-35">            <span class="k">case</span> <span class="s">&quot;EnvironmentPermission&quot;</span><span class="p">:</span> <span class="n">permissions</span><span class="p">.</span><span class="n">AddPermission</span><span class="p">(</span>
-</span><span id="line-36">              <span class="k">new</span> <span class="n">System</span><span class="p">.</span><span class="n">Security</span><span class="p">.</span><span class="n">Permissions</span><span class="p">.</span><span class="n">EnvironmentPermission</span><span class="p">(</span><span class="n">PermissionState</span><span class="p">.</span><span class="n">Unrestricted</span><span class="p">));</span>
-</span><span id="line-37">                <span class="k">break</span><span class="p">;</span>
-</span><span id="line-38">            <span class="k">case</span> <span class="s">&quot;FileDialogPermission&quot;</span><span class="p">:</span> <span class="n">permissions</span><span class="p">.</span><span class="n">AddPermission</span><span class="p">(</span>
-</span><span id="line-39">              <span class="k">new</span> <span class="n">System</span><span class="p">.</span><span class="n">Security</span><span class="p">.</span><span class="n">Permissions</span><span class="p">.</span><span class="n">FileDialogPermission</span><span class="p">(</span><span class="n">PermissionState</span><span class="p">.</span><span class="n">Unrestricted</span><span class="p">));</span>
-</span><span id="line-40">                <span class="k">break</span><span class="p">;</span>
-</span><span id="line-41">            <span class="k">case</span> <span class="s">&quot;FileIOPermission&quot;</span><span class="p">:</span> <span class="n">permissions</span><span class="p">.</span><span class="n">AddPermission</span><span class="p">(</span>
-</span><span id="line-42">              <span class="k">new</span> <span class="n">System</span><span class="p">.</span><span class="n">Security</span><span class="p">.</span><span class="n">Permissions</span><span class="p">.</span><span class="n">FileIOPermission</span><span class="p">(</span><span class="n">PermissionState</span><span class="p">.</span><span class="n">Unrestricted</span><span class="p">));</span>
-</span><span id="line-43">                <span class="k">break</span><span class="p">;</span>
-</span><span id="line-44">            <span class="c1">// Removed code for brevity ...</span>
-</span><span id="line-45">
-</span><span id="line-46">            <span class="k">default</span><span class="p">:</span>
-</span><span id="line-47">                <span class="k">break</span><span class="p">;</span>
-</span><span id="line-48">          <span class="p">}</span>
-</span><span id="line-49">        <span class="p">}</span>
-</span><span id="line-50">    <span class="p">}</span>
-</span><span id="line-51">
-</span><span id="line-52">  <span class="p">}</span>
-</span><span id="line-53">  <span class="k">return</span> <span class="n">permissions</span><span class="p">;</span>
-</span><span id="line-54"><span class="p">}</span>
-</span></pre></div></code></pre></div>
+<pre><code  class="csharp">private PermissionSet GetAssemblyPermissions(MySQLAsembly typeName)
+{
+  PermissionSet permissions = new PermissionSet(PermissionState.None);
+  permissions.AddPermission(new SecurityPermission(SecurityPermissionFlag.Execution));
+
+  if (!string.IsNullOrEmpty(typeName.permissions))
+  {
+    if (typeName.permissions.Equals("fulltrust", StringComparison.InvariantCultureIgnoreCase))
+    {
+      // override the default permission set with a full trust permission set.
+      permissions = new PermissionSet(PermissionState.Unrestricted);
+    }
+    else
+    {
+      var section2 = System.Configuration.ConfigurationManager.GetSection("mysqlassemblies") 
+      as MySQLAssemblyList;
+      var permlists = section2.permissionsetscollection;
+      var permlist = permlists[typeName.permissions];
+
+  
+      foreach (MySQLPermission permission in permlist.permissionscollection)
+      {
+          switch (permission.Name)
+          {
+            // Removed code for brevity ...
+            case "OdbcPermission": permissions.AddPermission(
+              new System.Data.Odbc.OdbcPermission(PermissionState.Unrestricted));
+                break;
+            case "OleDbPermission": permissions.AddPermission(
+              new System.Data.OleDb.OleDbPermission(PermissionState.Unrestricted));
+                break;
+            case "SqlClientPermission": permissions.AddPermission(
+              new System.Data.SqlClient.SqlClientPermission(PermissionState.Unrestricted));
+                break;
+            case "EnvironmentPermission": permissions.AddPermission(
+              new System.Security.Permissions.EnvironmentPermission(PermissionState.Unrestricted));
+                break;
+            case "FileDialogPermission": permissions.AddPermission(
+              new System.Security.Permissions.FileDialogPermission(PermissionState.Unrestricted));
+                break;
+            case "FileIOPermission": permissions.AddPermission(
+              new System.Security.Permissions.FileIOPermission(PermissionState.Unrestricted));
+                break;
+            // Removed code for brevity ...
+
+            default:
+                break;
+          }
+        }
+    }
+
+  }
+  return permissions;
+}
+</code></pre>
 
 <h3 id="host-access-protection">Host Access Protection</h3>
 <p>In order to make sure we don’t inadvertantly shut MySQL down, or even block a thread indefinitely we implement Host Protection. This is not exactly the same as Code Access Security. Meaning, it has nothing to do with the call stack. The <a href="http://msdn.microsoft.com/en-us/library/system.security.permissions.hostprotectionattribute(v=vs.110).aspx">HostProtectionAttibute</a> immediately stops execution if it is found while JITting the code. So, this means you could have code that is not “host aware” running that would clear the CAS checks, but could still cause stability issues.</p>
@@ -258,57 +260,58 @@ git checkout 6d017b0
 
 <p>The way around this is to grant the AppDomain unrestricted security which turns off the verification. So essentially, you can bypass host access protection by setting an assembly (or the domain) to FullTrust.</p>
 
-<div class="highlight"><pre><code class="language-csharp"><div class="highlight"><pre><span id="line-1"><span class="k">public</span> <span class="k">static</span> <span class="k">void</span> <span class="nf">WriteLine</span><span class="p">(</span><span class="kt">string</span> <span class="n">message</span><span class="p">)</span>
-</span><span id="line-2"><span class="p">{</span>
-</span><span id="line-3">  <span class="k">if</span> <span class="p">(!</span><span class="n">TraceInternal</span><span class="p">.</span><span class="n">UseGlobalLock</span><span class="p">)</span>
-</span><span id="line-4">  <span class="p">{</span>
-</span><span id="line-5">     <span class="c1">// Internal trace lister code that does not acquire a lock.</span>
-</span><span id="line-6">     <span class="c1">// Removed for brevity.</span>
-</span><span id="line-7">  <span class="p">}</span>
-</span><span id="line-8">  <span class="k">else</span>
-</span><span id="line-9">  <span class="p">{</span>
-</span><span id="line-10">    <span class="k">lock</span> <span class="p">(</span><span class="n">TraceInternal</span><span class="p">.</span><span class="n">critSec</span><span class="p">)</span>
-</span><span id="line-11">    <span class="p">{</span>
-</span><span id="line-12">      <span class="k">foreach</span> <span class="p">(</span><span class="n">TraceListener</span> <span class="n">traceListener</span> <span class="k">in</span> <span class="n">TraceInternal</span><span class="p">.</span><span class="n">Listeners</span><span class="p">)</span>
-</span><span id="line-13">      <span class="p">{</span>
-</span><span id="line-14">        <span class="n">traceListener</span><span class="p">.</span><span class="n">WriteLine</span><span class="p">(</span><span class="n">message</span><span class="p">);</span>
-</span><span id="line-15">        <span class="k">if</span> <span class="p">(!</span><span class="n">TraceInternal</span><span class="p">.</span><span class="n">AutoFlush</span><span class="p">)</span>
-</span><span id="line-16">        <span class="p">{</span>
-</span><span id="line-17">            <span class="k">continue</span><span class="p">;</span>
-</span><span id="line-18">        <span class="p">}</span>
-</span><span id="line-19">        <span class="n">traceListener</span><span class="p">.</span><span class="n">Flush</span><span class="p">();</span>
-</span><span id="line-20">      <span class="p">}</span>
-</span><span id="line-21">    <span class="p">}</span>
-</span><span id="line-22">  <span class="p">}</span>
-</span><span id="line-23"><span class="p">}</span>
-</span></pre></div></code></pre></div>
+<pre><code  class="csharp">public static void WriteLine(string message)
+{
+  if (!TraceInternal.UseGlobalLock)
+  {
+     // Internal trace lister code that does not acquire a lock.
+     // Removed for brevity.
+  }
+  else
+  {
+    lock (TraceInternal.critSec)
+    {
+      foreach (TraceListener traceListener in TraceInternal.Listeners)
+      {
+        traceListener.WriteLine(message);
+        if (!TraceInternal.AutoFlush)
+        {
+            continue;
+        }
+        traceListener.Flush();
+      }
+    }
+  }
+}
+</code></pre>
 
-<div class="highlight"><pre><code class="language-csharp"><div class="highlight"><pre><span id="line-1"><span class="na">[ComVisible(true)]</span>
-</span><span id="line-2"><span class="na">[HostProtection(SecurityAction.LinkDemand, Synchronization=true, ExternalThreading=true)]</span>
-</span><span id="line-3"><span class="k">public</span> <span class="k">static</span> <span class="k">class</span> <span class="nc">Monitor</span>
-</span><span id="line-4"><span class="p">{</span>
-</span><span id="line-5">   <span class="c1">// Removed code for brevity </span>
-</span><span id="line-6">
-</span><span id="line-7">   <span class="k">public</span> <span class="k">static</span> <span class="k">extern</span> <span class="k">void</span> <span class="nf">Enter</span><span class="p">(</span><span class="kt">object</span> <span class="n">obj</span><span class="p">);</span>
-</span><span id="line-8"><span class="p">}</span>
-</span></pre></div></code></pre></div>
+<pre><code  class="csharp">[ComVisible(true)]
+[HostProtection(SecurityAction.LinkDemand, Synchronization=true, ExternalThreading=true)]
+public static class Monitor
+{
+   // Removed code for brevity 
+
+   public static extern void Enter(object obj);
+}
+
+</code></pre>
 
 <p>This is the code snippet that turns on the Host Protection manager with our specified flags.</p>
 
-<div class="highlight"><pre><code class="language-Cpp"><div class="highlight"><pre><span id="line-1"><span class="c1">// get the host protection manager</span>
-</span><span id="line-2"><span class="n">ICLRHostProtectionManager</span> <span class="o">*</span><span class="n">pHostProtectionManager</span> <span class="o">=</span> <span class="nb">NULL</span><span class="p">;</span>
-</span><span id="line-3"><span class="n">HRESULT</span> <span class="n">hrGetProtectionManager</span> <span class="o">=</span> <span class="n">m_pClrControl</span><span class="o">-&gt;</span><span class="n">GetCLRManager</span><span class="p">(</span>
-</span><span id="line-4">  <span class="n">IID_ICLRHostProtectionManager</span><span class="p">,</span>
-</span><span id="line-5">  <span class="k">reinterpret_cast</span><span class="o">&lt;</span><span class="kt">void</span> <span class="o">**&gt;</span><span class="p">(</span><span class="o">&amp;</span><span class="n">pHostProtectionManager</span><span class="p">));</span>
-</span><span id="line-6"><span class="k">if</span> <span class="p">(</span><span class="n">FAILED</span><span class="p">(</span><span class="n">hrGetProtectionManager</span><span class="p">))</span>
-</span><span id="line-7">  <span class="k">return</span> <span class="n">hrGetProtectionManager</span><span class="p">;</span>
-</span><span id="line-8">
-</span><span id="line-9"><span class="c1">// setup host proctection to disallow any threading from partially trusted code.</span>
-</span><span id="line-10"><span class="c1">// Why? well, if a thread is allowed to hang indefinitely the command could get stuck.</span>
-</span><span id="line-11"><span class="n">HRESULT</span> <span class="n">hrHostProtection</span> <span class="o">=</span> <span class="n">pHostProtectionManager</span><span class="o">-&gt;</span><span class="n">SetProtectedCategories</span><span class="p">(</span>
-</span><span id="line-12">  <span class="p">(</span><span class="n">EApiCategories</span><span class="p">)(</span><span class="n">eSynchronization</span> <span class="o">|</span> <span class="n">eSelfAffectingThreading</span> <span class="o">|</span> <span class="n">eSelfAffectingProcessMgmt</span> 
-</span><span id="line-13">  <span class="o">|</span> <span class="n">eExternalProcessMgmt</span> <span class="o">|</span> <span class="n">eExternalThreading</span> <span class="o">|</span> <span class="n">eUI</span><span class="p">));</span>
-</span></pre></div></code></pre></div>
+<pre><code  class="Cpp">// get the host protection manager
+ICLRHostProtectionManager *pHostProtectionManager = NULL;
+HRESULT hrGetProtectionManager = m_pClrControl-&gt;GetCLRManager(
+  IID_ICLRHostProtectionManager,
+  reinterpret_cast&lt;void **&gt;(&amp;pHostProtectionManager));
+if (FAILED(hrGetProtectionManager))
+  return hrGetProtectionManager;
+
+// setup host proctection to disallow any threading from partially trusted code.
+// Why? well, if a thread is allowed to hang indefinitely the command could get stuck.
+HRESULT hrHostProtection = pHostProtectionManager-&gt;SetProtectedCategories(
+  (EApiCategories)(eSynchronization | eSelfAffectingThreading | eSelfAffectingProcessMgmt 
+  | eExternalProcessMgmt | eExternalThreading | eUI));
+</code></pre>
 
 <h2 id="wrapping-up">Wrapping Up</h2>
 <p>Now that we have a solid foundation from part 4 we can extend it to be a bit more restrictive (<em>yes, that’s what we want</em>) so we can protect our server. As we move into the next few posts we will start to add on some more security and some more useful features. Shadow Copy comes to mind.</p>
@@ -342,6 +345,15 @@ git checkout 6d017b0
     
     <li>
       <h3>
+        <a href="http://www.debugthings.com/2015/10/08/rewriting-il-remotely-part3/">
+          Rewriting IL - Part 3 - Signatures and Compression
+          <small>08 Oct 2015</small>
+        </a>
+      </h3>
+    </li>
+    
+    <li>
+      <h3>
         <a href="http://www.debugthings.com/2015/09/28/rewriting-il-remotely-part2/">
           Rewriting IL - Part 2 - Tokens
           <small>28 Sep 2015</small>
@@ -354,15 +366,6 @@ git checkout 6d017b0
         <a href="http://www.debugthings.com/2015/09/16/rewriting-il-remotely-part1/">
           Rewriting IL - Part 1 - Metadata Interfaces
           <small>16 Sep 2015</small>
-        </a>
-      </h3>
-    </li>
-    
-    <li>
-      <h3>
-        <a href="http://www.debugthings.com/2015/09/06/simple%20beginings-chainsapm/">
-          Simple Beginnings - ChainsAPM
-          <small>06 Sep 2015</small>
         </a>
       </h3>
     </li>

@@ -18,11 +18,13 @@
 
 
   <!-- CSS -->
-  <link rel="stylesheet" href="/public/css/monokai.css" />
   <link rel="stylesheet" href="/public/css/bootstrap.css" />
   <link rel="stylesheet" href="//maxcdn.bootstrapcdn.com/font-awesome/4.3.0/css/font-awesome.min.css">
   <link rel="stylesheet" href="/public/css/poole.css" />
 
+  <link rel="stylesheet" href="//cdnjs.cloudflare.com/ajax/libs/highlight.js/8.8.0/styles/monokai_sublime.min.css">
+  <script src="//cdnjs.cloudflare.com/ajax/libs/highlight.js/8.8.0/highlight.min.js"></script>
+  <script>hljs.initHighlightingOnLoad();</script>
 
   <script type="text/javascript" src="http://code.jquery.com/jquery-2.1.3.min.js"></script>
 
@@ -97,7 +99,7 @@
 
 <p>After the source is downloaded, follow the <a href="http://dev.mysql.com/doc/refman/5.5/en/udf-compiling.html">UDF compile</a> instructions. Now, try it. Did it work? Probably not. You can try and update the <code>CMakeLists.txt</code> file to include extra directories, because it seems like it would help.</p>
 
-<div class="highlight"><pre><code>cmake_minimum_required(VERSION 3.1)
+<pre><code  class="nohighlight">cmake_minimum_required(VERSION 3.1)
 PROJECT(udf_example)
 
 # Path for MySQL include directory
@@ -109,7 +111,7 @@ ADD_DEFINITIONS("-DHAVE_DLOPEN")
 ADD_LIBRARY(udf_example MODULE udf_example.c udf_example.def)
 TARGET_LINK_LIBRARIES(udf_example wsock32)
 
-</code></pre></div>
+</code></pre>
 
 <p>Try again. Nope?</p>
 
@@ -119,21 +121,21 @@ TARGET_LINK_LIBRARIES(udf_example wsock32)
 
 <p>However, there is still a gotcha here. When compiling <code>mysqld.exe</code> you may get an error that looks like this <code>error LNK2001: unresolved external symbol _xmm@0000001100000010000000050000000f</code>. Apparently when you compile with debug symbols a few compiler intrinsics make it through the <code>create_def_file.js</code> CScript file. In order to fix this you can alter the <code>IsCompilerDefinedSymbol()</code> method in the CScript file to look like below. This removes any instance of XMM that is generated in the DEF file.</p>
 
-<div class="highlight"><pre><code class="language-js"><div class="highlight"><pre><span id="line-1"><span class="c1">// returns true if the symbol is compiler defined</span>
-</span><span id="line-2"><span class="kd">function</span> <span class="nx">IsCompilerDefinedSymbol</span><span class="p">(</span><span class="nx">symbol</span><span class="p">)</span>
-</span><span id="line-3"><span class="p">{</span>
-</span><span id="line-4">    <span class="k">return</span> <span class="p">((</span><span class="nx">symbol</span><span class="p">.</span><span class="nx">indexOf</span><span class="p">(</span><span class="s2">&quot;__real@&quot;</span><span class="p">)</span> <span class="o">!=</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span> <span class="o">||</span>
-</span><span id="line-5">    <span class="p">(</span><span class="nx">symbol</span><span class="p">.</span><span class="nx">indexOf</span><span class="p">(</span><span class="s2">&quot;_RTC_&quot;</span><span class="p">)</span> <span class="o">!=</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span> <span class="o">||</span> 
-</span><span id="line-6">    <span class="p">(</span><span class="nx">symbol</span><span class="p">.</span><span class="nx">indexOf</span><span class="p">(</span><span class="s2">&quot;??_C@_&quot;</span><span class="p">)</span> <span class="o">!=</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span> <span class="o">||</span>
-</span><span id="line-7">    <span class="p">(</span><span class="nx">symbol</span><span class="p">.</span><span class="nx">indexOf</span><span class="p">(</span><span class="s2">&quot;??_R&quot;</span><span class="p">)</span> <span class="o">!=</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span> <span class="o">||</span>
-</span><span id="line-8">    <span class="p">(</span><span class="nx">symbol</span><span class="p">.</span><span class="nx">indexOf</span><span class="p">(</span><span class="s2">&quot;??_7&quot;</span><span class="p">)</span> <span class="o">!=</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span>  <span class="o">||</span>
-</span><span id="line-9">    <span class="p">(</span><span class="nx">symbol</span><span class="p">.</span><span class="nx">indexOf</span><span class="p">(</span><span class="s2">&quot;?_G&quot;</span><span class="p">)</span> <span class="o">!=</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span> <span class="o">||</span>           <span class="c1">// scalar deleting destructor</span>
-</span><span id="line-10">    <span class="p">(</span><span class="nx">symbol</span><span class="p">.</span><span class="nx">indexOf</span><span class="p">(</span><span class="s2">&quot;_VInfreq_?&quot;</span><span class="p">)</span> <span class="o">!=</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span> <span class="o">||</span>    <span class="c1">// special label (exception handler?) for Intel compiler</span>
-</span><span id="line-11">    <span class="p">(</span><span class="nx">symbol</span><span class="p">.</span><span class="nx">indexOf</span><span class="p">(</span><span class="s2">&quot;?_E&quot;</span><span class="p">)</span> <span class="o">!=</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span> <span class="o">||</span>           <span class="c1">// vector deleting destructor</span>
-</span><span id="line-12">    <span class="p">(</span><span class="nx">symbol</span><span class="p">.</span><span class="nx">indexOf</span><span class="p">(</span><span class="s2">&quot;_xmm&quot;</span><span class="p">)</span> <span class="o">!=</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span><span class="o">||</span>           <span class="c1">// Compiler XMM intrinsic</span>
-</span><span id="line-13">    <span class="p">(</span><span class="nx">symbol</span><span class="p">.</span><span class="nx">indexOf</span><span class="p">(</span><span class="s2">&quot;__xmm&quot;</span><span class="p">)</span> <span class="o">!=</span> <span class="o">-</span><span class="mi">1</span><span class="p">));</span>          <span class="c1">// Compiler XMM intrinsic</span>
-</span><span id="line-14"><span class="p">}</span>
-</span></pre></div></code></pre></div>
+<pre><code  class="js">// returns true if the symbol is compiler defined
+function IsCompilerDefinedSymbol(symbol)
+{
+    return ((symbol.indexOf("__real@") != -1) ||
+    (symbol.indexOf("_RTC_") != -1) || 
+    (symbol.indexOf("??_C@_") != -1) ||
+    (symbol.indexOf("??_R") != -1) ||
+    (symbol.indexOf("??_7") != -1)  ||
+    (symbol.indexOf("?_G") != -1) ||           // scalar deleting destructor
+    (symbol.indexOf("_VInfreq_?") != -1) ||    // special label (exception handler?) for Intel compiler
+    (symbol.indexOf("?_E") != -1) ||           // vector deleting destructor
+    (symbol.indexOf("_xmm") != -1)||           // Compiler XMM intrinsic
+    (symbol.indexOf("__xmm") != -1));          // Compiler XMM intrinsic
+}
+</code></pre>
 
 <p>After this change I was able to run the following command <code>devenv MySQL.sln /build RelWithDebInfo &gt; output_build.txt</code> to generate all of the files I needed.</p>
 
@@ -142,27 +144,27 @@ TARGET_LINK_LIBRARIES(udf_example wsock32)
 
 <p>In order to fix this I made a quick change to a line of code in the <code>udf_example.c</code> file. The proper way would have been to include the strings library that was generated from the full compile but I didn’t want to fuss with it completely.</p>
 
-<div class="highlight"><pre><code class="language-C"><div class="highlight"><pre><span id="line-1"><span class="c1">// udf_example.c - Lines removed for brevity</span>
-</span><span id="line-2">
-</span><span id="line-3"><span class="cm">/* BEFORE */</span>
-</span><span id="line-4"><span class="cp">#include &lt;string.h&gt;</span>
-</span><span id="line-5"><span class="cp">#define strmov(a,b) stpcpy(a,b)</span>
-</span><span id="line-6"><span class="cp">#define bzero(a,b) memset(a,0,b)</span>
-</span><span id="line-7"><span class="cp">#endif</span>
-</span><span id="line-8">
-</span><span id="line-9"><span class="cm">/* AFTER CODE CHANGE */</span>
-</span><span id="line-10"><span class="cp">#include &lt;string.h&gt;</span>
-</span><span id="line-11"><span class="cp">#define strmov(a,b) strcpy(a,b)</span>
-</span><span id="line-12"><span class="cp">#define bzero(a,b) memset(a,0,b)</span>
-</span><span id="line-13"><span class="cp">#endif</span>
-</span></pre></div></code></pre></div>
+<pre><code  class="C">// udf_example.c - Lines removed for brevity
+
+/* BEFORE */
+#include &lt;string.h&gt;
+#define strmov(a,b) stpcpy(a,b)
+#define bzero(a,b) memset(a,0,b)
+#endif
+
+/* AFTER CODE CHANGE */
+#include &lt;string.h&gt;
+#define strmov(a,b) strcpy(a,b)
+#define bzero(a,b) memset(a,0,b)
+#endif
+</code></pre>
 
 <p>Now the application will compile! At least it did for me. If you want to check you can either install it using the instructions from the compile link above or just execute the <code>&lt;root&gt;\sql\RelWithDebInfo\mysqld.exe</code>.</p>
 
 <h2 id="results">Results</h2>
 <p>I compiled and renamed the UDF example to myudf.dll. I was able to load this hello world function into MySQL using the <code>CREATE FUNCTION</code> command.</p>
 
-<div class="highlight"><pre><code>mysql&gt; CREATE FUNCTION myfunc_double RETURNS REAL SONAME "myudf.dll";
+<pre><code  class="nohighlight">mysql&gt; CREATE FUNCTION myfunc_double RETURNS REAL SONAME "myudf.dll";
 Query OK, 0 rows affected (0.01 sec)
 
 mysql&gt; SELECT myfunc_double(1.2);
@@ -206,7 +208,7 @@ mysql&gt; SELECT myfunc_double(10000);
 1 row in set (0.00 sec)
 
 mysql&gt;
-</code></pre></div>
+</code></pre>
 
 
 </div>
@@ -235,6 +237,15 @@ mysql&gt;
     
     <li>
       <h3>
+        <a href="http://www.debugthings.com/2015/10/08/rewriting-il-remotely-part3/">
+          Rewriting IL - Part 3 - Signatures and Compression
+          <small>08 Oct 2015</small>
+        </a>
+      </h3>
+    </li>
+    
+    <li>
+      <h3>
         <a href="http://www.debugthings.com/2015/09/28/rewriting-il-remotely-part2/">
           Rewriting IL - Part 2 - Tokens
           <small>28 Sep 2015</small>
@@ -247,15 +258,6 @@ mysql&gt;
         <a href="http://www.debugthings.com/2015/09/16/rewriting-il-remotely-part1/">
           Rewriting IL - Part 1 - Metadata Interfaces
           <small>16 Sep 2015</small>
-        </a>
-      </h3>
-    </li>
-    
-    <li>
-      <h3>
-        <a href="http://www.debugthings.com/2015/09/06/simple%20beginings-chainsapm/">
-          Simple Beginnings - ChainsAPM
-          <small>06 Sep 2015</small>
         </a>
       </h3>
     </li>

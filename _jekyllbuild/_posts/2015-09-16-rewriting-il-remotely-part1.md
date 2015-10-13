@@ -46,7 +46,7 @@ After this flag is set the [`ICorProfilerCallback::ModuleLoadStarted()`][modstar
 Now that the profiler is letting us know that we have modules loading, unloading and attaching we can go about the business of getting the metadata Interfaces. These interfaces are the heart and soul of how we're going to start rewriting. In order to do this there is a method you call from the `ICorProfilerInfo` interface you got from the mysterious steps 1 and 2. You use that interface to call this method [`ICorProfilerInfo::GetModuleMetaData()`][modmeta].
 
 ~~~cpp
-ICorProfilerCallback::ModuleLoadFinished(ModuleID moduleID, HRESULT hrStatus) {}
+ICorProfilerCallback::ModuleLoadFinished(ModuleID moduleID, HRESULT hrStatus) {
   CComPtr<IMetaDataImport> pImport;
   {
   	CComPtr<IUnknown> pUnk;
@@ -61,7 +61,8 @@ ICorProfilerCallback::ModuleLoadFinished(ModuleID moduleID, HRESULT hrStatus) {}
     CComPtr<IUnknown> pUnk;
 
     hr = m_pICorProfilerInfo->GetModuleMetaData(moduleID, ofRead, IID_IMetaDataAssemblyImport, &pUnk);
-    hr = pUnk->QueryInterface(IID_IMetaDataAssemblyImport, (LPVOID * )&pAssemblyImport);
+    hr = pUnk->QueryInterface(IID_IMetaDataAssemblyImport,
+      (LPVOID *) &pAssemblyImport);
 
   }
 }

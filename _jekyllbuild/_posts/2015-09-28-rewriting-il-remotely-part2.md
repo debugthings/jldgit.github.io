@@ -19,6 +19,13 @@ You can also view the actual tables using [ILDASM][ildasm], by selecting the opt
 
 ![TokenMenu](/images/ildasm_viewmeta.png)
 
+Some key enumerations can be found here:
+
+* [CorElementAttr][CorElem] - Managed types
+* [CorCallingConvention][CorCall] - Calling conventions
+* [CorMethodImpl][CorImpl] - Method implementation features
+* [CorMethodAttr][CorAttr] - Method features
+
 ##MetaData Tables
 When the CLR profiler loads a module it gives you the ability to query for the ModuleMetaData interfaces you need by using the [`ICorProfilerInfo::GetModuleMetaData()`][modmeta] method. The best place to do this is in the [`ICorProfilerCallback::ModuleLoadFinished()`][modfin] method. This ensures all data is in memory from the file. A code example is in my last blog post [here][lastpost].
 
@@ -277,7 +284,7 @@ IL_000f:  2A              ret
 ~~~
 
 ##Conclusion
-Tokens are the currency of rewriting IL. You use them in exchange for methods, types, and signatures. If you know how to convert your currency you can easily rewrite existing methods. We'll make a quick stop at signature parsing and token compression beforehand. After that, we can dig deeper on things like Generics and really get into some powerful rewriting. 
+Tokens are the currency of rewriting IL. You use them in exchange for methods, types, and signatures. If you know how to convert your currency you can easily rewrite existing methods. We'll make a quick stop at signature parsing and token compression beforehand. After that, we can dig deeper on things like Generics and really get into some powerful rewriting.
 
 [CorImpl]: https://msdn.microsoft.com/en-us/library/ms233456(v=vs.110).aspx
 [CorAttr]: https://msdn.microsoft.com/en-us/library/ms231030(v=vs.110).aspx

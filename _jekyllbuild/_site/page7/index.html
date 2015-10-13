@@ -18,11 +18,13 @@
 
 
   <!-- CSS -->
-  <link rel="stylesheet" href="/public/css/monokai.css" />
   <link rel="stylesheet" href="/public/css/bootstrap.css" />
   <link rel="stylesheet" href="//maxcdn.bootstrapcdn.com/font-awesome/4.3.0/css/font-awesome.min.css">
   <link rel="stylesheet" href="/public/css/poole.css" />
 
+  <link rel="stylesheet" href="//cdnjs.cloudflare.com/ajax/libs/highlight.js/8.8.0/styles/monokai_sublime.min.css">
+  <script src="//cdnjs.cloudflare.com/ajax/libs/highlight.js/8.8.0/highlight.min.js"></script>
+  <script>hljs.initHighlightingOnLoad();</script>
 
   <script type="text/javascript" src="http://code.jquery.com/jquery-2.1.3.min.js"></script>
 
@@ -81,6 +83,20 @@
   
   <div class="post">
     <h1 class="post-title">
+      <a href="/2014/11/11/extending-mysql-server-part1/">
+        MySQL .NET Hosting Extension - Part 1 - Compile Sample UDF
+      </a>
+    </h1>
+
+    <span class="post-date">11 Nov 2014</span>
+
+    So, the first thing I had to do was compile the MySQL sample UDF which is included in the source tree. While it seems like a simple thing to do with CMake and all of the proper tools installed, there are a few things not documented. The steps to compile <a href="http://dev.mysql.com/doc/refman/5.5/en/udf-compiling.html">can be found here</a>. The steps are really straight forward, but there is a catch. In order to build on Windows there are a few steps you will need to do in order to fully get the example working.
+
+
+  </div>
+  
+  <div class="post">
+    <h1 class="post-title">
       <a href="/2014/11/11/extending-mysql-server-part0/">
         MySQL .NET Hosting Extension - Part 0
       </a>
@@ -131,20 +147,6 @@
     <span class="post-date">21 Oct 2014</span>
 
     Our BI team is currently going through an uplift from Win2k3 to Win2012. It is quite a massive undertaking of course. But, beyond the amount of work that has to be done there is another dangerous killer out there.  Undocumented changes. In this article I describe the System.Security.HostProtectionException in relation to SSRS and custom code.
-  </div>
-  
-  <div class="post">
-    <h1 class="post-title">
-      <a href="/2014/09/24/critical-section-deadlock/">
-        Debugging - Fixing a deadlock
-      </a>
-    </h1>
-
-    <span class="post-date">24 Sep 2014</span>
-
-    More often than not I do postmortem debugging. That is to say, I get a dump file long after the machine has experienced an issue. But, on occasion I get pulled in to take a look at problems that need to be run through the debugger. This article will show you some commands you can use to locate and fix code using WinDbg.
-
-
   </div>
   
 </div>
@@ -200,9 +202,32 @@
     <ul class="postlistfirst postlist fa-ul">
       <li id="2015-refyear"><i class="fa-li fa fa-plus-square" ></i>2015
       <ul class="postlist fa-ul">
-      <li id="2015-September-refmonth"><i class="fa-li fa fa-plus-square"></i>September
+      <li id="2015-October-refmonth"><i class="fa-li fa fa-plus-square"></i>October
       <ul class="postlist fa-ul">
         
+
+    <li class="lipad"><i class="fa-li fa fa-link" ></i><a href="/2015/10/08/rewriting-il-remotely-part3/">Rewriting IL - Part 3 - Signatures and Compression</a></li>
+
+
+    
+
+    
+      
+          </ul>
+        </li>
+          <li id="2015-September-refmonth"><i class="fa-li fa fa-plus-square" ></i>September
+          <ul class="postlist fa-ul">
+      
+    
+    
+
+
+    
+    
+    
+    
+
+    
 
     <li class="lipad"><i class="fa-li fa fa-link" ></i><a href="/2015/09/28/rewriting-il-remotely-part2/">Rewriting IL - Part 2 - Tokens</a></li>
 

@@ -28,11 +28,11 @@ module Kramdown
 
       def convert_codeblock(el, indent)
         attr = el.attr.dup
-        lang = extract_code_language!(attr) || @options[:kramdown_default_lang]
-        code = pygmentize(el.value, lang)
+        lang = extract_code_language!(attr) || "nohighlight"
+        code = escape_html(el.value)
         code_attr = {}
-        code_attr['class'] = "language-#{lang}" if lang
-        "#{' '*indent}<div class=\"highlight\"><pre#{html_attributes(attr)}><code#{html_attributes(code_attr)}>#{code}</code></pre></div>\n"
+        code_attr['class'] = "#{lang}" if lang
+        "<pre><code #{html_attributes(code_attr)}>#{code}</code></pre>\n"
       end
 
       def convert_codespan(el, indent)
@@ -49,15 +49,9 @@ module Kramdown
         end
         "<code#{html_attributes(attr)}>#{code}</code>"
       end
-      
+
       def pygmentize(code, lang)
-        if lang
-          Pygments.highlight(code,
-            :lexer => lang,
-            :options => { :encoding => 'utf-8', :linespans => 'line'})
-        else
           escape_html(code)
-        end
       end
     end
   end

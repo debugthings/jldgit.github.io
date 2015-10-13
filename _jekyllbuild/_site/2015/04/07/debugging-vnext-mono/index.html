@@ -18,11 +18,13 @@
 
 
   <!-- CSS -->
-  <link rel="stylesheet" href="/public/css/monokai.css" />
   <link rel="stylesheet" href="/public/css/bootstrap.css" />
   <link rel="stylesheet" href="//maxcdn.bootstrapcdn.com/font-awesome/4.3.0/css/font-awesome.min.css">
   <link rel="stylesheet" href="/public/css/poole.css" />
 
+  <link rel="stylesheet" href="//cdnjs.cloudflare.com/ajax/libs/highlight.js/8.8.0/styles/monokai_sublime.min.css">
+  <script src="//cdnjs.cloudflare.com/ajax/libs/highlight.js/8.8.0/highlight.min.js"></script>
+  <script>hljs.initHighlightingOnLoad();</script>
 
   <script type="text/javascript" src="http://code.jquery.com/jquery-2.1.3.min.js"></script>
 
@@ -100,21 +102,21 @@
 <h2 id="the-problem---hung-console">The Problem - Hung Console</h2>
 <p>The first issue I looked at was a hung console when using the xUnit console runner under Mono. From the open <a href="https://github.com/xunit/aspnet.xunit/issues/6">issue</a> it stated that no matter the test size if you ran the test parallel it would hang. Even creating a single test with nothing inside of it would cause this issue. So, that is to say if you had a xUnit Fact like the one below, your console would hang. This is especially bad for automated builds because depending on your build platform it will never complete and potentially throw build failures.</p>
 
-<div class="highlight"><pre><code class="language-CSharp"><div class="highlight"><pre><span id="line-1"><span class="k">using</span> <span class="nn">System</span><span class="p">;</span>
-</span><span id="line-2"><span class="k">using</span> <span class="nn">Xunit</span><span class="p">;</span>
-</span><span id="line-3">
-</span><span id="line-4"><span class="k">namespace</span> <span class="nn">Broken.xUnit.Test</span>
-</span><span id="line-5"><span class="p">{</span>
-</span><span id="line-6">    <span class="k">public</span> <span class="k">class</span> <span class="nc">HangWindow</span>
-</span><span id="line-7">    <span class="p">{</span>
-</span><span id="line-8"><span class="na">        [Fact]</span>
-</span><span id="line-9">        <span class="k">public</span> <span class="k">void</span> <span class="nf">DoNotingToCauseHang</span><span class="p">()</span>
-</span><span id="line-10">        <span class="p">{</span>
-</span><span id="line-11">        <span class="p">}</span>
-</span><span id="line-12">
-</span><span id="line-13">    <span class="p">}</span>
-</span><span id="line-14"><span class="p">}</span>
-</span></pre></div></code></pre></div>
+<pre><code  class="CSharp">using System;
+using Xunit;
+
+namespace Broken.xUnit.Test
+{
+    public class HangWindow
+    {
+        [Fact]
+        public void DoNotingToCauseHang()
+        {
+        }
+
+    }
+}
+</code></pre>
 
 <h2 id="setting-up-our-debugger">Setting up our Debugger</h2>
 <p>In order to view what was happening I used <a href="https://www.gnu.org/software/gdb/">GDB</a> (GNU Debugger) to attach to the already hung process. In my setup I used two SSH sessions, however I could have put the application in the background (Ctrl-Z) to get the same effect. Also, once I knew it was reproducible I was able to run the command directly in GDB. I will show you how to do attach to a process and how to run it directly.</p>
@@ -124,7 +126,7 @@
 <h3 id="some-initial-steps---gdbinit">Some initial steps - .gdbinit</h3>
 <p>Taken directly from the <a href="http://www.mono-project.com/docs/debug+profile/debug/">mono debugging page</a>, I updated my <code>.gdbinit</code> with the following code. This turns off a few signals that pop up quite a bit. It also creates the <code>mono_stack</code> and <code>mono_backtrace</code> commands we will use to inspect our stack trace.</p>
 
-<div class="highlight"><pre><code>handle SIGXCPU SIG33 SIG35 SIGPWR nostop noprint
+<pre><code  class="nohighlight">handle SIGXCPU SIG33 SIG35 SIGPWR nostop noprint
 
 define mono_backtrace
  select-frame 0
@@ -153,18 +155,18 @@ define mono_stack
    call (void) free ($ucp)
  end
 end
-</code></pre></div>
+</code></pre>
 
 <h3 id="method-one---attach">Method One - Attach</h3>
 <p>In order to attach to an existing process you have to use <code>gdb -pid=&lt;PID&gt;</code>. Recent Linux hardening practices prohibit the use of ptrace by default so this requires you to set a flag, here <code>/proc/sys/kernel/yama/ptrace_scope</code>, and as well here <code>/etc/sysctl.d/10-ptrace.conf</code>. The default value is <code>1</code>, change it to <code>0</code>. Now you can attach to a process running on another session or in the background.</p>
 
 <p>First let’s run the process in another session using <code>dnx . test</code>. Now that it’s running and entered the hung state let’s switch to another session and find the process we want to attach to by using <code>ps</code>. <strong><em>Take note of the <code>mono</code> command line, it will help us for Method 2.</em></strong></p>
 
-<div class="highlight"><pre><code>jldgit@ubuntu:/repos/Razor/test/test2$ ps -ax | grep dnx
+<pre><code  class="nohighlight">jldgit@ubuntu:/repos/Razor/test/test2$ ps -ax | grep dnx
 17312 pts/1    tl     0:07 /usr/local/bin/mono --debug /home/jldgit/.dnx/runtimes/dnx-mono.1.0.0-beta5-11469/bin/dnx.mono.managed.dll . test
 17480 pts/0    Tl     0:02 mono /home/jldgit/.dnx/runtimes/dnx-mono.1.0.0-beta5-11479/bin/dnx.mono.managed.dll . test
 17500 pts/0    S+     0:00 grep --color=auto dnx
-</code></pre></div>
+</code></pre>
 <blockquote>
   <p>NOTE: You might notice there are two versions of DNX, during my testing I pulled the latest revision to see if it fixed anything. Spoiler alert: No.</p>
 </blockquote>
@@ -178,7 +180,7 @@ end
 
 <p>In order to debug we need to use <code>gdb --args &lt;command&gt;</code> to execute the Mono runtime. So, the full command would be <code>gdb --args mono /home/jldgit/.dnx/runtimes/dnx-mono.1.0.0-beta5-11479/bin/dnx.mono.managed.dll . test</code>. Enter that command and you will be presented with the (gdb) prompt. Once here you need to enter <code>r</code> to <strong>run</strong> your application.</p>
 
-<div class="highlight"><pre><code>jldgit@ubuntu:/repos/Razor/test/test2$ gdb --args mono --debug=gdb /home/jldgit/.dnx/runtimes/dnx-mono.1.0.0-beta5-11479/bin/dnx.mono.managed.dll . test
+<pre><code  class="nohighlight">jldgit@ubuntu:/repos/Razor/test/test2$ gdb --args mono --debug=gdb /home/jldgit/.dnx/runtimes/dnx-mono.1.0.0-beta5-11479/bin/dnx.mono.managed.dll . test
 GNU gdb (Ubuntu 7.7.1-0ubuntu5~14.04.2) 7.7.1
 Copyright (C) 2014 Free Software Foundation, Inc.
 License GPLv3+: GNU GPL version 3 or later &lt;http://gnu.org/licenses/gpl.html&gt;
@@ -196,22 +198,22 @@ Type "apropos word" to search for commands related to "word"...
 Reading symbols from mono...done.
 Mono support loaded.
 (gdb) r
-</code></pre></div>
+</code></pre>
 
 <p>Depending on your mono installation you will have a file located at <code>/usr/local/bin/mono-sgen-gdb.py</code> which may throw an error on load. In order to fix that you need to set the following line in that file. This is located in the StringPrinter class near the top of the file.</p>
 
-<div class="highlight"><pre><code class="language-Python"><div class="highlight"><pre><span id="line-1"><span class="k">if</span> <span class="n">val</span> <span class="o">&gt;=</span> <span class="mi">256</span><span class="p">:</span>
-</span><span id="line-2">  <span class="n">c</span> <span class="o">=</span> <span class="nb">unichr</span> <span class="p">(</span><span class="n">val</span><span class="p">)</span>
-</span><span id="line-3"><span class="k">else</span><span class="p">:</span>
-</span><span id="line-4">  <span class="n">c</span> <span class="o">=</span> <span class="nb">chr</span> <span class="p">(</span><span class="n">val</span><span class="p">)</span>
-</span></pre></div></code></pre></div>
+<pre><code  class="Python">if val &gt;= 256:
+  c = unichr (val)
+else:
+  c = chr (val)
+</code></pre>
 
 <h3 id="the-actual-analysis">The Actual Analysis</h3>
 <p>The first thing I thought of was this was sitting waiting for input (Console.ReadLine()). Of course, it wasn’t likely as any normal input was ignored and you had to use Ctrl-C twice to exit. This is the keyboard shortcut for the SIGINT signal in Linux. This isn’t anything special, but it does mean that we have to exit this application in a way that is unexpected.</p>
 
 <p>The first thing I always look for are threads in a wait state. In order to do this you first need to look at the running threads using the <code>info threads</code> command.</p>
 
-<div class="highlight"><pre><code>(gdb) info threads
+<pre><code  class="nohighlight">(gdb) info threads
   Id   Target Id         Frame
   10   Thread 0x7fffeda9f700 (LWP 17324) "Threadpool work" sem_timedwait ()
   9    Thread 0x7fffedd53700 (LWP 17323) "Timer-Scheduler" pthread_cond_wait@@GLIBC_2.3.2 ()
@@ -221,7 +223,7 @@ Mono support loaded.
   3    Thread 0x7fffef37b700 (LWP 17317) "Threadpool moni" sem_wait ()
   2    Thread 0x7ffff4d13700 (LWP 17316) "Finalizer" sem_wait ()
 * 1    Thread 0x7ffff7fe97c0 (LWP 17312) "mono" pthread_cond_wait@@GLIBC_2.3.2 ()
-</code></pre></div>
+</code></pre>
 <blockquote>
   <p>NOTE: I pulled all of the code locations from the symbol data for clarity. Here is an example <code>7    Thread 0x7fffee363700 (LWP 17321) "mono" pthread_cond_wait@@GLIBC_2.3.2 () at ../nptl/sysdeps/unix/sysv/linux/x86_64/pthread_cond_wait.S:185
 </code></p>
@@ -229,7 +231,7 @@ Mono support loaded.
 
 <p>When looking at the thread stack I see a few threads I expect and a couple that I’m not familiar with. From what I can see, a number of threads are in a wait state. Let’s take a look at thread 1 and examine the stack. Switch to the thread using <code>thread 1</code> and examine the callstack using <code>backttrace</code> (<code>bt</code> for short).</p>
 
-<div class="highlight"><pre><code>(gdb) thread 1
+<pre><code  class="nohighlight">(gdb) thread 1
 [Switching to thread 1 (Thread 0x7ffff7fe97c0 (LWP 17312))]
 #0  pthread_cond_wait@@GLIBC_2.3.2 () at ../nptl/sysdeps/unix/sysv/linux/x86_64/pthread_cond_wait.S:185
 185     in ../nptl/sysdeps/unix/sysv/linux/x86_64/pthread_cond_wait.S
@@ -247,33 +249,33 @@ Mono support loaded.
 #7  0x00007ffff7106ec5 in __libc_start_main (main=0x41ec80 &lt;main&gt;, argc=5, argv=0x7fffffffe5a8, init=&lt;optimized out&gt;, fini=&lt;optimized out&gt;,
     rtld_fini=&lt;optimized out&gt;, stack_end=0x7fffffffe598) at libc-start.c:287
 #8  0x000000000041ef24 in _start ()
-</code></pre></div>
+</code></pre>
 
 <p>In frame #3 I can see this thread is waiting for 2 objects and it’s never going to timeout since it’s using -1 for it’s value; I know it says 4294967295, but that is represented as 0y11111111111111111111111111111111 which is -1 for a singed integer.</p>
 
 <p>Alright so the main thread is waiting on some handles. What is it waiting on then? Let’s inspect the handle array using the <code>x</code> (examine memory). The format below is the number of items (<strong>2</strong>), the format (<strong>x</strong> - HEX), and the size of the inspection (<strong>g</strong> - gigantic (64bit)).</p>
 
-<div class="highlight"><pre><code>(gdb) x/2xg 0x7fffffffdfa0
+<pre><code  class="nohighlight">(gdb) x/2xg 0x7fffffffdfa0
 0x7fffffffdfa0: 0x000000000000043b      0x0000000000000402
-</code></pre></div>
+</code></pre>
 
 <p>Hmm. Two handles, well I wonder what they are. This requires a bit of poking around. There are no handy commands like in WinDbg. I did some leg work and found the code that gets the handle struct. Let’s define a function to make this eaisier on us we will use <code>define &lt;function&gt;</code> to create this new helper.</p>
 
-<div class="highlight"><pre><code class="language-C"><div class="highlight"><pre><span id="line-1"><span class="cp">#define _WAPI_PRIVATE_HANDLES(x) (_wapi_private_handles [x / _WAPI_HANDLE_INITIAL_COUNT][x % _WAPI_HANDLE_INITIAL_COUNT])</span>
-</span></pre></div></code></pre></div>
+<pre><code  class="C">#define _WAPI_PRIVATE_HANDLES(x) (_wapi_private_handles [x / _WAPI_HANDLE_INITIAL_COUNT][x % _WAPI_HANDLE_INITIAL_COUNT])
+</code></pre>
 
-<div class="highlight"><pre><code>(gdb) define mono_handle
+<pre><code  class="nohighlight">(gdb) define mono_handle
 Type commands for definition of "mono_handle".
 End with a line saying just "end".
 &gt;set $index = $arg0 / 256
 &gt;set $slot = $arg0 % 256
 &gt;p  _wapi_private_handles[$index][$slot]
 &gt;end
-</code></pre></div>
+</code></pre>
 
 <p>Now that we have this newly minted <code>mono_handle</code> method we can see what exactly is going on here.</p>
 
-<div class="highlight"><pre><code>(gdb) mono_handle 0x43b
+<pre><code  class="nohighlight">(gdb) mono_handle 0x43b
 $25 = {type = WAPI_HANDLE_THREAD, ref = 6, signalled = 0, signal_mutex = {__data = {__lock = 0, __count = 0, __owner = 0, __nusers = 1, __kind = 0,
       __spins = 0, __elision = 0, __list = {__prev = 0x0, __next = 0x0}}, __size = '\000' &lt;repeats 12 times&gt;, "\001", '\000' &lt;repeats 26 times&gt;,
     __align = 0}, signal_cond = {__data = {__lock = 0, __futex = 1, __total_seq = 1, __wakeup_seq = 0, __woken_seq = 0, __mutex = 0x9ca1d0,
@@ -286,11 +288,11 @@ $25 = {type = WAPI_HANDLE_THREAD, ref = 6, signalled = 0, signal_mutex = {__data
       owned_mutexes = 0x7fffd80008c0, wait_handle = 0x43b}, process = {id = -298436864, exitstatus = 32767, main_thread = 0x7fffd80008c0, create_time = {
         dwLowDateTime = 1083, dwHighDateTime = 0}, exit_time = {dwLowDateTime = 0, dwHighDateTime = 0}, proc_name = 0x0, min_working_set = 0,
       max_working_set = 0, exited = 0, mono_process = 0x0}, shared = {offset = 3996530432}}}
-</code></pre></div>
+</code></pre>
 
 <p>Boom, look at that! The first handle I tried <code>0x43b</code> comes up as <code>WAPI_HANDLE_THREAD</code> we even have a thread address. The thread object has an id, this id is in decimal format (140737189918464); it’s also flanked by a TON of other information. I decided I wanted to be able to get this id into something more readable so I created another function that will give me just the thread id. Knowing the thread ID is contained in the thread info output, I can search for it using <code>thread find &lt;tid&gt;</code>.</p>
 
-<div class="highlight"><pre><code>(gdb) define mono_handle_thread
+<pre><code  class="nohighlight">(gdb) define mono_handle_thread
 Type commands for definition of "mono_handle_thread".
 End with a line saying just "end".
 &gt;set $index = $arg0 / 256
@@ -303,11 +305,11 @@ $27 = 0x7fffee363700
 
 (gdb) thread find 0x7fffee363700
 Thread 7 has target id 'Thread 0x7fffee363700 (LWP 17321)'
-</code></pre></div>
+</code></pre>
 
 <p>Nice, we have a thread now. Let’s take a look at its stack and see what we can see. Switch to the thread by typing <code>thread 7</code> and check it’s call stack with <code>bt</code>.</p>
 
-<div class="highlight"><pre><code>(gdb) thread 7
+<pre><code  class="nohighlight">(gdb) thread 7
 [Switching to thread 7 (Thread 0x7fffee363700 (LWP 17321))]
 #0  pthread_cond_wait@@GLIBC_2.3.2 () at ../nptl/sysdeps/unix/sysv/linux/x86_64/pthread_cond_wait.S:185
 185     ../nptl/sysdeps/unix/sysv/linux/x86_64/pthread_cond_wait.S: No such file or directory.
@@ -325,13 +327,13 @@ Thread 7 has target id 'Thread 0x7fffee363700 (LWP 17321)'
 #9  0x00007ffff6174e60 in ?? ()
 #10 0x00007ffff6175318 in ?? ()
 &lt;&lt; REMOVED SOME LINES &gt;&gt;
-</code></pre></div>
+</code></pre>
 
 <p>We can see that this thread is definitely waiting on something. Look at frame #3, there is a <code>WaitForSingleObjectEx</code> method being called on handle <code>0x43b</code>. Wait… according to the handle output that is this thread! Okay, that’s not good. If you look at frame #4 we’re calling <code>ves_icall_System_Threading_Thread_Join_internal</code>; without knowing too much of the internals of Mono I can assume that this equates to a Thread.Join() operation.</p>
 
 <p>Looking at the remainder of the frames I can see a lot of addresses but no symbols. Let’s try <code>mono_backtrace &lt;number&gt;</code> to see if there are any Mono methods.</p>
 
-<div class="highlight"><pre><code>(gdb) mono_backtrace 33
+<pre><code  class="nohighlight">(gdb) mono_backtrace 33
 
 &lt;&lt; REMOVED FRAMES FOR CLARITY &gt;&gt;
 
@@ -350,11 +352,11 @@ Thread 7 has target id 'Thread 0x7fffee363700 (LWP 17321)'
 #25 0x406339f0 in  Xunit.Sdk.MaxConcurrencySyncContext:Dispose () + 0x80 (0x40633970 0x40633a56) [0x9d42e0 - dnx.mono.managed.dll]
 
 &lt;&lt; REMOVED FRAMES FOR CLARITY &gt;&gt;
-</code></pre></div>
+</code></pre>
 
 <p>As I expected I can see a Thread.Join() being called. It happens to be coming from <code>Xunit.Sdk.MaxConcurrencySyncContext::Dispose()</code>. As we know, we should <strong><em>NEVER</em></strong> call Thread.Join() against your own thread. Let’s run <code>mono_stack</code> to see what information it gives us. The more context around this issue the better.</p>
 
-<div class="highlight"><pre><code>(gdb) mono_stack
+<pre><code  class="nohighlight">(gdb) mono_stack
 
 "&lt;unnamed thread&gt;" tid=0x0x7fffee363700 this=0x0x7fffeeb87480 thread handle 0x43b state : waiting on 0x43b : Thread  owns ()
   at &lt;unknown&gt; &lt;0xffffffff&gt;
@@ -371,7 +373,7 @@ Thread 7 has target id 'Thread 0x7fffee363700 (LWP 17321)'
   at Xunit.Sdk.MaxConcurrencySyncContext.WorkerThreadProc () &lt;IL 0x00050, 0x00167&gt;
   at Xunit.Sdk.XunitWorkerThread/&lt;&gt;c__DisplayClass1_0.&lt;.ctor&gt;b__0 () &lt;IL 0x00006, 0x00026&gt;
   at (wrapper runtime-invoke) object.runtime_invoke_void__this__ (object,intptr,intptr,intptr) &lt;IL 0x0004e, 0xffffffff&gt;
-</code></pre></div>
+</code></pre>
 
 <p>Yep, this confirms even more what we already know. Clearly in the first line of the output it says <code>thread handle 0x43b state : waiting on 0x43b : Thread owns ()</code>. So, it’s a dead lock like situation. But, how can this happen? Surely we wouldn’t call Thread.Join() on ourselves? And, of course, we’re not. This happens to be a bug in Mono’s implementation of Thread and Execution context.</p>
 
@@ -415,6 +417,15 @@ Thread 7 has target id 'Thread 0x7fffee363700 (LWP 17321)'
     
     <li>
       <h3>
+        <a href="http://www.debugthings.com/2015/10/08/rewriting-il-remotely-part3/">
+          Rewriting IL - Part 3 - Signatures and Compression
+          <small>08 Oct 2015</small>
+        </a>
+      </h3>
+    </li>
+    
+    <li>
+      <h3>
         <a href="http://www.debugthings.com/2015/09/28/rewriting-il-remotely-part2/">
           Rewriting IL - Part 2 - Tokens
           <small>28 Sep 2015</small>
@@ -427,15 +438,6 @@ Thread 7 has target id 'Thread 0x7fffee363700 (LWP 17321)'
         <a href="http://www.debugthings.com/2015/09/16/rewriting-il-remotely-part1/">
           Rewriting IL - Part 1 - Metadata Interfaces
           <small>16 Sep 2015</small>
-        </a>
-      </h3>
-    </li>
-    
-    <li>
-      <h3>
-        <a href="http://www.debugthings.com/2015/09/06/simple%20beginings-chainsapm/">
-          Simple Beginnings - ChainsAPM
-          <small>06 Sep 2015</small>
         </a>
       </h3>
     </li>
