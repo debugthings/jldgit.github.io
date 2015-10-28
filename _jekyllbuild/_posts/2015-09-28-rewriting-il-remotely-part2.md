@@ -288,6 +288,8 @@ Tokens are the currency of rewriting IL. You use them in exchange for methods, t
 
 [CorImpl]: https://msdn.microsoft.com/en-us/library/ms233456(v=vs.110).aspx
 [CorAttr]: https://msdn.microsoft.com/en-us/library/ms231030(v=vs.110).aspx
+[CorElem]: https://msdn.microsoft.com/en-us/library/ms232600(v=vs.110).aspx
+[CorCall]: https://msdn.microsoft.com/en-us/library/ms231239(v=vs.110).aspx
 [ildasm]: https://msdn.microsoft.com/en-us/library/aa309387(v=vs.71).aspx
 [multifile]: https://msdn.microsoft.com/en-us/library/168k2ah5(v=vs.110).aspx
 [modmeta]: https://msdn.microsoft.com/en-us/library/ms231432(v=vs.110).aspx
@@ -302,4 +304,4 @@ Tokens are the currency of rewriting IL. You use them in exchange for methods, t
 [modfin]: https://msdn.microsoft.com/en-us/library/ms230105(v=vs.110).aspx
 [modattached]: https://msdn.microsoft.com/en-us/library/ms232480(v=vs.110).aspx
 [modmeta]: https://msdn.microsoft.com/en-us/library/ms231432(v=vs.110).aspx
-[lastpost]: ({% post_url 2015-09-16-rewriting-il-remotely-part1 %})
+[lastpost]: {% post_url 2015-09-16-rewriting-il-remotely-part1 %}

@@ -1,0 +1,505 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en-us">
+
+<head>
+  <link href="http://gmpg.org/xfn/11" rel="profile" />
+  <meta http-equiv="content-type" content="text/html; charset=utf-8" />
+
+  <!-- Enable responsiveness on mobile devices-->
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1" />
+
+  <title>
+    
+    Rewriting IL - Part 4 - Token Replacement and Signature Rewriting &middot; Debug Things
+    
+  </title>
+  <!--FONTS-->
+  <link href='http://fonts.googleapis.com/css?family=Lato&subset=latin,latin-ext' rel='stylesheet' type='text/css' />
+
+
+  <!-- CSS -->
+  <link rel="stylesheet" href="/public/css/bootstrap.css" />
+  <link rel="stylesheet" href="//maxcdn.bootstrapcdn.com/font-awesome/4.3.0/css/font-awesome.min.css">
+  <link rel="stylesheet" href="/public/css/poole.css" />
+
+  <link rel="stylesheet" href="//cdnjs.cloudflare.com/ajax/libs/highlight.js/8.8.0/styles/monokai_sublime.min.css">
+  <script src="//cdnjs.cloudflare.com/ajax/libs/highlight.js/8.8.0/highlight.min.js"></script>
+  <script>hljs.initHighlightingOnLoad();</script>
+
+  <script type="text/javascript" src="http://code.jquery.com/jquery-2.1.3.min.js"></script>
+
+
+  <!-- Icons -->
+  <link rel="apple-touch-icon-precomposed" sizes="144x144" href="/public/apple-touch-icon-precomposed.png" />
+  <link rel="shortcut icon" href="/public/favicon.ico" />
+
+  <!-- RSS -->
+  <link rel="alternate" type="application/rss+xml" title="RSS" href="/atom.xml" />
+
+
+
+  <script type="text/javascript">
+  (function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){
+  (i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),
+  m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)
+  })(window,document,'script','//www.google-analytics.com/analytics.js','ga');
+
+  ga('create', 'UA-56527114-1', 'auto');
+  ga('send', 'pageview');
+ </script>
+
+</head>
+
+
+<body>
+  <nav class="navbar navbar-inverse navbar-fixed-top" role="navigation">
+  <div class="container">
+    <div class="navbar-header">
+      <button type="button" class="navbar-toggle collapsed" data-toggle="collapse" data-target="#navbar" aria-expanded="false" aria-controls="navbar">
+        <span class="sr-only">Toggle navigation</span>
+        <span class="icon-bar"></span>
+        <span class="icon-bar"></span>
+        <span class="icon-bar"></span>
+      </button>
+      <a href="/" class="navbar-brand" title="Home">DEBUG THINGS</a>
+    </div>
+    <div id="navbar" class="navbar-collapse collapse">
+      <ul class="nav navbar-nav">
+        <li><a href="/about/">About</a></li>
+        <li><a href="/projects">Projects</a></li>
+        <li><a href="/mysql/">MySQL .NET UDF</a></li>
+        <li><a href="/speaking/">Speaking</a></li>
+        <li><a href="/owasp/">OWASP</a></li>
+
+      </ul>
+    </div><!--/.navbar-collapse -->
+  </div>
+</nav>
+
+  <div class="container containerbg">
+   <div class="row rowoffset">
+    <div class="col-md-12">
+      <div class="post">
+  <h1 class="post-title">Rewriting IL - Part 4 - Token Replacement and Signature Rewriting</h1>
+  <span class="post-date">28 Oct 2015</span>
+  <a href="https://twitter.com/share" class="twitter-share-button" data-via="debugthings" data-size="large">Tweet</a>
+  <script>!function(d,s,id){var js,fjs=d.getElementsByTagName(s)[0],p=/^http:/.test(d.location)?'http':'https';if(!d.getElementById(id)){js=d.createElement(s);js.id=id;js.src=p+'://platform.twitter.com/widgets.js';fjs.parentNode.insertBefore(js,fjs);}}(document, 'script', 'twitter-wjs');</script>
+  <p>In the <a href="/2015/10/13/rewriting-il-remotely-part3/">last post</a> we talked about signatures and compression and we expanded on Metadata in general. Now we need to talk about the idea of replacing tokens inside of IL and inside of signatures. Being able to do this gives you a tremendous amount of power and flexibility when you start down the path of rewriting IL. Let’s take a look at some examples and look at some sample code to replace tokens in a signature and lay the ground work for injecting arbitrary IL.</p>
+
+<h2 id="recap-on-tokens-and-signatures">Recap on Tokens and Signatures</h2>
+<p>If you haven’t been reading this series I recommend going back a few posts and starting from the beginning to get a better handle on this. But in short, a Metadata token is a way for the CLR to look up a type and know its definition; this can include class layout, methods, members, events, etc. Metadata is broken up into a number of areas (tables) and the token defines the table and row.</p>
+
+<p>A signature is a way for the CLR to know how to consume a specific method or a generic instantiation. The signature is made up of known constants, tokens, integers and algorithms that define things like classes, primitive types, arrays and generic classes.</p>
+
+<p>Some key enumerations can be found here:</p>
+
+<ul>
+  <li><a href="https://msdn.microsoft.com/en-us/library/ms232600(v=vs.110).aspx">CorElementAttr</a> - Managed types</li>
+  <li><a href="https://msdn.microsoft.com/en-us/library/ms231239(v=vs.110).aspx">CorCallingConvention</a> - Calling conventions</li>
+  <li><a href="https://msdn.microsoft.com/en-us/library/ms233456(v=vs.110).aspx">CorMethodImpl</a> - Method implementation features</li>
+  <li><a href="https://msdn.microsoft.com/en-us/library/ms231030(v=vs.110).aspx">CorMethodAttr</a> - Method features</li>
+</ul>
+
+<h2 id="some-assumptions">Some assumptions</h2>
+<p>At this point in time I’m going to just dive into the rewriting process. So unfortunately I have to make some assumptions. I will do my best to describe without giving a lesson on writing a CLR profiler or an IL compiler.</p>
+
+<ol>
+  <li>You are somewhat familiar with IL</li>
+  <li>You can read and understand the <a href="http://clrprofiler.codeplex.com/releases/view/97738">ILRewriting samples</a></li>
+  <li>You know about method signatures and compression</li>
+  <li>You are somewhat familiar with Metadata</li>
+  <li>You know why you want to do this</li>
+</ol>
+
+<h2 id="replacing-a-token-in-a-signature">Replacing a token in a signature</h2>
+<p>The idea of replacing a token in a signature means you have a signature that contains one or more class—or generic—definitions. For the purposes of this article this original signature will reside in an existing assembly. It also means you have an assembly or module you want to insert this signature into.</p>
+
+<p>Let’s start out with the complex stuff first. I say it’s complex because of the steps needed to unroll a signature and then package it back up:</p>
+
+<ol>
+  <li>Parse signature bytes stream</li>
+  <li>Determine if the type is a class or generic
+    <ul>
+      <li>If not skip to 10</li>
+      <li>If NULL (end of sig) then exit loop</li>
+    </ul>
+  </li>
+  <li>Uncompress that token</li>
+  <li>Look up that token in your source assembly</li>
+  <li>Get the text identifiers (ex. namespace, class, member)</li>
+  <li>Look up that set of identifiers in your destination class</li>
+  <li>Get the resulting token</li>
+  <li>Compress the token</li>
+  <li>Replace token</li>
+  <li>Repeat/Continue at 1</li>
+</ol>
+
+<p>This is the general algorithm and would require some additional logic when looking up the identifier in the target assembly. For instance, you may find that you’re using a type that is defined inside of the assembly so you would want to find a TypeDef  (0x02000000) instead of a TypeRef (0x01000000).</p>
+
+<p>This method also applies to your locals signature.</p>
+
+<h2 id="replacing-a-token-in-il">Replacing a token in IL</h2>
+<p>A simpler thing to do is replace the token in IL. This is because the token is not compressed and the general structure of IL doesn’t have complex logic for definition, such as an array in a signature. You’ll notice the steps are just a bit smaller.</p>
+
+<ol>
+  <li>Parse the IL byte stream</li>
+  <li>Determine if the instruction takes a token
+    <ul>
+      <li>If not skip to 8</li>
+      <li>If end of stream then exit loop</li>
+    </ul>
+  </li>
+  <li>Look up that token in your source assembly</li>
+  <li>Get the text identifiers (ex. namespace, class, member)</li>
+  <li>Look up that set of identifiers in your destination class</li>
+  <li>Get the resulting token</li>
+  <li>Replace token</li>
+  <li>Repeat/Continue at 1</li>
+</ol>
+
+<p>Tokens in IL are usually constrained to TypeDef/Ref, MethodDef/Ref, TypeSpec, and MethodSpec. As with signatures it’s crucial that you replace with a properly defined token. For instance you may use a method in your source assembly that actually belongs to your target assembly. In this case you will need to replace the MethodRef with a MethodDef.</p>
+
+<h2 id="creating-the-map">Creating the Map</h2>
+<p>In both sets of steps I talk about looking up a token from one assembly and then using that information to look up the resulting token in another assembly. This can get complex because you may find that you don’t have a reference in your target assembly so you would need to create one.</p>
+
+<p>I have some <a href="https://github.com/chainsapm/chainsapm/blob/c786e252c3fcefc68834fdb84cc3f1122727afd3/metadatastaticlib/src/ModuleMetadataHelpers.cpp#L231-L315">sample code</a> here that will give the general idea and will keep this blog post from being 2MB of text. This code is inside of a class I named <code>MetadataHelper</code>, I use this class to simplify some of the operations that are common against the Metadata for how I intend to use it.</p>
+
+<p>The code shows that I am taking in a set of text for the module, namespace, class and member.  This text gets inspected and ends up calling either Find or Define methods on the IMetaDataEmit interfaces. As well I am also taking in signatures so I can rewrite them if needed. One other key parameter is the original token. This original token is used in the <a href="https://github.com/chainsapm/chainsapm/blob/c786e252c3fcefc68834fdb84cc3f1122727afd3/metadatastaticlib/src/ModuleMetadataHelpers.cpp#L214-L222"><code>GetMappedToken</code></a> method, that just looks up the token inside of a <code>std::map&lt;&gt;</code> member inside of this class.</p>
+
+<p>I did want to show what it looks like to find a member reference inside of another assembly. The idea is if we are looking inside of the same module or assembly then we would look up the type definition, once we have the TypeDef token we would look up the MemberDef.</p>
+
+<p>You can see that I’m also taking in a signature. In order to find the proper method we need to rewrite the signature to accept the proper types. So you can start to see that there is an order of operations that must happen to create a full map before attempting to rewrite.</p>
+
+<ol>
+  <li>TypeRefs
+    <ul>
+      <li>Get ALL TypeRefs</li>
+      <li>Map TypeRef (Convert to TypeDef if needed)</li>
+    </ul>
+  </li>
+  <li>MemberRefs
+    <ul>
+      <li>Use TypeRef mapping to rewrite signature</li>
+      <li>Map MemberRef (Convert to MemberDef/MethodDef if needed)</li>
+    </ul>
+  </li>
+  <li>TypeSpecs
+    <ul>
+      <li>Rewrite TypeSpec signature with TypeRefs/TypeDefs</li>
+      <li>Map TypeSpec (Convert parent type to TypeDef if needed)</li>
+    </ul>
+  </li>
+  <li>MemberRefs
+    <ul>
+      <li>Rewrite MemberRef signature with map</li>
+      <li>Map MemberRef (Convert parent type to TypeDef if needed)</li>
+    </ul>
+  </li>
+  <li>MethodSpecs
+    <ul>
+      <li>Rewrite MethodSpec signature with map</li>
+      <li>Map MethodSpec (Convert parent type to TypeDef if needed)</li>
+    </ul>
+  </li>
+</ol>
+
+<blockquote>
+  <p><strong>NOTE</strong> My method will make sure to properly convert from a reference to a definition if it detects the item to be mapped is from that module.</p>
+</blockquote>
+
+<pre><code  class="cpp">HRESULT ModuleMetadataHelpers::FindMemberDefOrRef(std::wstring ModuleOrAssembly, std::wstring TypeName,
+  std::wstring MemberName, PCCOR_SIGNATURE MethodSignature, ULONG SigLength, mdToken &amp; TypeRefOrDef)
+{
+  if (ModuleOrAssembly == GetModuleName() | ModuleOrAssembly == GetAssemblyName())
+  {
+    pMetaDataImport-&gt;FindTypeDefByName(TypeName.c_str(), NULL, &amp;TypeRefOrDef);
+    if (TypeRefOrDef != mdTypeDefNil)
+    {
+      return pMetaDataImport-&gt;FindMember(TypeRefOrDef, MemberName.c_str(), MethodSignature, SigLength, &amp;TypeRefOrDef);
+    }
+  }
+  else {
+    auto match = AssemblyRefs.find(ModuleOrAssembly);
+    if (match != AssemblyRefs.end())
+    {
+      mdToken matchToken = match-&gt;second;
+      pMetaDataImport-&gt;FindTypeRef(matchToken, TypeName.c_str(), &amp;TypeRefOrDef);
+      return pMetaDataImport-&gt;FindMemberRef(TypeRefOrDef, MemberName.c_str(), MethodSignature, SigLength, &amp;TypeRefOrDef);
+    }
+    match = ModuleRefs.find(ModuleOrAssembly);
+    if (match != ModuleRefs.end())
+    {
+      mdToken matchToken = match-&gt;second;
+      pMetaDataImport-&gt;FindTypeRef(matchToken, TypeName.c_str(), &amp;TypeRefOrDef);
+      return pMetaDataImport-&gt;FindMemberRef(TypeRefOrDef, MemberName.c_str(), MethodSignature, SigLength, &amp;TypeRefOrDef);
+    }
+  }
+  return E_FAIL;
+}
+</code></pre>
+
+<h2 id="remote-metadata">Remote Metadata</h2>
+<p>The concept of remote Metadata for this post is any Metadata that is not native inside of the assembly you’re looking to fiddle with. If you’ve tried to write your own profiler or other tool, you might have come across the issue of how you’re going to take your source assembly Metadata and IL and wedge it into a destination assembly. The task was kind of daunting and I started making some bad decisions going into it.</p>
+
+<p>Shortly after cranking out hundreds of lines of code to transmit the Metadata  ineeded, I found the <a href="https://msdn.microsoft.com/en-us/library/vstudio/ms231881(v=vs.100).aspx"><code>IMetaDataDispenser</code></a> interface and the <a href="https://msdn.microsoft.com/en-us/library/vstudio/ms230286(v=vs.100).aspx"><code>OpenScopeOnMemory()</code></a> method. This solved pretty much all of my concerns. I was now able to lift the metadata as one big blob and send it over the wire. No need to translate the Metadata into some convoluted intermediate format.</p>
+
+<p>Let’s take a look at the code that gets the Metadata from a source assembly and saves it to a byte stream so you can send it over the wire, or what ever else you’ve conjured up. In this code example I’m saving the data into a safe array because it is being consumed by a .NET method. This method uses the <a href="https://msdn.microsoft.com/en-us/library/vstudio/ms230877(v=vs.100).aspx"><code>IMetaDataEmit</code></a>::<a href="https://msdn.microsoft.com/en-us/library/vstudio/ms232930(v=vs.100).aspx"><code>SaveToMemory </code></a> method.</p>
+
+<blockquote>
+  <p><strong>NOTE</strong> If you were inside of a profiler or any other CLR process that provides a direct line to your Metadata interfaces, you will not need to use IMetaDataDispenser. For example the <a href="https://msdn.microsoft.com/en-us/library/vstudio/ms233177(v=vs.100).aspx"><code>ICorProfilerInfo</code></a> interface provides the <a href="https://msdn.microsoft.com/en-us/library/ms231432(v=vs.110).aspx"><code>GetModuleMetaData</code></a> method.</p>
+</blockquote>
+
+<pre><code  class="cpp">void GetMetadataBytesFromFile()
+{
+	CComPtr&lt;IMetaDataDispenserEx&gt; pMetaDispense;
+	CComPtr&lt;IMetaDataEmit2&gt; pMetaEmit;
+
+	CoCreateInstance(
+		CLSID_CorMetaDataDispenser,
+		NULL,
+		CLSCTX_INPROC,
+		IID_IMetaDataDispenser,
+		(LPVOID *)&amp;pMetaDispense);
+
+  LPWSTR fileName = L"C:\\Windows\\Microsoft.NET\\Framework\\v4.0.30319\\mscorlib.dll";
+
+	pMetaDispense-&gt;OpenScope(fileName, ofRead, IID_IMetaDataEmit2, (IUnknown**)&amp;pMetaEmit);
+
+	ULONG SaveSize = 0;
+	pMetaEmit-&gt;GetSaveSize(cssAccurate, &amp;SaveSize);
+	void * saveData = malloc(SaveSize);
+	pMetaEmit-&gt;SaveToMemory(saveData, SaveSize);
+	SAFEARRAYBOUND bounds[1];
+	bounds[0].cElements = SaveSize;
+	bounds[0].lLbound = 0;
+	bytearray = SafeArrayCreate(VT_UI1, 1, bounds);
+	void * pDataArray;
+	SafeArrayAccessData(bytearray, &amp;pDataArray);
+	memcpy(pDataArray, saveData, SaveSize);
+}
+
+</code></pre>
+
+<p>Now that this method has given us an in memory copy of the we need to open it on our remote system that will do the injection. To do this you simply create another <code>IMetadataDispenser</code> interface on your target machine and call <code>OpenScopeOnMemory</code>.</p>
+
+<pre><code  class="cpp">void OpenFromMemory(const void * memoryAllocation, ULONG totalSize)
+{
+
+	CComPtr&lt;IMetaDataDispenserEx&gt; pMetaDispense;
+	CComPtr&lt;IMetaDataImport2&gt; pMetaImportMemory;
+	CoCreateInstance(
+		CLSID_CorMetaDataDispenser,
+		NULL,
+		CLSCTX_INPROC,
+		IID_IMetaDataDispenser,
+		(LPVOID *)&amp;pMetaDispense);
+
+	pMetaDispense-&gt;OpenScopeOnMemory(memoryAllocation, totalSize, ofRead, IID_IMetaDataImport2, (IUnknown**)&amp;pMetaImportMemory);
+
+  // Enumerate members
+
+  // Get Tokens
+
+  // Etc.
+}
+</code></pre>
+
+<p>Cool. Now that we have an easy way to get the Metadata, let’s look at an easy way to rewrite your method and local signatures so you don’t have to do too much heavy lifting.</p>
+
+<h2 id="mapping-signatures-the-easy-way">Mapping Signatures the Easy Way</h2>
+<p>So while pouring over the Metadata interfaces documents I found a few methods that looked like they would work. Before I found this way I worked through all of the ways to find, define and rewrite my own signatures. It was rewarding because I now know the ins and outs of that process. I recommend you attempt this yourself or study existing code to grapple with the basics. This will help you debug any execution engine exceptions.</p>
+
+<p>While I do recommend you attempt the code yourself, it can become kind of flimsy if things change between CLR versions (unlikely). You should also have a strong concept of mapping tokens manually since there are no helper methods for IL.</p>
+
+<p>What I’m going to demonstrate is the the <a href="https://msdn.microsoft.com/en-us/library/vstudio/ms230816(v=vs.100).aspx"><code>TranslateSigWithScope()</code></a> method. This guy makes the whole process of signature rewriting a breeze.</p>
+
+<p>For this we will need the following interfaces.</p>
+
+<ol>
+  <li>A <strong>blank</strong> <code>IMetaDataEmit</code> interface
+    <ul>
+      <li><code>pMetaEmitBlank</code></li>
+    </ul>
+  </li>
+  <li>An <code>IMetaDataAssemblyImport</code> interface for the source assembly
+    <ul>
+      <li><code>pMetaAssemblyImport</code></li>
+    </ul>
+  </li>
+  <li>An <code>IMetaDataImport</code> interface for the source assembly
+    <ul>
+      <li><code>pMetaImport</code></li>
+    </ul>
+  </li>
+  <li>An <code>IMetaDataAssemblyEmit</code> for the target assembly
+    <ul>
+      <li><code>pMetaAssemblyEmitDLL</code></li>
+    </ul>
+  </li>
+  <li>An <code>IMetaDataEmit</code> for the target assembly
+    <ul>
+      <li><code>pMetaEmitDLL</code></li>
+    </ul>
+  </li>
+</ol>
+
+<pre><code  class="cpp">// This snippet is from a a larger bit of code.
+
+CComPtr&lt;IMetaDataEmit2&gt; pMetaEmitBlank;
+
+CoCreateInstance(
+    CLSID_CorMetaDataDispenser,
+    NULL,
+    CLSCTX_INPROC,
+    IID_IMetaDataDispenser,
+    (LPVOID *)&amp;pMetaDispense);
+
+pMetaDispense-&gt;DefineScope(CLSID_CorMetaDataRuntime, ofRead, IID_IMetaDataEmit2, (IUnknown**)&amp;pMetaEmitBlank);
+
+pMetaImport-&gt;GetMemberRefProps(mdMembrRef,
+    	&amp;memberToken,
+    	memberRefNameBuffer,
+    	_ countof(memberRefNameBuffer),
+    	&amp;numChars,
+    	&amp;originalMemberSigature,
+    	&amp;originalMemberSigatureLen);
+if (originalMemberSigatureLen &gt; 0)
+{
+	// Translate the signatures to align with our injected DLL
+	pMetaEmitBlank-&gt;TranslateSigWithScope(
+    pMetaAssemblyImport,
+    hashVal,
+    hashLen,
+    pMetaImport,
+    originalMemberSigature,
+    originalMemberSigatureLen,
+    pMetaAssemblyEmitDLL,
+    pMetaEmitDLL,
+    newSigBuff,
+    1024,
+    &amp;newSigBuffLen);
+}
+</code></pre>
+
+<p>That’s it. Two method calls.</p>
+
+<h1 id="quick-point-in-il-token-replacement">Quick Point in IL Token Replacement</h1>
+<p>Replacing tokens in IL is not the difficult part. What can be difficult is being able to predict the call site and not cause too much over head. I will get into that in a blog post that follows this one. But for now let’s take a look at the code that helps us replace tokens.</p>
+
+<p>This bit of code extends the ILRewriter class that <a href="http://blogs.msdn.com/b/davbr/">Dave Broman</a> provides as an example. The class is created by passing in the IL body bytes and turning it into a doubly linked list of IL instructions. The list items help identify the IL opcode and the parameter being passed to that code.</p>
+
+<p>In the sample below are all of the opcodes that use tokens. You’ll notice that I’m taking in my <code>ModuleMetadataHelpers</code> class to call the <code>GetMappedToken</code> method. If you recall in the “Mapping” section I describe how we can map all of the source types, methods, and what not to the destination tokens.</p>
+
+<pre><code  class="cpp">HRESULT ILRewriter::ReplaceTokens(std::shared_ptr&lt;ModuleMetadataHelpers&gt; mdHelper)
+{
+	for (ILInstr * pInstr = m_IL.m_pNext; pInstr != &amp;m_IL; pInstr = pInstr-&gt;m_pNext)
+	{
+		switch (pInstr-&gt;m_opcode)
+		{
+		case CEE_BOX:
+		case CEE_CALL:
+		case CEE_CALLI:
+		case CEE_CALLVIRT:
+		case CEE_CASTCLASS:
+		case CEE_CPOBJ:
+		case CEE_INITOBJ:
+		case CEE_ISINST:
+		case CEE_JMP:
+		case CEE_LDELEM:
+		case CEE_LDFTN:
+		case CEE_LDOBJ:
+		case CEE_LDSFLD:
+		case CEE_LDSFLDA:
+		case CEE_LDTOKEN:
+		case CEE_LDVIRTFTN:
+		case CEE_NEWARR:
+		case CEE_NEWOBJ:
+		case CEE_REFANYVAL:
+		case CEE_SIZEOF:
+		case CEE_STELEM:
+		case CEE_STFLD:
+		case CEE_STOBJ:
+		case CEE_STSFLD:
+		case CEE_UNBOX:
+		case CEE_UNBOX_ANY:
+			pInstr-&gt;m_Arg32 = mdHelper-&gt;GetMappedToken(pInstr-&gt;m_Arg32);
+		default:
+			break;
+		}
+	}
+	return S_OK;
+}
+</code></pre>
+
+<p>Where this is necessary is if you have foreign IL code that you’re trying to inject into an existing method. Again, this topic is waaaayyy out of scope for this specific post, but will become clearer in the next post (or two).</p>
+
+<h2 id="conclusion">Conclusion</h2>
+<p>Now, things are really heating up. The previous three posts were to get you familiar with signatures, tokens, and Metadata at large. From this post forward we will start covering general rewriting and get a little deeper into the unmanaged CLR interfaces.</p>
+
+
+</div>
+
+ <div id="disqus_thread"></div>
+    <script type="text/javascript">
+        /* * * CONFIGURATION VARIABLES: EDIT BEFORE PASTING INTO YOUR WEBPAGE * * */
+        var disqus_shortname = 'debugthings'; // required: replace example with your forum shortname
+        var disqus_url = 'http://www.debugthings.com/2015/10/28/rewriting-il-remotely-part4/';
+        var disqus_identifier = '/2015/10/28/rewriting-il-remotely-part4';
+
+
+        /* * * DON'T EDIT BELOW THIS LINE * * */
+        (function() {
+            var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
+            dsq.src = '//' + disqus_shortname + '.disqus.com/embed.js';
+            (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+        })();
+    </script>
+    <noscript>Please enable JavaScript to view the <a href="http://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
+    
+
+<div class="related">
+  <h2>Related Posts</h2>
+  <ul class="related-posts">
+    
+    <li>
+      <h3>
+        <a href="http://www.debugthings.com/2015/10/13/rewriting-il-remotely-part3/">
+          Rewriting IL - Part 3 - Signatures and Compression
+          <small>13 Oct 2015</small>
+        </a>
+      </h3>
+    </li>
+    
+    <li>
+      <h3>
+        <a href="http://www.debugthings.com/2015/09/28/rewriting-il-remotely-part2/">
+          Rewriting IL - Part 2 - Tokens
+          <small>28 Sep 2015</small>
+        </a>
+      </h3>
+    </li>
+    
+    <li>
+      <h3>
+        <a href="http://www.debugthings.com/2015/09/16/rewriting-il-remotely-part1/">
+          Rewriting IL - Part 1 - Metadata Interfaces
+          <small>16 Sep 2015</small>
+        </a>
+      </h3>
+    </li>
+    
+  </ul>
+</div>
+
+      <div class="footer">
+        <p>
+          &copy; 2015. All rights reserved.
+        </p>
+      </div>
+    </div>
+  </div>
+</div>
+
+
+</body>
+</html>

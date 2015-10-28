@@ -4,7 +4,7 @@
  <title>Debug Things</title>
  <link href="http://www.debugthings.com/atom.xml" rel="self"/>
  <link href="http://www.debugthings.com/"/>
- <updated>2015-10-13T06:22:45-07:00</updated>
+ <updated>2015-10-28T13:21:04-07:00</updated>
  <id>http://www.debugthings.com</id>
  <author>
    <name>James Davis</name>
@@ -13,11 +13,21 @@
 
  
  <entry>
+   <title>Rewriting IL - Part 4 - Token Replacement and Signature Rewriting</title>
+   <link href="http://www.debugthings.com//2015/10/28/rewriting-il-remotely-part4/"/>
+   <updated>2015-10-28T00:00:00-07:00</updated>
+   <id>http://www.debugthings.com/2015/10/28/rewriting-il-remotely-part4</id>
+   <content type="html">&lt;p&gt;In the &lt;a href=&quot;/2015/10/13/rewriting-il-remotely-part3/&quot;&gt;last post&lt;/a&gt; we talked about signatures and compression and we expanded on Metadata in general. Now we need to talk about the idea of replacing tokens inside of IL and inside of signatures. Being able to do this gives you a tremendous amount of power and flexibility when you start down the path of rewriting IL. Let&amp;#8217;s take a look at some examples and look at some sample code to replace tokens in a signature and lay the ground work for injecting arbitrary IL.&lt;/p&gt;
+
+</content>
+ </entry>
+ 
+ <entry>
    <title>Rewriting IL - Part 3 - Signatures and Compression</title>
    <link href="http://www.debugthings.com//2015/10/13/rewriting-il-remotely-part3/"/>
    <updated>2015-10-13T00:00:00-07:00</updated>
    <id>http://www.debugthings.com/2015/10/13/rewriting-il-remotely-part3</id>
-   <content type="html">&lt;p&gt;In the &lt;a href=&quot;(/2015/09/28/rewriting-il-remotely-part2/)&quot;&gt;last post&lt;/a&gt; we talked about tokens and how they are like handles to types, methods, signatures, and really just about everything else. They are the currency that the CLR deals with. Today we talk about signatures, these guys are the biggest consumers of tokens outside of IL.&lt;/p&gt;
+   <content type="html">&lt;p&gt;In the &lt;a href=&quot;/2015/09/28/rewriting-il-remotely-part2/&quot;&gt;last post&lt;/a&gt; we talked about tokens and how they are like handles to types, methods, signatures, and really just about everything else. They are the currency that the CLR deals with. Today we talk about signatures, these guys are the biggest consumers of tokens outside of IL.&lt;/p&gt;
 
 </content>
  </entry>
@@ -27,7 +37,7 @@
    <link href="http://www.debugthings.com//2015/09/28/rewriting-il-remotely-part2/"/>
    <updated>2015-09-28T00:00:00-07:00</updated>
    <id>http://www.debugthings.com/2015/09/28/rewriting-il-remotely-part2</id>
-   <content type="html">&lt;p&gt;In the &lt;a href=&quot;(/2015/09/16/rewriting-il-remotely-part1/)&quot;&gt;last post&lt;/a&gt; we talked about getting the metadata interfaces. This allows us to read (import) and even fiddle (emit) with our precious metadata. What can we do with this? Right now tools like Just Decompile, ILSpy, &lt;a href=&quot;https://msdn.microsoft.com/en-us/library/aa309387(v=vs.71).aspx&quot;&gt;ILDASM&lt;/a&gt; and others use these to read the files off disk and chew through the data to produce a decompiled version. What are we going to do with it? We&amp;#8217;re going to merge in arbitrary .NET code into existing libraries. In order to do that we have to have correct tokens.&lt;/p&gt;
+   <content type="html">&lt;p&gt;In the &lt;a href=&quot;/2015/09/16/rewriting-il-remotely-part1/&quot;&gt;last post&lt;/a&gt; we talked about getting the metadata interfaces. This allows us to read (import) and even fiddle (emit) with our precious metadata. What can we do with this? Right now tools like Just Decompile, ILSpy, &lt;a href=&quot;https://msdn.microsoft.com/en-us/library/aa309387(v=vs.71).aspx&quot;&gt;ILDASM&lt;/a&gt; and others use these to read the files off disk and chew through the data to produce a decompiled version. What are we going to do with it? We&amp;#8217;re going to merge in arbitrary .NET code into existing libraries. In order to do that we have to have correct tokens.&lt;/p&gt;
 
 </content>
  </entry>

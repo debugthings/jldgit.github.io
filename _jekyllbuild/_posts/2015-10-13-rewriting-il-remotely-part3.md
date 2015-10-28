@@ -336,4 +336,4 @@ Next we'll talk about some miscellanea around Rewriting IL that works with all o
 [modfin]: https://msdn.microsoft.com/en-us/library/ms230105(v=vs.110).aspx
 [modattached]: https://msdn.microsoft.com/en-us/library/ms232480(v=vs.110).aspx
 [modmeta]: https://msdn.microsoft.com/en-us/library/ms231432(v=vs.110).aspx
-[lastpost]: ({% post_url 2015-09-28-rewriting-il-remotely-part2 %})
+[lastpost]: {% post_url 2015-09-28-rewriting-il-remotely-part2 %}

@@ -83,6 +83,20 @@
   
   <div class="post">
     <h1 class="post-title">
+      <a href="/2015/10/28/rewriting-il-remotely-part4/">
+        Rewriting IL - Part 4 - Token Replacement and Signature Rewriting
+      </a>
+    </h1>
+
+    <span class="post-date">28 Oct 2015</span>
+
+    In the <a href="/2015/10/13/rewriting-il-remotely-part3/">last post</a> we talked about signatures and compression and we expanded on Metadata in general. Now we need to talk about the idea of replacing tokens inside of IL and inside of signatures. Being able to do this gives you a tremendous amount of power and flexibility when you start down the path of rewriting IL. Let&#8217;s take a look at some examples and look at some sample code to replace tokens in a signature and lay the ground work for injecting arbitrary IL.
+
+
+  </div>
+  
+  <div class="post">
+    <h1 class="post-title">
       <a href="/2015/10/13/rewriting-il-remotely-part3/">
         Rewriting IL - Part 3 - Signatures and Compression
       </a>
@@ -90,7 +104,7 @@
 
     <span class="post-date">13 Oct 2015</span>
 
-    In the <a href="(/2015/09/28/rewriting-il-remotely-part2/)">last post</a> we talked about tokens and how they are like handles to types, methods, signatures, and really just about everything else. They are the currency that the CLR deals with. Today we talk about signatures, these guys are the biggest consumers of tokens outside of IL.
+    In the <a href="/2015/09/28/rewriting-il-remotely-part2/">last post</a> we talked about tokens and how they are like handles to types, methods, signatures, and really just about everything else. They are the currency that the CLR deals with. Today we talk about signatures, these guys are the biggest consumers of tokens outside of IL.
 
 
   </div>
@@ -104,7 +118,7 @@
 
     <span class="post-date">28 Sep 2015</span>
 
-    In the <a href="(/2015/09/16/rewriting-il-remotely-part1/)">last post</a> we talked about getting the metadata interfaces. This allows us to read (import) and even fiddle (emit) with our precious metadata. What can we do with this? Right now tools like Just Decompile, ILSpy, <a href="https://msdn.microsoft.com/en-us/library/aa309387(v=vs.71).aspx">ILDASM</a> and others use these to read the files off disk and chew through the data to produce a decompiled version. What are we going to do with it? We&#8217;re going to merge in arbitrary .NET code into existing libraries. In order to do that we have to have correct tokens.
+    In the <a href="/2015/09/16/rewriting-il-remotely-part1/">last post</a> we talked about getting the metadata interfaces. This allows us to read (import) and even fiddle (emit) with our precious metadata. What can we do with this? Right now tools like Just Decompile, ILSpy, <a href="https://msdn.microsoft.com/en-us/library/aa309387(v=vs.71).aspx">ILDASM</a> and others use these to read the files off disk and chew through the data to produce a decompiled version. What are we going to do with it? We&#8217;re going to merge in arbitrary .NET code into existing libraries. In order to do that we have to have correct tokens.
 
 
   </div>
@@ -133,20 +147,6 @@
     <span class="post-date">06 Sep 2015</span>
 
     In my last post I prattle on about the normal hang ups that any software developer has. I don&#8217;t have time for this, I would rather be doing that&#8230; Now that, <em>that&#8217;s</em> over I can get back to doing what I enjoy doing. Breaking things and making really terrible design decisions. Today I&#8217;m going to bore you with some background of my pet project <a href="https://github.com/chainsapm/chainsapm">ChainsAPM</a>.
-
-
-  </div>
-  
-  <div class="post">
-    <h1 class="post-title">
-      <a href="/2015/09/01/a-year-of-procrastination/">
-        A Year of Procrastination
-      </a>
-    </h1>
-
-    <span class="post-date">01 Sep 2015</span>
-
-    So, about a year ago (August 1st, 2014 to be exact) I started on a project for fun(?). This wasn&#8217;t much unlike any other project I&#8217;ve started, however, this one felt a bit different. I actually <strong>TALKED ABOUT IT</strong> with other people. I&#8217;m not normally shy about my whimsical ideas, but usually I relegate them to &#8220;it would only help me,&#8221; and I bother only one or two people with my scheme. In this last year I&#8217;ve stopped a number of times for great things. Speaking at four conferences, my daughter&#8217;s first birthday, a family reunion, my 8th wedding anniversary, literally a full life worth of stuff in a year. It has been a great year.
 
 
   </div>
@@ -205,6 +205,24 @@
       <li id="2015-October-refmonth"><i class="fa-li fa fa-plus-square"></i>October
       <ul class="postlist fa-ul">
         
+
+    <li class="lipad"><i class="fa-li fa fa-link" ></i><a href="/2015/10/28/rewriting-il-remotely-part4/">Rewriting IL - Part 4 - Token Replacement and Signature Rewriting</a></li>
+
+
+    
+
+    
+      
+    
+    
+
+
+    
+    
+    
+    
+
+    
 
     <li class="lipad"><i class="fa-li fa fa-link" ></i><a href="/2015/10/13/rewriting-il-remotely-part3/">Rewriting IL - Part 3 - Signatures and Compression</a></li>
 

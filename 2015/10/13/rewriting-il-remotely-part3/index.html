@@ -84,7 +84,7 @@
   <span class="post-date">13 Oct 2015</span>
   <a href="https://twitter.com/share" class="twitter-share-button" data-via="debugthings" data-size="large">Tweet</a>
   <script>!function(d,s,id){var js,fjs=d.getElementsByTagName(s)[0],p=/^http:/.test(d.location)?'http':'https';if(!d.getElementById(id)){js=d.createElement(s);js.id=id;js.src=p+'://platform.twitter.com/widgets.js';fjs.parentNode.insertBefore(js,fjs);}}(document, 'script', 'twitter-wjs');</script>
-  <p>In the <a href="(/2015/09/28/rewriting-il-remotely-part2/)">last post</a> we talked about tokens and how they are like handles to types, methods, signatures, and really just about everything else. They are the currency that the CLR deals with. Today we talk about signatures, these guys are the biggest consumers of tokens outside of IL.</p>
+  <p>In the <a href="/2015/09/28/rewriting-il-remotely-part2/">last post</a> we talked about tokens and how they are like handles to types, methods, signatures, and really just about everything else. They are the currency that the CLR deals with. Today we talk about signatures, these guys are the biggest consumers of tokens outside of IL.</p>
 
 <h2 id="what-are-signatures">What Are Signatures?</h2>
 <p>Signatures are the first line of defense when it comes to fully describing your parameters and locals at runtime. The method signature will help identify all of the types being supplied to the method, the direction of the types, number of elements in an array, the list goes on. Since it’s a well defined format that doesn’t rely on raw address spaces it has the benefit of being the same between machine to machine and architecture to architecture.</p>
@@ -587,6 +587,15 @@ Blob Heap:  444(0x1bc) bytes
     
     <li>
       <h3>
+        <a href="http://www.debugthings.com/2015/10/28/rewriting-il-remotely-part4/">
+          Rewriting IL - Part 4 - Token Replacement and Signature Rewriting
+          <small>28 Oct 2015</small>
+        </a>
+      </h3>
+    </li>
+    
+    <li>
+      <h3>
         <a href="http://www.debugthings.com/2015/09/28/rewriting-il-remotely-part2/">
           Rewriting IL - Part 2 - Tokens
           <small>28 Sep 2015</small>
@@ -599,15 +608,6 @@ Blob Heap:  444(0x1bc) bytes
         <a href="http://www.debugthings.com/2015/09/16/rewriting-il-remotely-part1/">
           Rewriting IL - Part 1 - Metadata Interfaces
           <small>16 Sep 2015</small>
-        </a>
-      </h3>
-    </li>
-    
-    <li>
-      <h3>
-        <a href="http://www.debugthings.com/2015/09/06/simple%20beginings-chainsapm/">
-          Simple Beginnings - ChainsAPM
-          <small>06 Sep 2015</small>
         </a>
       </h3>
     </li>

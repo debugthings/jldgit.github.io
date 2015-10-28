@@ -84,7 +84,7 @@
   <span class="post-date">28 Sep 2015</span>
   <a href="https://twitter.com/share" class="twitter-share-button" data-via="debugthings" data-size="large">Tweet</a>
   <script>!function(d,s,id){var js,fjs=d.getElementsByTagName(s)[0],p=/^http:/.test(d.location)?'http':'https';if(!d.getElementById(id)){js=d.createElement(s);js.id=id;js.src=p+'://platform.twitter.com/widgets.js';fjs.parentNode.insertBefore(js,fjs);}}(document, 'script', 'twitter-wjs');</script>
-  <p>In the <a href="(/2015/09/16/rewriting-il-remotely-part1/)">last post</a> we talked about getting the metadata interfaces. This allows us to read (import) and even fiddle (emit) with our precious metadata. What can we do with this? Right now tools like Just Decompile, ILSpy, <a href="https://msdn.microsoft.com/en-us/library/aa309387(v=vs.71).aspx">ILDASM</a> and others use these to read the files off disk and chew through the data to produce a decompiled version. What are we going to do with it? We’re going to merge in arbitrary .NET code into existing libraries. In order to do that we have to have correct tokens.</p>
+  <p>In the <a href="/2015/09/16/rewriting-il-remotely-part1/">last post</a> we talked about getting the metadata interfaces. This allows us to read (import) and even fiddle (emit) with our precious metadata. What can we do with this? Right now tools like Just Decompile, ILSpy, <a href="https://msdn.microsoft.com/en-us/library/aa309387(v=vs.71).aspx">ILDASM</a> and others use these to read the files off disk and chew through the data to produce a decompiled version. What are we going to do with it? We’re going to merge in arbitrary .NET code into existing libraries. In order to do that we have to have correct tokens.</p>
 
 <h2 id="what-are-tokens">What Are Tokens?</h2>
 <p>Tokens are a way for the .NET to look up and identify Definitions (Def) and References (Ref). You can think of them like handles in programming. They are abstract identifiers that describe nothing other than what table and what row you can find this data in. If you open up <a href="https://msdn.microsoft.com/en-us/library/aa309387(v=vs.71).aspx">ILDASM</a> and turn on “Show Token Values” you can start peering into how the CLR will stitch things together .</p>
@@ -98,14 +98,14 @@
 <p>Some key enumerations can be found here:</p>
 
 <ul>
-  <li>[CorElementAttr][CorElem] - Managed types</li>
-  <li>[CorCallingConvention][CorCall] - Calling conventions</li>
+  <li><a href="https://msdn.microsoft.com/en-us/library/ms232600(v=vs.110).aspx">CorElementAttr</a> - Managed types</li>
+  <li><a href="https://msdn.microsoft.com/en-us/library/ms231239(v=vs.110).aspx">CorCallingConvention</a> - Calling conventions</li>
   <li><a href="https://msdn.microsoft.com/en-us/library/ms233456(v=vs.110).aspx">CorMethodImpl</a> - Method implementation features</li>
   <li><a href="https://msdn.microsoft.com/en-us/library/ms231030(v=vs.110).aspx">CorMethodAttr</a> - Method features</li>
 </ul>
 
 <h2 id="metadata-tables">MetaData Tables</h2>
-<p>When the CLR profiler loads a module it gives you the ability to query for the ModuleMetaData interfaces you need by using the <a href="https://msdn.microsoft.com/en-us/library/ms231432(v=vs.110).aspx"><code>ICorProfilerInfo::GetModuleMetaData()</code></a> method. The best place to do this is in the <a href="https://msdn.microsoft.com/en-us/library/ms230105(v=vs.110).aspx"><code>ICorProfilerCallback::ModuleLoadFinished()</code></a> method. This ensures all data is in memory from the file. A code example is in my last blog post <a href="(/2015/09/16/rewriting-il-remotely-part1/)">here</a>.</p>
+<p>When the CLR profiler loads a module it gives you the ability to query for the ModuleMetaData interfaces you need by using the <a href="https://msdn.microsoft.com/en-us/library/ms231432(v=vs.110).aspx"><code>ICorProfilerInfo::GetModuleMetaData()</code></a> method. The best place to do this is in the <a href="https://msdn.microsoft.com/en-us/library/ms230105(v=vs.110).aspx"><code>ICorProfilerCallback::ModuleLoadFinished()</code></a> method. This ensures all data is in memory from the file. A code example is in my last blog post <a href="/2015/09/16/rewriting-il-remotely-part1/">here</a>.</p>
 
 <p>However, if you want to look at ALL of the data you can just open up <a href="https://msdn.microsoft.com/en-us/library/aa309387(v=vs.71).aspx">ILDASM</a> from your developer command prompt. If you view the MetaInfo you will find a lot of tables like the one below. There is a lot of information packed in there and you can start making sense of it by referencing the <a href="http://www.ecma-international.org/publications/files/ECMA-ST/ECMA-335.pdf">ECMA-335 spec</a>. It’s a dry read; for me it was easier to start poking at the interfaces and MetaInfo and referring back to the spec for clarification.</p>
 
@@ -516,6 +516,15 @@ IL_000f:  2A              ret
     
     <li>
       <h3>
+        <a href="http://www.debugthings.com/2015/10/28/rewriting-il-remotely-part4/">
+          Rewriting IL - Part 4 - Token Replacement and Signature Rewriting
+          <small>28 Oct 2015</small>
+        </a>
+      </h3>
+    </li>
+    
+    <li>
+      <h3>
         <a href="http://www.debugthings.com/2015/10/13/rewriting-il-remotely-part3/">
           Rewriting IL - Part 3 - Signatures and Compression
           <small>13 Oct 2015</small>
@@ -528,15 +537,6 @@ IL_000f:  2A              ret
         <a href="http://www.debugthings.com/2015/09/16/rewriting-il-remotely-part1/">
           Rewriting IL - Part 1 - Metadata Interfaces
           <small>16 Sep 2015</small>
-        </a>
-      </h3>
-    </li>
-    
-    <li>
-      <h3>
-        <a href="http://www.debugthings.com/2015/09/06/simple%20beginings-chainsapm/">
-          Simple Beginnings - ChainsAPM
-          <small>06 Sep 2015</small>
         </a>
       </h3>
     </li>
